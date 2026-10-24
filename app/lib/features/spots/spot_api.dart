@@ -12,6 +12,7 @@ class SpotDraft {
     required this.lat,
     required this.lon,
     this.photoIds = const [],
+    this.tags = const [],
   });
 
   final String title;
@@ -23,6 +24,9 @@ class SpotDraft {
   /// Already-uploaded photos; the backend turns description + photos into the
   /// spot's first update.
   final List<int> photoIds;
+
+  /// Sent only when non-empty.
+  final List<SpotTag> tags;
 }
 
 class LikeResult {
@@ -40,6 +44,9 @@ abstract class SpotApi {
   /// Throws [ApiException] with code `possible_duplicate` (409) unless [force].
   Future<Spot> createSpot(SpotDraft draft, {bool force = false});
   Future<LikeResult> setLike(int spotId, {required bool liked});
+
+  /// Replaces the tags of a spot (author or admin); returns the full spot.
+  Future<Spot> setTags(int id, List<SpotTag> tags);
 
   /// [targetType] is `spot` or `update`.
   Future<void> report(String targetType, int targetId, String reason);
@@ -65,11 +72,23 @@ class ApiSpotApi implements SpotApi {
         'lat': d.lat,
         'lon': d.lon,
         if (d.photoIds.isNotEmpty) 'photo_ids': d.photoIds,
+        if (d.tags.isNotEmpty)
+          'tags': [for (final t in SpotTag.sorted(d.tags)) t.wire],
         if (force) 'force': true,
       },
     );
     return Spot.fromJson(json);
   }
+
+  @override
+  Future<Spot> setTags(int id, List<SpotTag> tags) async => Spot.fromJson(
+    await _api.put<Map<String, dynamic>>(
+      '/spots/$id/tags',
+      data: {
+        'tags': [for (final t in SpotTag.sorted(tags)) t.wire],
+      },
+    ),
+  );
 
   @override
   Future<LikeResult> setLike(int spotId, {required bool liked}) async {

@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/api_client.dart';
+import '../../core/models.dart' show SpotTag;
 import 'photo_uploader.dart';
 import 'spot_api.dart';
 
@@ -24,6 +25,7 @@ class AddSpotState {
     this.category,
     this.point,
     this.photos = const [],
+    this.tags = const [],
     this.submitting = false,
     this.duplicate = false,
     this.duplicateSpotId,
@@ -36,6 +38,9 @@ class AddSpotState {
   final String? category;
   final LatLng? point;
   final List<XFile> photos;
+
+  /// Canonical order.
+  final List<SpotTag> tags;
   final bool submitting;
 
   /// A 409 `possible_duplicate` came back; offer "open it" / "add anyway".
@@ -58,6 +63,7 @@ class AddSpotState {
     String? category,
     LatLng? point,
     List<XFile>? photos,
+    List<SpotTag>? tags,
     bool? submitting,
     bool? duplicate,
     int? duplicateSpotId,
@@ -71,6 +77,7 @@ class AddSpotState {
     category: category ?? this.category,
     point: point ?? this.point,
     photos: photos ?? this.photos,
+    tags: tags ?? this.tags,
     submitting: submitting ?? this.submitting,
     duplicate: clearDuplicate ? false : (duplicate ?? this.duplicate),
     duplicateSpotId: clearDuplicate
@@ -97,6 +104,15 @@ class AddSpotController extends Notifier<AddSpotState> {
   void setTitle(String v) => state = state.copyWith(title: v);
   void setDescription(String v) => state = state.copyWith(description: v);
   void setCategory(String v) => state = state.copyWith(category: v);
+
+  void setTags(Iterable<SpotTag> tags) =>
+      state = state.copyWith(tags: SpotTag.sorted(tags));
+
+  void toggleTag(SpotTag tag) => setTags(
+    state.tags.contains(tag)
+        ? state.tags.where((t) => t != tag)
+        : [...state.tags, tag],
+  );
 
   void setPoint(LatLng p) =>
       state = state.copyWith(point: p, clearDuplicate: true);
@@ -145,6 +161,7 @@ class AddSpotController extends Notifier<AddSpotState> {
               lat: state.point!.latitude,
               lon: state.point!.longitude,
               photoIds: photoIds,
+              tags: state.tags,
             ),
             force: force,
           );

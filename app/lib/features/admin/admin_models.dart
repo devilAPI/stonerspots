@@ -180,6 +180,7 @@ class AdminSpot {
     required this.createdAt,
     required this.author,
     required this.reportCount,
+    this.tags = const [],
   });
 
   final int id;
@@ -188,6 +189,7 @@ class AdminSpot {
   final String category;
   final double lat;
   final double lon;
+  final List<SpotTag> tags;
 
   /// `active` or `hidden`.
   final String status;
@@ -208,6 +210,7 @@ class AdminSpot {
     createdAt: DateTime.parse(j['created_at'] as String),
     author: Author.fromJson(j['author'] as Map<String, dynamic>),
     reportCount: (j['report_count'] ?? 0) as int,
+    tags: SpotTag.parse(j['tags']),
   );
 
   AdminSpot copyWith({String? status, int? reportCount}) => AdminSpot(
@@ -222,6 +225,7 @@ class AdminSpot {
     createdAt: createdAt,
     author: author,
     reportCount: reportCount ?? this.reportCount,
+    tags: tags,
   );
 }
 
@@ -252,8 +256,11 @@ class AdminSpotPatch {
     this.status,
     this.lat,
     this.lon,
+    this.tags,
   });
 
+  /// The complete new tag list (empty = remove all); null = unchanged.
+  final List<SpotTag>? tags;
   final String? title;
   final String? description;
   final String? category;
@@ -269,5 +276,6 @@ class AdminSpotPatch {
     'category': ?category,
     'status': ?status,
     if (lat != null && lon != null) ...{'lat': lat, 'lon': lon},
+    if (tags != null) 'tags': [for (final t in SpotTag.sorted(tags!)) t.wire],
   };
 }

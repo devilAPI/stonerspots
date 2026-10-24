@@ -642,4 +642,41 @@ class AppLocalizationsDe extends AppLocalizations {
   String errorWithDetail(String message) {
     return 'Etwas ist schiefgelaufen: $message';
   }
+
+  @override
+  String get tagRoof => 'Überdacht';
+
+  @override
+  String get tagSeating => 'Sitzgelegenheit';
+
+  @override
+  String get tagView => 'Aussicht';
+
+  @override
+  String get tagQuiet => 'Ruhig';
+
+  @override
+  String get tagShade => 'Schatten';
+
+  @override
+  String get tagWater => 'Wasser in der Nähe';
+
+  @override
+  String get tagLit => 'Beleuchtet';
+
+  @override
+  String get tagsTitle => 'Tags';
+
+  @override
+  String get tagsClear => 'Tags zurücksetzen';
+
+  @override
+  String get editTags => 'Tags bearbeiten';
+
+  @override
+  String get tagsErrForbidden =>
+      'Nur der Autor oder ein Admin darf Tags ändern';
+
+  @override
+  String get tagsErrInvalid => 'Einer der Tags ist ungültig';
 }

@@ -12,12 +12,17 @@ import 'package:latlong2/latlong.dart';
 class FakeSpotApi implements SpotApi {
   final List<bool> forces = [];
   final List<List<int>> draftPhotoIds = [];
+  final List<List<SpotTag>> draftTags = [];
   Object? createError;
 
+  @override
+  Future<Spot> setTags(int id, List<SpotTag> tags) =>
+      throw UnimplementedError();
   @override
   Future<Spot> createSpot(SpotDraft draft, {bool force = false}) async {
     forces.add(force);
     draftPhotoIds.add(draft.photoIds);
+    draftTags.add(draft.tags);
     final e = createError;
     if (e != null && !force) throw e;
     return Spot(
@@ -165,5 +170,21 @@ void main() {
     // Photos travel with POST /spots; the backend creates the first update.
     expect(api.draftPhotoIds.last, [2]);
     expect(updates.posted, isEmpty);
+  });
+
+  test('selected tags are sent with the draft, in canonical order', () async {
+    fillRequired();
+    ctrl().toggleTag(SpotTag.lit);
+    ctrl().toggleTag(SpotTag.roof);
+    ctrl().toggleTag(SpotTag.view);
+    ctrl().toggleTag(SpotTag.view); // off again
+    await ctrl().submit();
+    expect(api.draftTags.single, [SpotTag.roof, SpotTag.lit]);
+  });
+
+  test('no tags selected: draft has none', () async {
+    fillRequired();
+    await ctrl().submit();
+    expect(api.draftTags.single, isEmpty);
   });
 }

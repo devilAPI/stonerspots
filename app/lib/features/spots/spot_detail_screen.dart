@@ -5,12 +5,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/models.dart';
 import '../../core/responsive.dart';
+import '../../core/spot_tag_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
 import '../feed/satellite_thumb.dart';
 import 'add_spot_screen.dart' show categoryLabel;
 import '../reviews/rating_widgets.dart';
 import '../reviews/reviews_section.dart';
+import 'edit_tags_dialog.dart';
 import 'maps_link.dart';
 import 'photo_viewer.dart';
 import 'spot_api.dart';
@@ -78,6 +80,15 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
     } catch (_) {
       _snack(errorText);
     }
+  }
+
+  Future<void> _editTags(Spot spot) async {
+    final saved = await showEditTagsDialog(
+      context,
+      spotId: spot.id,
+      initial: spot.tags,
+    );
+    if (saved != null) ref.invalidate(spotDetailProvider(widget.spotId));
   }
 
   void _snack(String m) {
@@ -166,7 +177,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
     ref.watch(authControllerProvider); // keep the session loaded for gating
     final spotAsync = ref.watch(spotDetailProvider(widget.spotId));
     final updates = ref.watch(spotUpdatesProvider(widget.spotId));
-    final myId = ref.watch(authControllerProvider).value?.id;
+    final me = ref.watch(authControllerProvider).value;
+    final myId = me?.id;
 
     return Scaffold(
       appBar: AppBar(
@@ -237,6 +249,22 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                     ),
                   ],
                 ),
+                if (spot.tags.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  SpotTagChips(tags: spot.tags),
+                ],
+                if (me != null &&
+                    (me.isAdmin ||
+                        (spot.author != null && spot.author!.id == me.id)))
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      key: const Key('editTags'),
+                      onPressed: () => _editTags(spot),
+                      icon: const Icon(Icons.sell_outlined),
+                      label: Text(l.editTags),
+                    ),
+                  ),
                 if (spot.description.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Text(spot.description),

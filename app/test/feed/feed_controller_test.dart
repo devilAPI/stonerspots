@@ -16,7 +16,15 @@ FeedItem item(int id) => FeedItem(
 );
 
 class Call {
-  Call(this.sort, this.category, this.lat, this.lon, this.cursor);
+  Call(
+    this.sort,
+    this.category,
+    this.lat,
+    this.lon,
+    this.cursor, [
+    this.tags = const [],
+  ]);
+  final List<SpotTag> tags;
   final FeedSort sort;
   final String? category;
   final double? lat, lon;
@@ -35,8 +43,9 @@ class FakeRepo implements FeedRepository {
     double? lon,
     String? cursor,
     int limit = 20,
+    List<SpotTag> tags = const [],
   }) async {
-    final c = Call(sort, category, lat, lon, cursor);
+    final c = Call(sort, category, lat, lon, cursor, tags);
     calls.add(c);
     return handler(c);
   }
@@ -144,5 +153,36 @@ void main() {
     await n.loadMore();
     final ids = c.read(feedControllerProvider).items.map((i) => i.id).toList();
     expect(ids, [0, 1, 2, 3]);
+  });
+
+  test('tags are passed and a change resets pagination', () async {
+    final repo = FakeRepo()
+      ..handler = (c) => c.cursor == null
+          ? FeedPage([item(1), item(2)], 'c1')
+          : FeedPage([item(3)], null);
+    final c = make(repo);
+    final n = c.read(feedControllerProvider.notifier);
+    await n.load();
+    expect(repo.calls.last.tags, isEmpty);
+    await n.loadMore();
+    expect(c.read(feedControllerProvider).items, hasLength(3));
+
+    await n.setCategory('lake');
+    await n.toggleTag(SpotTag.quiet);
+    await n.toggleTag(SpotTag.roof);
+    expect(repo.calls.last.tags, [SpotTag.roof, SpotTag.quiet]);
+    expect(repo.calls.last.cursor, isNull);
+    expect(repo.calls.last.category, 'lake');
+    expect(c.read(feedControllerProvider).items, hasLength(2));
+
+    await n.loadMore();
+    expect(repo.calls.last.cursor, 'c1');
+    expect(repo.calls.last.tags, [SpotTag.roof, SpotTag.quiet]);
+
+    await n.toggleTag(SpotTag.roof);
+    expect(repo.calls.last.tags, [SpotTag.quiet]);
+    await n.clearTags();
+    expect(repo.calls.last.tags, isEmpty);
+    expect(repo.calls.last.cursor, isNull);
   });
 }

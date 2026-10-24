@@ -16,6 +16,9 @@ class _NoLocation implements LocationService {
 
 class _Api implements SpotApi {
   @override
+  Future<Spot> setTags(int id, List<SpotTag> tags) =>
+      throw UnimplementedError();
+  @override
   Future<Spot> getSpot(int id) => throw UnimplementedError();
   @override
   Future<Spot> createSpot(SpotDraft d, {bool force = false}) =>
@@ -81,5 +84,43 @@ void main() {
     expect(find.byKey(const Key('addSpotTwoPane')), findsNothing);
     expect(find.byType(LocationPicker), findsOneWidget);
     expect(find.byKey(const Key('title')), findsOneWidget);
+  });
+
+  testWidgets('tags section offers all seven chips and toggles them', (
+    t,
+  ) async {
+    await pumpAt(t, const Size(1100, 700));
+    for (final tag in SpotTag.values) {
+      final f = find.byKey(Key('tag-${tag.wire}'));
+      await t.ensureVisible(f);
+      expect(f, findsOneWidget);
+    }
+    final roof = find.byKey(const Key('tag-roof'));
+    expect(t.widget<FilterChip>(roof).selected, isFalse);
+    await t.tap(roof);
+    await t.pump();
+    expect(t.widget<FilterChip>(roof).selected, isTrue);
+    await t.tap(roof);
+    await t.pump();
+    expect(t.widget<FilterChip>(roof).selected, isFalse);
+  });
+
+  testWidgets('tags are reachable in the single column without overflow', (
+    t,
+  ) async {
+    await pumpAt(t, const Size(400, 800));
+    await t.scrollUntilVisible(
+      find.byKey(const Key('tag-lit')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.byKey(const Key('tag-lit')), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('landscape phone: tags without overflow', (t) async {
+    await pumpAt(t, const Size(844, 390));
+    await t.ensureVisible(find.byKey(const Key('tag-lit')));
+    expect(t.takeException(), isNull);
   });
 }

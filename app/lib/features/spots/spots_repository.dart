@@ -10,7 +10,11 @@ import '../../core/providers.dart';
 const kMapSpotLimit = 200;
 
 abstract class SpotsRepository {
-  Future<List<Spot>> inBounds(LatLngBounds bounds, {String? category});
+  Future<List<Spot>> inBounds(
+    LatLngBounds bounds, {
+    String? category,
+    List<SpotTag> tags = const [],
+  });
 }
 
 class ApiSpotsRepository implements SpotsRepository {
@@ -19,7 +23,11 @@ class ApiSpotsRepository implements SpotsRepository {
   final ApiClient _api;
 
   @override
-  Future<List<Spot>> inBounds(LatLngBounds bounds, {String? category}) async {
+  Future<List<Spot>> inBounds(
+    LatLngBounds bounds, {
+    String? category,
+    List<SpotTag> tags = const [],
+  }) async {
     final data = await _api.get<List<dynamic>>(
       '/spots',
       query: {
@@ -28,6 +36,7 @@ class ApiSpotsRepository implements SpotsRepository {
         'north': bounds.north,
         'east': bounds.east,
         'category': ?category,
+        if (tags.isNotEmpty) 'tags': SpotTag.encode(tags),
         'limit': kMapSpotLimit,
       },
     );

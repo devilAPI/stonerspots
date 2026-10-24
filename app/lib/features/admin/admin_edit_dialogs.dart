@@ -5,6 +5,8 @@ import 'package:latlong2/latlong.dart';
 import '../../core/api_client.dart';
 import '../../core/coordinates.dart';
 import '../../l10n/app_localizations.dart';
+import '../../core/models.dart' show SpotTag;
+import '../../core/spot_tag_widgets.dart';
 import '../spots/add_spot_controller.dart' show kCategories;
 import '../spots/add_spot_screen.dart' show categoryLabel;
 import 'admin_models.dart';
@@ -43,6 +45,8 @@ String adminSpotErrorText(AppLocalizations l, Object e) {
         return l.adminErrInvalidStatus;
       case 'invalid_location':
         return l.adminErrInvalidLocation;
+      case 'invalid_tags':
+        return l.tagsErrInvalid;
     }
   }
   return l.errorGeneric;
@@ -221,6 +225,7 @@ class _EditSpotDialogState extends ConsumerState<_EditSpotDialog> {
       ? widget.spot.category
       : 'other';
   late String _status = widget.spot.status == 'hidden' ? 'hidden' : 'active';
+  late List<SpotTag> _tags = SpotTag.sorted(widget.spot.tags);
   bool _busy = false;
   String? _error;
 
@@ -231,6 +236,9 @@ class _EditSpotDialogState extends ConsumerState<_EditSpotDialog> {
     _coords.dispose();
     super.dispose();
   }
+
+  static bool _sameTags(List<SpotTag> a, List<SpotTag> b) =>
+      SpotTag.encode(a) == SpotTag.encode(b);
 
   static bool _same(double a, double b) => (a - b).abs() < 1e-9;
 
@@ -264,6 +272,7 @@ class _EditSpotDialogState extends ConsumerState<_EditSpotDialog> {
       status: _status != s.status ? _status : null,
       lat: point?.latitude,
       lon: point?.longitude,
+      tags: _sameTags(_tags, s.tags) ? null : _tags,
     );
     if (patch.isEmpty) {
       Navigator.pop(context);
@@ -337,6 +346,14 @@ class _EditSpotDialogState extends ConsumerState<_EditSpotDialog> {
               onSelected: (_) => setState(() => _status = 'hidden'),
             ),
           ],
+        ),
+        const SizedBox(height: 12),
+        Text(l10n.tagsTitle, style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 4),
+        SpotTagSelector(
+          keyPrefix: 'edit-spot-tag-',
+          selected: _tags,
+          onChanged: (next) => setState(() => _tags = next),
         ),
         const SizedBox(height: 12),
         TextField(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/responsive.dart';
+import '../../core/spot_tag_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'feed_card.dart';
 import 'feed_controller.dart';
@@ -150,6 +151,19 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                 ),
             ],
           ),
+          _ChipRow(
+            key: const Key('feedTagRow'),
+            gutter: gutter,
+            children: spotTagFilterItems(
+              context,
+              keyPrefix: 'feedTag-',
+              selected: state.tags,
+              onToggle: ctrl.toggleTag,
+              onClear: ctrl.clearTags,
+              clearKey: const Key('feedTagsClear'),
+              withDivider: false,
+            ),
+          ),
           Expanded(
             child: RefreshIndicator(onRefresh: ctrl.refresh, child: body),
           ),
@@ -160,7 +174,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 }
 
 class _ChipRow extends StatelessWidget {
-  const _ChipRow({required this.children, this.gutter = 0});
+  const _ChipRow({super.key, required this.children, this.gutter = 0});
   final List<Widget> children;
   final double gutter;
 

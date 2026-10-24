@@ -636,4 +636,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String errorWithDetail(String message) {
     return 'Something went wrong: $message';
   }
+
+  @override
+  String get tagRoof => 'Roof';
+
+  @override
+  String get tagSeating => 'Seating';
+
+  @override
+  String get tagView => 'View';
+
+  @override
+  String get tagQuiet => 'Quiet';
+
+  @override
+  String get tagShade => 'Shade';
+
+  @override
+  String get tagWater => 'Water nearby';
+
+  @override
+  String get tagLit => 'Lit';
+
+  @override
+  String get tagsTitle => 'Tags';
+
+  @override
+  String get tagsClear => 'Clear tags';
+
+  @override
+  String get editTags => 'Edit tags';
+
+  @override
+  String get tagsErrForbidden => 'Only the author or an admin can change tags';
+
+  @override
+  String get tagsErrInvalid => 'One of the tags is invalid';
 }

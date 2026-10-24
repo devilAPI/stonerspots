@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../core/location_service.dart';
 import '../../core/responsive.dart';
+import '../../core/spot_tag_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'add_spot_controller.dart';
 import 'add_spot_errors.dart';
@@ -120,6 +121,10 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
         maxLines: 4,
         onChanged: ctrl.setDescription,
       ),
+      const SizedBox(height: 12),
+      Text(l.tagsTitle, style: Theme.of(context).textTheme.labelLarge),
+      const SizedBox(height: 4),
+      SpotTagSelector(selected: s.tags, onChanged: ctrl.setTags),
       const SizedBox(height: 12),
       Wrap(
         spacing: 8,

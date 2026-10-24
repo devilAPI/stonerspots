@@ -12,6 +12,7 @@ class FeedState {
     this.nextCursor,
     this.sort = FeedSort.newest,
     this.category,
+    this.tags = const [],
     this.loading = false,
     this.loadingMore = false,
     this.error,
@@ -23,6 +24,9 @@ class FeedState {
   final String? nextCursor;
   final FeedSort sort;
   final String? category;
+
+  /// Selected tag filters (all must match), canonical order.
+  final List<SpotTag> tags;
   final bool loading;
   final bool loadingMore;
   final Object? error;
@@ -36,6 +40,7 @@ class FeedState {
     Object? nextCursor = _keep,
     FeedSort? sort,
     Object? category = _keep,
+    List<SpotTag>? tags,
     bool? loading,
     bool? loadingMore,
     Object? error = _keep,
@@ -48,6 +53,7 @@ class FeedState {
         : nextCursor as String?,
     sort: sort ?? this.sort,
     category: identical(category, _keep) ? this.category : category as String?,
+    tags: tags ?? this.tags,
     loading: loading ?? this.loading,
     loadingMore: loadingMore ?? this.loadingMore,
     error: identical(error, _keep) ? this.error : error,
@@ -93,6 +99,19 @@ class FeedController extends Notifier<FeedState> {
 
   Future<void> setCategory(String? category) async {
     state = state.copyWith(category: category);
+    await _loadFirst(keepItems: false);
+  }
+
+  Future<void> toggleTag(SpotTag tag) async {
+    final next = state.tags.contains(tag)
+        ? state.tags.where((t) => t != tag)
+        : [...state.tags, tag];
+    state = state.copyWith(tags: SpotTag.sorted(next));
+    await _loadFirst(keepItems: false);
+  }
+
+  Future<void> clearTags() async {
+    state = state.copyWith(tags: const []);
     await _loadFirst(keepItems: false);
   }
 
@@ -143,6 +162,7 @@ class FeedController extends Notifier<FeedState> {
   Future<FeedPage> _fetch(String? cursor) => _repo.fetch(
     sort: state.sort,
     category: state.category,
+    tags: state.tags,
     lat: state.sort == FeedSort.nearby ? _pos?.latitude : null,
     lon: state.sort == FeedSort.nearby ? _pos?.longitude : null,
     cursor: cursor,

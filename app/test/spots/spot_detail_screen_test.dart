@@ -1,3 +1,4 @@
+import 'package:app/core/api_client.dart';
 import 'package:app/core/models.dart';
 import 'package:app/features/auth/auth_controller.dart';
 import 'package:app/features/feed/satellite_thumb.dart';
@@ -18,9 +19,13 @@ import '../reviews/review_helpers.dart';
 import 'update_helpers.dart';
 
 class _Api implements SpotApi {
-  _Api({this.cover});
+  _Api({this.cover, this.tags = const [], this.authorId = 9});
   final String? cover;
   int likes = 0;
+  List<SpotTag> tags;
+  final int authorId;
+  final savedTags = <List<SpotTag>>[];
+  Object? setTagsError;
 
   @override
   Future<Spot> getSpot(int id) async => Spot(
@@ -33,11 +38,21 @@ class _Api implements SpotApi {
     coverUrl: cover,
     ratingAvg: 4.5,
     ratingCount: 2,
+    tags: tags,
+    author: Author(id: authorId, displayName: 'Ann'),
   );
   @override
   Future<LikeResult> setLike(int spotId, {required bool liked}) async {
     likes++;
     return const LikeResult(liked: true, likeCount: 4);
+  }
+
+  @override
+  Future<Spot> setTags(int id, List<SpotTag> tags) async {
+    savedTags.add(tags);
+    if (setTagsError != null) throw setTagsError!;
+    this.tags = tags;
+    return await getSpot(id);
   }
 
   @override
@@ -63,8 +78,11 @@ Future<_Api> _pump(
   UrlLauncher? launcher,
   List<FeedItem>? items,
   String? cover,
+  List<SpotTag> tags = const [],
+  int authorId = 9,
+  _Api? withApi,
 }) async {
-  final api = _Api(cover: cover);
+  final api = withApi ?? _Api(cover: cover, tags: tags, authorId: authorId);
   updates = FakeUpdates(items: items);
   reviews = FakeReviews([
     ReviewsPage(
@@ -371,5 +389,92 @@ void main() {
     expect(photo.dy, lessThan(sat.dy));
     expect(find.byKey(const Key('detailTwoPane')), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  const owner = User(id: 9, email: 'a@b.de', displayName: 'Ann');
+  const stranger = User(id: 2, email: 'c@d.de', displayName: 'Cy');
+  const admin = User(id: 3, email: 'e@f.de', displayName: 'Ad', isAdmin: true);
+
+  for (final size in const [Size(400, 800), Size(844, 390), Size(1100, 700)]) {
+    testWidgets('spot page shows tag chips, no overflow at $size', (
+      tester,
+    ) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _pump(
+        tester,
+        owner,
+        tags: const [SpotTag.roof, SpotTag.quiet, SpotTag.lit],
+      );
+      for (final t in const ['roof', 'quiet', 'lit']) {
+        expect(find.byKey(Key('spotTag-$t')), findsOneWidget);
+      }
+      expect(find.byKey(const Key('spotTag-view')), findsNothing);
+      expect(find.text('Roof'), findsOneWidget);
+      expect(find.byKey(const Key('editTags')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('edit tags is hidden for strangers and logged-out users', (
+    tester,
+  ) async {
+    await _pump(tester, stranger, tags: const [SpotTag.roof]);
+    expect(find.byKey(const Key('spotTag-roof')), findsOneWidget);
+    expect(find.byKey(const Key('editTags')), findsNothing);
+  });
+
+  testWidgets('edit tags is hidden when logged out', (tester) async {
+    await _pump(tester, null);
+    expect(find.byKey(const Key('editTags')), findsNothing);
+  });
+
+  testWidgets('an admin may edit tags of any spot', (tester) async {
+    await _pump(tester, admin);
+    expect(find.byKey(const Key('editTags')), findsOneWidget);
+  });
+
+  testWidgets('author edits tags: saved via the API and shown afterwards', (
+    tester,
+  ) async {
+    final api = await _pump(tester, owner, tags: const [SpotTag.roof]);
+    final btn = find.byKey(const Key('editTags'));
+    await tester.ensureVisible(btn);
+    await tester.tap(btn);
+    await tester.pumpAndSettle();
+    // roof is preselected; add water, drop roof
+    await tester.tap(find.byKey(const Key('editTag-water')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('editTag-roof')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('editTagsSave')));
+    await tester.pumpAndSettle();
+    expect(api.savedTags, [
+      [SpotTag.water],
+    ]);
+    expect(find.byKey(const Key('editTagsSave')), findsNothing);
+    expect(find.byKey(const Key('spotTag-water')), findsOneWidget);
+    expect(find.byKey(const Key('spotTag-roof')), findsNothing);
+  });
+
+  testWidgets('a forbidden answer is shown localized inside the dialog', (
+    tester,
+  ) async {
+    final api = await _pump(tester, owner);
+    api.setTagsError = ApiException(403, 'forbidden', 'nope');
+    final btn = find.byKey(const Key('editTags'));
+    await tester.ensureVisible(btn);
+    await tester.tap(btn);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('editTag-view')));
+    await tester.tap(find.byKey(const Key('editTagsSave')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('editTagsError')), findsOneWidget);
+    expect(
+      find.text('Only the author or an admin can change tags'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('editTagsSave')), findsOneWidget);
   });
 }
