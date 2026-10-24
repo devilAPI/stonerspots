@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A community map app (Android, iOS, web) where people find, add and update "stoner spots" (benches, rivers, viewpoints), with photos and a sortable/filterable picture feed. Launch region: Switzerland, Liechtenstein and Austria.
+**Goal:** A community map app (Android, iOS, web) where people find, add and update "stoner spots" (benches, rivers, viewpoints), with photos and a sortable/filterable picture feed. Launch region: Germany, Austria, Switzerland and Liechtenstein (DACH).
 
 **Architecture:** Flutter client talks to a stateless Go REST API (JSON over HTTPS). MariaDB 11.4 stores everything; spots use a `POINT NOT NULL` column (x = lon, y = lat) with a SPATIAL INDEX for fast "spots in view / near me" queries. Photos are stored on local disk behind a `Storage` interface (swap for S3-compatible storage later) and served via a static route.
 
@@ -14,7 +14,7 @@
 
 ## Decisions (user's vs. my calls)
 
-User decided: Flutter (Android/iOS/web); Go backend; MySQL-family DB (not Postgres); the user's machine is getting MariaDB installed, so **MariaDB 11.4** is the target; no PHP; community-driven; map of spots; photos and updates per spot; mini social feed with picture posts, sortable and filterable; reviews/ratings **later**; Region at first: Switzerland, Liechtenstein, Austria (changed from Germany); map opens on the nicest spots nearby, and it must be fast.
+User decided: Flutter (Android/iOS/web); Go backend; MySQL-family DB (not Postgres); the user's machine is getting MariaDB installed, so **MariaDB 11.4** is the target; no PHP; community-driven; map of spots; photos and updates per spot; mini social feed with picture posts, sortable and filterable; reviews/ratings **later**; Region at first: Germany, Austria, Switzerland, Liechtenstein (DACH); map opens on the nicest spots nearby, and it must be fast.
 
 My calls (change any of these in review):
 - Monorepo: `backend/` and `app/`.
@@ -24,9 +24,9 @@ My calls (change any of these in review):
 - Categories: `bench`, `river`, `lake`, `viewpoint`, `forest`, `park`, `other`.
 - UI languages: German (default) and English via Flutter l10n.
 - Safety basics in MVP: 18+ confirmation at signup, a report button, reports hide content at 3 distinct reporters. Rationale: community content plus app-store review.
-- Spots must be inside a rough CH+LI+AT bounding box (lat 45.8–49.1, lon 5.9–17.2) for the launch. The box also covers slivers of neighbouring countries; accepted for the MVP.
+- Spots must be inside a rough DACH bounding box (lat 45.8–55.1, lon 5.8–17.2) for the launch. The box also covers parts of neighbouring countries (Poland, Czechia, Italy, France, etc.); accepted for the MVP.
 - Execution scope: **Tasks 1–10 only**. Task 11 (packaging/deployment) is dropped.
-- Defaults are Swiss/Austrian-friendly: map fallback centre is (47.3, 9.5) at zoom 7; UI stays German + English.
+- Map fallback centre is (49.5, 10.5) at zoom 6 (middle of DACH); UI stays German + English.
 
 ## Global Constraints
 
@@ -117,7 +117,7 @@ File ownership rule: a task only edits the files listed under its own **Files**.
   - `GET /api/v1/spots/nearby?lat=&lon=&radius_m=&limit=` sorted by `ST_Distance_Sphere`, radius max 50 000.
   - Repo: `Create(ctx, Spot, userID) (uint64, error)`, `InBBox(ctx, BBox, filter) ([]Spot, error)`, `Nearby(ctx, lat, lon float64, radiusM, limit int) ([]Spot, error)`, `FindWithin(ctx, lat, lon, meters float64) (*Spot, error)`.
 
-- [ ] **Step 1:** Write failing tests: `TestCreateAndGetSpot`; `TestRejectsOutOfRangeAndSwappedCoordinates` (lat=200 and lat/lon swapped, both 400 `invalid_location`); `TestRejectsOutsideRegion` (e.g. Berlin and the Atlantic); `TestInvertedBBox400`; `TestHugeBBoxIsCappedToLimit`; `TestEmptyBBoxReturnsEmptyArray` (JSON body is `[]`); `TestBBoxOrdersByLikeCountThenID`; `TestNearbyOrdersByDistance`; `TestDuplicateWithin25mReturns409WithExistingID`; `TestForceCreatesDuplicate`; `TestHiddenSpotsAreExcluded`; `TestCreateRequiresAuth`.
+- [ ] **Step 1:** Write failing tests: `TestCreateAndGetSpot`; `TestRejectsOutOfRangeAndSwappedCoordinates` (lat=200 and lat/lon swapped, both 400 `invalid_location`); `TestRejectsOutsideRegion` (e.g. Paris and the Atlantic; Berlin and Vienna are accepted); `TestInvertedBBox400`; `TestHugeBBoxIsCappedToLimit`; `TestEmptyBBoxReturnsEmptyArray` (JSON body is `[]`); `TestBBoxOrdersByLikeCountThenID`; `TestNearbyOrdersByDistance`; `TestDuplicateWithin25mReturns409WithExistingID`; `TestForceCreatesDuplicate`; `TestHiddenSpotsAreExcluded`; `TestCreateRequiresAuth`.
 - [ ] **Step 2:** Run `go test ./internal/spots`. Expected: FAIL.
 - [ ] **Step 3:** Implement `Mount`, including `Repo` and handlers. Validate title (3–80), description (≤ 1000), category membership. Use `ST_AsText`/`ST_Latitude`/`ST_Longitude` to read coordinates back. Add an `EXPLAIN` assertion test, `TestBBoxQueryUsesSpatialIndex`, that the plan's `key` is the spatial index.
 - [ ] **Step 4:** Run `go test ./...`. Expected: PASS.
@@ -212,7 +212,7 @@ File ownership rule: a task only edits the files listed under its own **Files**.
 - Produces:
   - `SpotsRepository.inBounds(LatLngBounds, {String? category}) → Future<List<Spot>>`.
   - `SpotsController`: debounced (400 ms) bbox fetch on map move; cancels stale requests; keeps previous markers visible while loading.
-  - Map starts centred on the user's location, falling back to the region centre (47.3, 9.5, zoom 7) if permission is denied; top-N nicest spots are drawn larger; marker clustering; category filter chips; tapping a marker opens a bottom-sheet preview (cover photo, title, likes, "open").
+  - Map starts centred on the user's location, falling back to the region centre (49.5, 10.5, zoom 6) if permission is denied; top-N nicest spots are drawn larger; marker clustering; category filter chips; tapping a marker opens a bottom-sheet preview (cover photo, title, likes, "open").
 
 - [ ] **Step 1:** Write failing tests: `debounces rapid camera moves into one request`, `stale response does not overwrite newer one`, `keeps old markers while loading`, `permission denied falls back to region centre`.
 - [ ] **Step 2:** Run `flutter test test/map`. Expected: FAIL.
