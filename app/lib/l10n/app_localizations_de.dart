@@ -452,4 +452,47 @@ class AppLocalizationsDe extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get adminTargetReview => 'Bewertung';
+
+  @override
+  String get adminTargetUpdate => 'Update';
+
+  @override
+  String get adminRemoveReview => 'Bewertung entfernen';
+
+  @override
+  String get adminRemoveUpdate => 'Update entfernen';
+
+  @override
+  String get adminRemoveReviewTitle => 'Bewertung entfernen?';
+
+  @override
+  String get adminRemoveUpdateTitle => 'Update entfernen?';
+
+  @override
+  String get adminRemoveReviewBody =>
+      'Damit wird diese Bewertung endgültig gelöscht.';
+
+  @override
+  String get adminRemoveUpdateBody =>
+      'Damit wird dieses Update endgültig gelöscht.';
+
+  @override
+  String get adminReviewRemoved => 'Bewertung entfernt';
+
+  @override
+  String get adminUpdateRemoved => 'Update entfernt';
+
+  @override
+  String adminRatingStars(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Sterne',
+      one: '1 Stern',
+    );
+    return '$_temp0';
+  }
 }

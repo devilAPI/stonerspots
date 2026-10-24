@@ -450,4 +450,45 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get adminTargetReview => 'Review';
+
+  @override
+  String get adminTargetUpdate => 'Update';
+
+  @override
+  String get adminRemoveReview => 'Remove review';
+
+  @override
+  String get adminRemoveUpdate => 'Remove update';
+
+  @override
+  String get adminRemoveReviewTitle => 'Remove review?';
+
+  @override
+  String get adminRemoveUpdateTitle => 'Remove update?';
+
+  @override
+  String get adminRemoveReviewBody => 'This deletes this review permanently.';
+
+  @override
+  String get adminRemoveUpdateBody => 'This deletes this update permanently.';
+
+  @override
+  String get adminReviewRemoved => 'Review removed';
+
+  @override
+  String get adminUpdateRemoved => 'Update removed';
+
+  @override
+  String adminRatingStars(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count stars',
+      one: '1 star',
+    );
+    return '$_temp0';
+  }
 }

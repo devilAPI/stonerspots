@@ -199,5 +199,23 @@
         "type": "int"
       }
     }
+  },
+  "adminTargetReview": "Bewertung",
+  "adminTargetUpdate": "Update",
+  "adminRemoveReview": "Bewertung entfernen",
+  "adminRemoveUpdate": "Update entfernen",
+  "adminRemoveReviewTitle": "Bewertung entfernen?",
+  "adminRemoveUpdateTitle": "Update entfernen?",
+  "adminRemoveReviewBody": "Damit wird diese Bewertung endgültig gelöscht.",
+  "adminRemoveUpdateBody": "Damit wird dieses Update endgültig gelöscht.",
+  "adminReviewRemoved": "Bewertung entfernt",
+  "adminUpdateRemoved": "Update entfernt",
+  "adminRatingStars": "{count, plural, =1{1 Stern} other{{count} Sterne}}",
+  "@adminRatingStars": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

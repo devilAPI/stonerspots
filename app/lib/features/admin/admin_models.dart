@@ -45,6 +45,7 @@ class AdminReportTarget {
     this.title = '',
     this.status = '',
     this.body = '',
+    this.rating = 0,
     this.author,
   });
 
@@ -57,6 +58,9 @@ class AdminReportTarget {
 
   /// Update text for update reports, otherwise empty.
   final String body;
+
+  /// Star rating (1-5) for review reports, otherwise 0.
+  final int rating;
   final Author? author;
 
   AdminReportTarget copyWith({String? title, String? status}) =>
@@ -66,6 +70,7 @@ class AdminReportTarget {
         title: title ?? this.title,
         status: status ?? this.status,
         body: body,
+        rating: rating,
         author: author,
       );
 
@@ -76,6 +81,7 @@ class AdminReportTarget {
         title: (j['title'] ?? '') as String,
         status: (j['status'] ?? '') as String,
         body: (j['body'] ?? '') as String,
+        rating: (j['rating'] ?? 0) as int,
         author: j['author'] == null
             ? null
             : Author.fromJson(j['author'] as Map<String, dynamic>),
@@ -96,7 +102,7 @@ class AdminReport {
 
   final int id;
 
-  /// `spot` or `update`.
+  /// `spot`, `update` or `review`.
   final String targetType;
   final int targetId;
   final String reason;
