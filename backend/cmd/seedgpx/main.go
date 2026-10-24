@@ -245,6 +245,12 @@ func main() {
 			retagged++
 			continue
 		}
+		// -retag only touches spots that exist. A spot that is gone was removed or
+		// renamed on purpose (e.g. by an admin); never bring it back.
+		if *retag {
+			skipped++
+			continue
+		}
 		// force: demo data legitimately has several spots a few metres apart.
 		code, b, err := c.do("POST", "/spots", map[string]any{
 			"title": t, "description": truncate(strings.TrimSpace(w.Desc), 1000), "category": cat,
