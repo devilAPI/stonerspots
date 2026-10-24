@@ -14,3 +14,4 @@ uploads/
 build/
 *.iml
 .claude/
+app/env/local.json

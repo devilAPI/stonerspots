@@ -5,36 +5,57 @@ import 'package:flutter_map/flutter_map.dart';
 /// `--dart-define=TILE_URL=https://.../{z}/{x}/{y}.png`
 const String kTileUrlOverride = String.fromEnvironment('TILE_URL');
 
-const _lightTiles = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const _osmTiles = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-/// CARTO "Dark Matter" (OpenStreetMap data). Needs CARTO attribution; check
-/// their terms before a commercial launch.
-const _darkTiles =
-    'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+/// CARTO API key for the dark basemap:
+/// `--dart-define=CARTO_KEY=...` (see `env/local.example.json`). It ends up in
+/// every tile request, so treat it as public and restrict it in CARTO's
+/// dashboard. Requests without a valid key return a watermarked tile, so the
+/// dark style is only used when a key is present.
+const String kCartoKey = String.fromEnvironment('CARTO_KEY');
 
-/// Tile layer matching the current theme: dark map in dark mode.
-TileLayer buildTileLayer(BuildContext context) {
-  final dark = Theme.of(context).brightness == Brightness.dark;
-  final custom = kTileUrlOverride.isNotEmpty;
+String _cartoDarkUrl(String key) =>
+    'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=$key';
+
+bool _usesCartoDark(BuildContext context, String cartoKey) =>
+    Theme.of(context).brightness == Brightness.dark &&
+    cartoKey.isNotEmpty &&
+    kTileUrlOverride.isEmpty;
+
+/// Tile layer matching the current theme: the dark CARTO map in dark mode
+/// (with a key), otherwise standard OpenStreetMap.
+TileLayer buildTileLayer(BuildContext context, {String cartoKey = kCartoKey}) {
+  if (kTileUrlOverride.isNotEmpty) {
+    return TileLayer(
+      urlTemplate: kTileUrlOverride,
+      userAgentPackageName: 'de.stonerspots.app',
+    );
+  }
+  if (_usesCartoDark(context, cartoKey)) {
+    return TileLayer(
+      urlTemplate: _cartoDarkUrl(cartoKey),
+      retinaMode: RetinaMode.isHighDensity(context),
+      userAgentPackageName: 'de.stonerspots.app',
+      maxNativeZoom: 20,
+    );
+  }
   return TileLayer(
-    urlTemplate: custom ? kTileUrlOverride : (dark ? _darkTiles : _lightTiles),
-    subdomains: !custom && dark
-        ? const ['a', 'b', 'c', 'd']
-        : const ['a', 'b', 'c'],
-    retinaMode: !custom && dark && RetinaMode.isHighDensity(context),
+    urlTemplate: _osmTiles,
     userAgentPackageName: 'de.stonerspots.app',
     maxNativeZoom: 19,
   );
 }
 
 /// Required credit for OpenStreetMap data and the CARTO basemap.
-Widget buildMapAttribution(BuildContext context) {
-  final dark = Theme.of(context).brightness == Brightness.dark;
+Widget buildMapAttribution(
+  BuildContext context, {
+  String cartoKey = kCartoKey,
+}) {
   return RichAttributionWidget(
     alignment: AttributionAlignment.bottomLeft,
     attributions: [
       const TextSourceAttribution('OpenStreetMap contributors'),
-      if (dark && kTileUrlOverride.isEmpty)
+      if (_usesCartoDark(context, cartoKey))
         const TextSourceAttribution('CARTO'),
     ],
   );
