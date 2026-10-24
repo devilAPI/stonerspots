@@ -1,6 +1,7 @@
 // Command seedgpx imports the waypoints of a GPX file as spots through the
 // public API. It is meant for local demo data and is safe to re-run: points
-// that already exist (same title within 2 m) are skipped.
+// that already exist (same title within 2 m) are skipped, or re-tagged with
+// -retag. Tags are inferred from the waypoint name and description.
 //
 //	go run ./cmd/seedgpx -gpx ~/Downloads/Spots.gpx
 package main
@@ -57,6 +58,32 @@ func category(text string) string {
 		return "park"
 	}
 	return "other"
+}
+
+// tagRules maps each spot tag to the (lower-case) words that imply it, in
+// canonical tag order.
+var tagRules = []struct {
+	tag string
+	re  *regexp.Regexp
+}{
+	{"roof", regexp.MustCompile(`überdacht|ueberdacht|dach|hütte|huette|häuschen|haeuschen|tunnel|unterführung|unterfuehrung|glashaus|pavi|container`)},
+	{"seating", regexp.MustCompile(`bank|bänke|baenke|sitz`)},
+	{"view", regexp.MustCompile(`aussicht|blick`)},
+	{"quiet", regexp.MustCompile(`ruhig|entspannt|chill`)},
+	{"water", regexp.MustCompile(`teich|weiher|bach|see\b|fluss|brunnen`)},
+}
+
+// inferTags derives spot tags from a waypoint's name and description. The
+// result is in canonical order and never nil.
+func inferTags(text string) []string {
+	t := strings.ToLower(text)
+	out := []string{}
+	for _, r := range tagRules {
+		if r.re.MatchString(t) {
+			out = append(out, r.tag)
+		}
+	}
+	return out
 }
 
 func truncate(s string, n int) string {
@@ -142,22 +169,24 @@ func (c *client) login(email, password, name string) error {
 	return nil
 }
 
-func (c *client) exists(lat, lon float64, title string) bool {
+// find returns the id of a spot with the same title within 2 m, or 0.
+func (c *client) find(lat, lon float64, title string) uint64 {
 	q := url.Values{"lat": {fmt.Sprint(lat)}, "lon": {fmt.Sprint(lon)}, "radius_m": {"2"}, "limit": {"50"}}
 	code, b, err := c.do("GET", "/spots/nearby?"+q.Encode(), nil)
 	if err != nil || code != 200 {
-		return false
+		return 0
 	}
 	var spots []struct {
+		ID    uint64 `json:"id"`
 		Title string `json:"title"`
 	}
 	_ = json.Unmarshal(b, &spots)
 	for _, s := range spots {
 		if s.Title == title {
-			return true
+			return s.ID
 		}
 	}
-	return false
+	return 0
 }
 
 func main() {
@@ -165,6 +194,7 @@ func main() {
 	api := flag.String("api", "http://localhost:8080/api/v1", "API base URL")
 	email := flag.String("email", "demo@example.com", "account to create the spots with (registered if missing)")
 	password := flag.String("password", "correct-horse-1", "account password")
+	retag := flag.Bool("retag", false, "for waypoints whose spot already exists, replace its tags with the inferred ones (PUT /spots/{id}/tags) instead of skipping")
 	dry := flag.Bool("dry-run", false, "print what would be created without calling the API")
 	flag.Parse()
 	if *file == "" {
@@ -189,25 +219,36 @@ func main() {
 		}
 	}
 
-	created, skipped, failed := 0, 0, 0
+	created, skipped, retagged, failed := 0, 0, 0, 0
 	cats := map[string]int{}
 	for _, w := range doc.Waypoints {
 		t := title(w.Name, w.Desc)
 		cat := category(w.Name + " " + w.Desc)
+		tags := inferTags(w.Name + " " + w.Desc)
 		if *dry {
-			fmt.Printf("%-10s %.5f,%.5f  %s\n", cat, w.Lat, w.Lon, t)
+			fmt.Printf("%-10s %.5f,%.5f  %s %v\n", cat, w.Lat, w.Lon, t, tags)
 			created++
 			cats[cat]++
 			continue
 		}
-		if c.exists(w.Lat, w.Lon, t) {
-			skipped++
+		if id := c.find(w.Lat, w.Lon, t); id != 0 {
+			if !*retag {
+				skipped++
+				continue
+			}
+			code, b, err := c.do("PUT", fmt.Sprintf("/spots/%d/tags", id), map[string]any{"tags": tags})
+			if err != nil || code != http.StatusOK {
+				failed++
+				log.Printf("FAIL retag %q: %d %s %v", t, code, b, err)
+				continue
+			}
+			retagged++
 			continue
 		}
 		// force: demo data legitimately has several spots a few metres apart.
 		code, b, err := c.do("POST", "/spots", map[string]any{
 			"title": t, "description": truncate(strings.TrimSpace(w.Desc), 1000), "category": cat,
-			"lat": w.Lat, "lon": w.Lon, "force": true,
+			"lat": w.Lat, "lon": w.Lon, "force": true, "tags": tags,
 		})
 		if err != nil || code != http.StatusCreated {
 			failed++
@@ -217,7 +258,7 @@ func main() {
 		created++
 		cats[cat]++
 	}
-	fmt.Printf("created=%d skipped=%d failed=%d categories=%v\n", created, skipped, failed, cats)
+	fmt.Printf("created=%d skipped=%d retagged=%d failed=%d categories=%v\n", created, skipped, retagged, failed, cats)
 	if failed > 0 {
 		os.Exit(1)
 	}

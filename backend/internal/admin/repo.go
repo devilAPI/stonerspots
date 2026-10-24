@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"stonerspots/backend/internal/spots/tagset"
 )
 
 var errNotFound = errors.New("not found")
@@ -158,6 +160,7 @@ type spotItem struct {
 	CreatedAt   time.Time `json:"created_at"`
 	Author      person    `json:"author"`
 	ReportCount int       `json:"report_count"`
+	Tags        []string  `json:"tags"`
 }
 
 const spotSelect = `SELECT s.id, s.title, s.description, s.category, ST_Y(s.location), ST_X(s.location), s.status, s.like_count, s.created_at,
@@ -170,6 +173,7 @@ func scanSpot(row interface{ Scan(...any) error }) (spotItem, error) {
 	err := row.Scan(&it.ID, &it.Title, &it.Description, &it.Category, &it.Lat, &it.Lon, &it.Status, &it.LikeCount, &it.CreatedAt,
 		&it.Author.ID, &it.Author.DisplayName, &it.ReportCount)
 	it.CreatedAt = it.CreatedAt.UTC()
+	it.Tags = []string{}
 	return it, err
 }
 
@@ -193,7 +197,24 @@ func (r repo) spots(ctx context.Context, search, status string, limit int, after
 		}
 		out = append(out, it)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
+	ids := make([]uint64, len(out))
+	for i, it := range out {
+		ids[i] = it.ID
+	}
+	tags, err := tagset.Load(ctx, r.db, ids)
+	if err != nil {
+		return nil, err
+	}
+	for i := range out {
+		if t := tags[out[i].ID]; t != nil {
+			out[i].Tags = t
+		}
+	}
+	return out, nil
 }
 
 // deleteSpot removes the spot with its updates (FK cascade), the photo rows of

@@ -7,6 +7,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"stonerspots/backend/internal/spots/tagset"
 )
 
 var (
@@ -58,8 +60,9 @@ type SpotRef struct {
 	Lon       float64 `json:"lon"`
 	LikeCount int     `json:"like_count"`
 
-	RatingAvg   float64 `json:"rating_avg"`
-	RatingCount int     `json:"rating_count"`
+	RatingAvg   float64  `json:"rating_avg"`
+	RatingCount int      `json:"rating_count"`
+	Tags        []string `json:"tags"`
 }
 
 type FeedItem struct {
@@ -188,6 +191,7 @@ const (
 type query struct {
 	sort     sortMode
 	category string
+	tags     []string
 	spotID   uint64
 	lat, lon float64
 	hasCur   bool
@@ -219,6 +223,7 @@ func scanItem(rows *sql.Rows) (FeedItem, error) {
 		&it.Spot.RatingAvg, &it.Spot.RatingCount,
 		&it.sortKey)
 	it.Photos = []PhotoRef{}
+	it.Spot.Tags = []string{}
 	return it, err
 }
 
@@ -261,6 +266,9 @@ func list(ctx context.Context, db *sql.DB, base string, q query) ([]FeedItem, *s
 		catWhere += " AND s.id = ?"
 		catArgs = append(catArgs, q.spotID)
 	}
+	tq, targs := tagset.FilterSQL("s", q.tags)
+	catWhere += tq
+	catArgs = append(catArgs, targs...)
 	// Placeholder order follows the SQL text: select, where(category, spot, cursor), order, limit.
 	args := append(append(append(append(keyArgs, catArgs...), curArgs...), orderArgs...), q.limit+1)
 
@@ -292,7 +300,28 @@ func list(ctx context.Context, db *sql.DB, base string, q query) ([]FeedItem, *s
 	if err := attachPhotos(ctx, db, base, items); err != nil {
 		return nil, nil, err
 	}
+	if err := attachSpotTags(ctx, db, items); err != nil {
+		return nil, nil, err
+	}
 	return items, next, nil
+}
+
+// attachSpotTags loads the tags of all items' spots with a single query.
+func attachSpotTags(ctx context.Context, db *sql.DB, items []FeedItem) error {
+	ids := make([]uint64, 0, len(items))
+	for _, it := range items {
+		ids = append(ids, it.Spot.ID)
+	}
+	m, err := tagset.Load(ctx, db, ids)
+	if err != nil {
+		return err
+	}
+	for i := range items {
+		if t := m[items[i].Spot.ID]; t != nil {
+			items[i].Spot.Tags = t
+		}
+	}
+	return nil
 }
 
 // attachPhotos loads the photos of all items with a single query.
@@ -348,6 +377,9 @@ func getItem(ctx context.Context, db *sql.DB, base string, id uint64) (FeedItem,
 	rows.Close()
 	items := []FeedItem{it}
 	if err := attachPhotos(ctx, db, base, items); err != nil {
+		return FeedItem{}, err
+	}
+	if err := attachSpotTags(ctx, db, items); err != nil {
 		return FeedItem{}, err
 	}
 	return items[0], nil

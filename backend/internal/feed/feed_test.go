@@ -72,11 +72,12 @@ type feedResp struct {
 			DisplayName string `json:"display_name"`
 		} `json:"author"`
 		Spot struct {
-			ID        uint64  `json:"id"`
-			Category  string  `json:"category"`
-			Lat       float64 `json:"lat"`
-			Lon       float64 `json:"lon"`
-			LikeCount int     `json:"like_count"`
+			ID        uint64   `json:"id"`
+			Category  string   `json:"category"`
+			Lat       float64  `json:"lat"`
+			Lon       float64  `json:"lon"`
+			LikeCount int      `json:"like_count"`
+			Tags      []string `json:"tags"`
 		} `json:"spot"`
 	} `json:"items"`
 	NextCursor *string `json:"next_cursor"`

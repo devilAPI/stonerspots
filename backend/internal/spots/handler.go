@@ -15,6 +15,7 @@ import (
 	"stonerspots/backend/internal/auth"
 	"stonerspots/backend/internal/feed"
 	"stonerspots/backend/internal/httpx"
+	"stonerspots/backend/internal/spots/tagset"
 )
 
 // Mount registers spot routes with full paths on the /api/v1 router.
@@ -22,6 +23,7 @@ func Mount(r chi.Router, d app.Deps) {
 	h := &handler{repo: &Repo{DB: d.DB, PublicBaseURL: strings.TrimRight(d.Cfg.PublicBaseURL, "/")}}
 	r.With(auth.Middleware(d.Cfg.JWTSecret)).Post("/spots", h.create)
 	r.Get("/spots/nearby", h.nearby)
+	r.With(auth.Middleware(d.Cfg.JWTSecret)).Put("/spots/{id}/tags", h.putTags)
 	r.Get("/spots/{id}", h.get)
 	r.Get("/spots", h.list)
 }
@@ -36,6 +38,80 @@ type createReq struct {
 	Lon         *float64 `json:"lon"`
 	Force       bool     `json:"force"`
 	PhotoIDs    []uint64 `json:"photo_ids"`
+	Tags        []string `json:"tags"`
+}
+
+func invalidTags(w http.ResponseWriter) {
+	httpx.Error(w, http.StatusBadRequest, "invalid_tags", "tags must be at most 7 of: roof, seating, view, quiet, shade, water, lit")
+}
+
+// tagsParam parses the ?tags= filter, writing the 400 itself on failure.
+func tagsParam(w http.ResponseWriter, r *http.Request) ([]string, bool) {
+	tags, err := tagset.ParseParam(r.URL.Query().Get("tags"))
+	if err != nil {
+		invalidTags(w)
+		return nil, false
+	}
+	return tags, true
+}
+
+func (h *handler) putTags(w http.ResponseWriter, r *http.Request) {
+	uid, ok := auth.UserID(r.Context())
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "unauthorized", "login required")
+		return
+	}
+	id, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		httpx.Error(w, http.StatusNotFound, "not_found", "spot not found")
+		return
+	}
+	var req struct {
+		Tags []string `json:"tags"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "invalid_json", "request body is not valid JSON")
+		return
+	}
+	owner, err := h.repo.Owner(r.Context(), id)
+	if errors.Is(err, sql.ErrNoRows) {
+		httpx.Error(w, http.StatusNotFound, "not_found", "spot not found")
+		return
+	}
+	if err != nil {
+		internal(w, err)
+		return
+	}
+	if owner != uid {
+		isAdmin, err := h.repo.IsAdmin(r.Context(), uid)
+		if err != nil {
+			internal(w, err)
+			return
+		}
+		if !isAdmin {
+			httpx.Error(w, http.StatusForbidden, "forbidden", "only the author or an admin can change tags")
+			return
+		}
+	}
+	tags, err := NormalizeTags(req.Tags)
+	if err != nil {
+		invalidTags(w)
+		return
+	}
+	if err := h.repo.SetTags(r.Context(), id, tags); err != nil {
+		internal(w, err)
+		return
+	}
+	s, err := h.repo.Get(r.Context(), id)
+	if errors.Is(err, sql.ErrNoRows) {
+		httpx.Error(w, http.StatusNotFound, "not_found", "spot not found")
+		return
+	}
+	if err != nil {
+		internal(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, s)
 }
 
 // ValidCoord reports whether lat/lon are valid degrees.
@@ -80,6 +156,11 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_location", "lat must be in -90..90 and lon in -180..180")
 		return
 	}
+	tags, err := NormalizeTags(req.Tags)
+	if err != nil {
+		invalidTags(w)
+		return
+	}
 	lat, lon := *req.Lat, *req.Lon
 	if !inRegion(lat, lon) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_location", "location is outside the supported region (DACH); check that lat and lon are not swapped")
@@ -102,7 +183,7 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	id, err := h.repo.Create(r.Context(), Spot{Title: req.Title, Description: req.Description, Category: req.Category, Lat: lat, Lon: lon}, uid)
+	id, err := h.repo.Create(r.Context(), Spot{Title: req.Title, Description: req.Description, Category: req.Category, Lat: lat, Lon: lon, Tags: tags}, uid)
 	if err != nil {
 		internal(w, err)
 		return
@@ -193,7 +274,11 @@ func (h *handler) list(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_category", "unknown category")
 		return
 	}
-	list, err := h.repo.InBBox(r.Context(), b, Filter{Category: cat, Limit: limit})
+	tags, ok := tagsParam(w, r)
+	if !ok {
+		return
+	}
+	list, err := h.repo.InBBox(r.Context(), b, Filter{Category: cat, Limit: limit, Tags: tags})
 	if err != nil {
 		internal(w, err)
 		return
@@ -225,7 +310,11 @@ func (h *handler) nearby(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_limit", "limit must be an integer")
 		return
 	}
-	list, err := h.repo.Nearby(r.Context(), lat, lon, radius, limit)
+	tags, ok := tagsParam(w, r)
+	if !ok {
+		return
+	}
+	list, err := h.repo.Nearby(r.Context(), lat, lon, radius, limit, tags)
 	if err != nil {
 		internal(w, err)
 		return

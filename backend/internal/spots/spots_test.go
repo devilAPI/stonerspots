@@ -35,9 +35,16 @@ func setup(t *testing.T) *env {
 }
 
 func (e *env) do(method, path, body string, auth bool) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(method, path, strings.NewReader(body))
 	if auth {
-		req.Header.Set("Authorization", "Bearer "+e.tok)
+		return e.doTok(method, path, body, e.tok)
+	}
+	return e.doTok(method, path, body, "")
+}
+
+func (e *env) doTok(method, path, body, tok string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	if tok != "" {
+		req.Header.Set("Authorization", "Bearer "+tok)
 	}
 	rec := httptest.NewRecorder()
 	e.h.ServeHTTP(rec, req)

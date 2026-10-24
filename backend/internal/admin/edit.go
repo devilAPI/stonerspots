@@ -19,6 +19,7 @@ import (
 	"stonerspots/backend/internal/httpx"
 	"stonerspots/backend/internal/reviews"
 	"stonerspots/backend/internal/spots"
+	"stonerspots/backend/internal/spots/tagset"
 )
 
 var (
@@ -211,6 +212,7 @@ func (r repo) patchUser(ctx context.Context, id, caller uint64, p userPatch) (us
 type spotPatch struct {
 	title, description, category, status *string
 	lat, lon                             *float64
+	tags                                 *[]string
 }
 
 func (h handler) patchSpot(w http.ResponseWriter, r *http.Request) {
@@ -219,7 +221,7 @@ func (h handler) patchSpot(w http.ResponseWriter, r *http.Request) {
 		notFound(w, "spot")
 		return
 	}
-	p, ok := readPatch(w, r, "title", "description", "category", "status", "lat", "lon")
+	p, ok := readPatch(w, r, "title", "description", "category", "status", "lat", "lon", "tags")
 	if !ok {
 		return
 	}
@@ -249,6 +251,18 @@ func (h handler) patchSpot(w http.ResponseWriter, r *http.Request) {
 	if !good {
 		badBody(w)
 		return
+	}
+	var tagsIn []string
+	if present, good := field(p, "tags", &tagsIn); !good {
+		badBody(w)
+		return
+	} else if present {
+		norm, err := spots.NormalizeTags(tagsIn)
+		if err != nil {
+			httpx.Error(w, http.StatusBadRequest, "invalid_tags", "tags must be at most 7 of: roof, seating, view, quiet, shade, water, lit")
+			return
+		}
+		sp.tags = &norm
 	}
 	if sp.title != nil {
 		t := strings.TrimSpace(*sp.title)
@@ -320,12 +334,26 @@ func (r repo) patchSpot(ctx context.Context, id uint64, p spotPatch) (spotItem, 
 		// MariaDB POINT(x, y) = (lon, lat), as in the spots package.
 		sets, args = append(sets, "location = POINT(?, ?)"), append(args, *p.lon, *p.lat)
 	}
-	if _, err := tx.ExecContext(ctx, "UPDATE spots SET "+strings.Join(sets, ", ")+" WHERE id = ?", append(args, id)...); err != nil {
-		return spotItem{}, err
+	if len(sets) > 0 {
+		if _, err := tx.ExecContext(ctx, "UPDATE spots SET "+strings.Join(sets, ", ")+" WHERE id = ?", append(args, id)...); err != nil {
+			return spotItem{}, err
+		}
+	}
+	if p.tags != nil {
+		if err := tagset.Replace(ctx, tx, id, *p.tags); err != nil {
+			return spotItem{}, err
+		}
 	}
 	it, err := scanSpot(tx.QueryRowContext(ctx, spotSelect+`WHERE s.id = ?`, id))
 	if err != nil {
 		return spotItem{}, err
+	}
+	tags, err := tagset.Load(ctx, tx, []uint64{id})
+	if err != nil {
+		return spotItem{}, err
+	}
+	if t := tags[id]; t != nil {
+		it.Tags = t
 	}
 	return it, tx.Commit()
 }

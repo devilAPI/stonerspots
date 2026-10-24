@@ -12,6 +12,7 @@ import (
 
 	"stonerspots/backend/internal/auth"
 	"stonerspots/backend/internal/httpx"
+	"stonerspots/backend/internal/spots/tagset"
 )
 
 type handler struct {
@@ -88,6 +89,12 @@ func (h *handler) getFeed(w http.ResponseWriter, r *http.Request) {
 		}
 		q.category = c
 	}
+	tags, err := tagset.ParseParam(p.Get("tags"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "invalid_tags", "tags must be a comma separated list of: roof, seating, view, quiet, shade, water, lit")
+		return
+	}
+	q.tags = tags
 	if sid := p.Get("spot_id"); sid != "" {
 		n, err := strconv.ParseUint(sid, 10, 64)
 		if err != nil || n == 0 {

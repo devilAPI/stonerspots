@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+
+	"stonerspots/backend/internal/spots/tagset"
 )
 
 // Repo accesses the spots table.
@@ -30,16 +32,76 @@ func polygon(b BBox) string {
 		f(b.West), f(b.South), f(b.East), f(b.South), f(b.East), f(b.North), f(b.West), f(b.North), f(b.West), f(b.South))
 }
 
-// Create inserts a spot and returns its id.
+// Create inserts a spot with its (normalized) tags in one transaction and returns its id.
 func (r *Repo) Create(ctx context.Context, s Spot, userID uint64) (uint64, error) {
-	res, err := r.DB.ExecContext(ctx,
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback() //nolint:errcheck
+	res, err := tx.ExecContext(ctx,
 		`INSERT INTO spots (user_id, title, description, category, location) VALUES (?, ?, ?, ?, POINT(?, ?))`,
 		userID, s.Title, s.Description, s.Category, s.Lon, s.Lat)
 	if err != nil {
 		return 0, err
 	}
 	id, err := res.LastInsertId()
-	return uint64(id), err
+	if err != nil {
+		return 0, err
+	}
+	if err := tagset.Replace(ctx, tx, uint64(id), s.Tags); err != nil {
+		return 0, err
+	}
+	return uint64(id), tx.Commit()
+}
+
+// SetTags replaces the tag set of a spot atomically.
+func (r *Repo) SetTags(ctx context.Context, id uint64, tags []string) error {
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() //nolint:errcheck
+	if err := tagset.Replace(ctx, tx, id, tags); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// Owner returns the author id of an active spot, or sql.ErrNoRows.
+func (r *Repo) Owner(ctx context.Context, id uint64) (uint64, error) {
+	var uid uint64
+	err := r.DB.QueryRowContext(ctx, `SELECT user_id FROM spots WHERE id = ? AND status = 'active'`, id).Scan(&uid)
+	return uid, err
+}
+
+// IsAdmin reports whether the user has the admin flag.
+func (r *Repo) IsAdmin(ctx context.Context, userID uint64) (bool, error) {
+	var a bool
+	err := r.DB.QueryRowContext(ctx, `SELECT is_admin FROM users WHERE id = ?`, userID).Scan(&a)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	return a, err
+}
+
+// attachTags loads the tags of all spots with a single query; spots without tags get [].
+func (r *Repo) attachTags(ctx context.Context, list []Spot) error {
+	ids := make([]uint64, len(list))
+	for i, s := range list {
+		ids[i] = s.ID
+	}
+	m, err := tagset.Load(ctx, r.DB, ids)
+	if err != nil {
+		return err
+	}
+	for i := range list {
+		list[i].Tags = m[list[i].ID]
+		if list[i].Tags == nil {
+			list[i].Tags = []string{}
+		}
+	}
+	return nil
 }
 
 // Get returns an active spot, or sql.ErrNoRows.
@@ -56,6 +118,15 @@ func (r *Repo) Get(ctx context.Context, id uint64) (*Spot, error) {
 	if len(list) == 0 {
 		return nil, sql.ErrNoRows
 	}
+	if err := r.attachTags(ctx, list); err != nil {
+		return nil, err
+	}
+	var a Author
+	if err := r.DB.QueryRowContext(ctx,
+		`SELECT u.id, u.display_name FROM spots s JOIN users u ON u.id = s.user_id WHERE s.id = ?`, id).Scan(&a.ID, &a.DisplayName); err != nil {
+		return nil, err
+	}
+	list[0].Author = &a
 	return &list[0], nil
 }
 
@@ -67,6 +138,9 @@ func bboxQuery(b BBox, fl Filter) (string, []any) {
 		q += ` AND s.category = ?`
 		args = append(args, fl.Category)
 	}
+	tq, targs := tagset.FilterSQL("s", fl.Tags)
+	q += tq
+	args = append(args, targs...)
 	q += ` ORDER BY s.like_count DESC, s.id ASC LIMIT ?`
 	args = append(args, clampLimit(fl.Limit))
 	return q, args
@@ -93,27 +167,37 @@ func (r *Repo) InBBox(ctx context.Context, b BBox, fl Filter) ([]Spot, error) {
 	if err != nil {
 		return nil, err
 	}
-	return scan(rows, false)
+	list, err := scan(rows, false)
+	if err != nil {
+		return nil, err
+	}
+	return list, r.attachTags(ctx, list)
 }
 
 // Nearby returns active spots within radiusM metres, nearest first. Always non-nil.
-func (r *Repo) Nearby(ctx context.Context, lat, lon float64, radiusM, limit int) ([]Spot, error) {
+func (r *Repo) Nearby(ctx context.Context, lat, lon float64, radiusM, limit int, tags []string) ([]Spot, error) {
 	// Prefilter with a slightly generous box so the spatial index applies.
 	dLat := float64(radiusM)/111000.0 + 1e-4
 	cos := math.Max(math.Cos(lat*math.Pi/180), 0.01)
 	dLon := float64(radiusM)/(111000.0*cos) + 1e-4
 	box := BBox{South: lat - dLat, North: lat + dLat, West: lon - dLon, East: lon + dLon}
+	tq, targs := tagset.FilterSQL("s", tags)
+	args := append([]any{r.PublicBaseURL, lon, lat, polygon(box)}, targs...)
+	args = append(args, radiusM, clampLimit(limit))
 	rows, err := r.DB.QueryContext(ctx,
 		`SELECT `+selectCols+`, ST_Distance_Sphere(s.location, POINT(?, ?)) AS dist
 		 FROM spots s
-		 WHERE s.status = 'active' AND MBRContains(ST_GeomFromText(?), s.location)
+		 WHERE s.status = 'active' AND MBRContains(ST_GeomFromText(?), s.location)`+tq+`
 		 HAVING dist <= ?
-		 ORDER BY dist ASC, s.id ASC LIMIT ?`,
-		r.PublicBaseURL, lon, lat, polygon(box), radiusM, clampLimit(limit))
+		 ORDER BY dist ASC, s.id ASC LIMIT ?`, args...)
 	if err != nil {
 		return nil, err
 	}
-	return scan(rows, true)
+	list, err := scan(rows, true)
+	if err != nil {
+		return nil, err
+	}
+	return list, r.attachTags(ctx, list)
 }
 
 // FindWithin returns the nearest active spot within meters, or nil.
@@ -147,7 +231,7 @@ func scan(rows *sql.Rows, withDist bool) ([]Spot, error) {
 	defer rows.Close()
 	out := []Spot{}
 	for rows.Next() {
-		var s Spot
+		s := Spot{Tags: []string{}}
 		dst := []any{&s.ID, &s.Title, &s.Description, &s.Category, &s.Lat, &s.Lon, &s.LikeCount, &s.CreatedAt, &s.CoverURL, &s.RatingAvg, &s.RatingCount}
 		var d float64
 		if withDist {
