@@ -33,32 +33,7 @@ type gpx struct {
 
 var (
 	coordName = regexp.MustCompile(`^\d+°`)
-	reViewpt  = regexp.MustCompile(`aussicht`)
-	reBench   = regexp.MustCompile(`bank|bänke|baenke|sitz|ruhestege`)
-	reRiver   = regexp.MustCompile(`bach|fluss|isar`)
-	reLake    = regexp.MustCompile(`teich|weiher|biotop|see\b`)
-	reForest  = regexp.MustCompile(`wald`)
-	rePark    = regexp.MustCompile(`park|garten|wiese|spielplatz|grün|skatepark`)
 )
-
-func category(text string) string {
-	t := strings.ToLower(text)
-	switch {
-	case reViewpt.MatchString(t):
-		return "viewpoint"
-	case reBench.MatchString(t):
-		return "bench"
-	case reRiver.MatchString(t):
-		return "river"
-	case reLake.MatchString(t):
-		return "lake"
-	case reForest.MatchString(t):
-		return "forest"
-	case rePark.MatchString(t):
-		return "park"
-	}
-	return "other"
-}
 
 // tagRules maps each spot tag to the (lower-case) words that imply it, in
 // canonical tag order.
@@ -67,10 +42,10 @@ var tagRules = []struct {
 	re  *regexp.Regexp
 }{
 	{"roof", regexp.MustCompile(`überdacht|ueberdacht|dach|hütte|huette|häuschen|haeuschen|tunnel|unterführung|unterfuehrung|glashaus|pavi|container`)},
-	{"seating", regexp.MustCompile(`bank|bänke|baenke|sitz`)},
+	{"seating", regexp.MustCompile(`bank|bänke|baenke|sitz|ruhestege`)},
 	{"view", regexp.MustCompile(`aussicht|blick`)},
 	{"quiet", regexp.MustCompile(`ruhig|entspannt|chill`)},
-	{"water", regexp.MustCompile(`teich|weiher|bach|see\b|fluss|brunnen`)},
+	{"water", regexp.MustCompile(`teich|weiher|biotop|bach|see\b|fluss|brunnen`)},
 }
 
 // inferTags derives spot tags from a waypoint's name and description. The
@@ -220,15 +195,12 @@ func main() {
 	}
 
 	created, skipped, retagged, failed := 0, 0, 0, 0
-	cats := map[string]int{}
 	for _, w := range doc.Waypoints {
 		t := title(w.Name, w.Desc)
-		cat := category(w.Name + " " + w.Desc)
 		tags := inferTags(w.Name + " " + w.Desc)
 		if *dry {
-			fmt.Printf("%-10s %.5f,%.5f  %s %v\n", cat, w.Lat, w.Lon, t, tags)
+			fmt.Printf("%.5f,%.5f  %s %v\n", w.Lat, w.Lon, t, tags)
 			created++
-			cats[cat]++
 			continue
 		}
 		if id := c.find(w.Lat, w.Lon, t); id != 0 {
@@ -253,7 +225,7 @@ func main() {
 		}
 		// force: demo data legitimately has several spots a few metres apart.
 		code, b, err := c.do("POST", "/spots", map[string]any{
-			"title": t, "description": truncate(strings.TrimSpace(w.Desc), 1000), "category": cat,
+			"title": t, "description": truncate(strings.TrimSpace(w.Desc), 1000),
 			"lat": w.Lat, "lon": w.Lon, "force": true, "tags": tags,
 		})
 		if err != nil || code != http.StatusCreated {
@@ -262,9 +234,8 @@ func main() {
 			continue
 		}
 		created++
-		cats[cat]++
 	}
-	fmt.Printf("created=%d skipped=%d retagged=%d failed=%d categories=%v\n", created, skipped, retagged, failed, cats)
+	fmt.Printf("created=%d skipped=%d retagged=%d failed=%d\n", created, skipped, retagged, failed)
 	if failed > 0 {
 		os.Exit(1)
 	}

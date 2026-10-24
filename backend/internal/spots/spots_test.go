@@ -52,7 +52,7 @@ func (e *env) doTok(method, path, body, tok string) *httptest.ResponseRecorder {
 }
 
 func body(title string, lat, lon float64, extra string) string {
-	return fmt.Sprintf(`{"title":%q,"description":"d","category":"bench","lat":%v,"lon":%v%s}`, title, lat, lon, extra)
+	return fmt.Sprintf(`{"title":%q,"description":"d","lat":%v,"lon":%v%s}`, title, lat, lon, extra)
 }
 
 func (e *env) create(t *testing.T, title string, lat, lon float64) Spot {
@@ -97,10 +97,13 @@ func TestCreateAndGetSpot(t *testing.T) {
 	if _, ok := m["distance_m"]; ok {
 		t.Fatal("distance_m must be omitted")
 	}
-	for _, k := range []string{"id", "title", "description", "category", "lat", "lon", "like_count", "created_at"} {
+	for _, k := range []string{"id", "title", "description", "lat", "lon", "like_count", "created_at"} {
 		if _, ok := m[k]; !ok {
 			t.Fatalf("missing %s", k)
 		}
+	}
+	if _, ok := m["category"]; ok {
+		t.Fatal("category must not be present")
 	}
 	if e.do("GET", "/spots/9999", "", false).Code != 404 {
 		t.Fatal("want 404")
@@ -110,9 +113,8 @@ func TestCreateAndGetSpot(t *testing.T) {
 func TestCreateValidation(t *testing.T) {
 	e := setup(t)
 	for name, b := range map[string]string{
-		"short title": `{"title":"ab","description":"","category":"bench","lat":52.5,"lon":13.4}`,
-		"bad cat":     `{"title":"abc","description":"","category":"zzz","lat":52.5,"lon":13.4}`,
-		"long desc":   fmt.Sprintf(`{"title":"abc","description":%q,"category":"bench","lat":52.5,"lon":13.4}`, strings.Repeat("a", 1001)),
+		"short title": `{"title":"ab","description":"","lat":52.5,"lon":13.4}`,
+		"long desc":   fmt.Sprintf(`{"title":"abc","description":%q,"lat":52.5,"lon":13.4}`, strings.Repeat("a", 1001)),
 	} {
 		if rec := e.do("POST", "/spots", b, true); rec.Code != 400 {
 			t.Errorf("%s: %d", name, rec.Code)
@@ -128,7 +130,7 @@ func TestRejectsOutOfRangeAndSwappedCoordinates(t *testing.T) {
 			t.Errorf("%v: %d %s", c, rec.Code, rec.Body)
 		}
 	}
-	rec := e.do("POST", "/spots", `{"title":"abc","description":"","category":"bench"}`, true)
+	rec := e.do("POST", "/spots", `{"title":"abc","description":""}`, true)
 	if rec.Code != 400 || errCode(rec) != "invalid_location" {
 		t.Errorf("missing coords: %d %s", rec.Code, rec.Body)
 	}
@@ -211,9 +213,33 @@ func TestBBoxOrdersByLikeCountThenID(t *testing.T) {
 			t.Fatalf("order %v", out)
 		}
 	}
+	// The category query param no longer exists: ignored, no filtering, no 400.
 	rec = e.do("GET", "/spots?south=49&west=9&north=51&east=11&category=river", "", false)
-	if strings.TrimSpace(rec.Body.String()) != "[]" {
-		t.Fatalf("category filter %q", rec.Body)
+	var ign []Spot
+	json.Unmarshal(rec.Body.Bytes(), &ign)
+	if rec.Code != 200 || len(ign) != 4 {
+		t.Fatalf("category param must be ignored: %d %q", rec.Code, rec.Body)
+	}
+}
+
+func TestStrayCategoryKeyIsIgnoredAndNeverReturned(t *testing.T) {
+	e := setup(t)
+	rec := e.do("POST", "/spots", `{"title":"Old client","description":"","category":"bench","lat":52.52,"lon":13.405,"tags":["seating"]}`, true)
+	if rec.Code != 201 || strings.Contains(rec.Body.String(), "category") {
+		t.Fatalf("create: %d %s", rec.Code, rec.Body)
+	}
+	for _, p := range []string{
+		"/spots?south=52&west=13&north=53&east=14&category=lake",
+		"/spots/nearby?lat=52.52&lon=13.405&radius_m=5000&category=lake",
+	} {
+		rec = e.do("GET", p, "", false)
+		if rec.Code != 200 || strings.Contains(rec.Body.String(), "category") || !strings.Contains(rec.Body.String(), "Old client") {
+			t.Fatalf("%s: %d %s", p, rec.Code, rec.Body)
+		}
+	}
+	rec = e.do("GET", "/spots/1", "", false)
+	if rec.Code != 200 || strings.Contains(rec.Body.String(), "category") {
+		t.Fatalf("get: %d %s", rec.Code, rec.Body)
 	}
 }
 
@@ -293,7 +319,7 @@ func TestBBoxQueryUsesSpatialIndex(t *testing.T) {
 	e := setup(t)
 	for i := 0; i < 300; i++ {
 		lat, lon := 46+float64(i%30)*0.3, 6+float64(i/30)*1.1
-		e.db.Exec(`INSERT INTO spots (user_id,title,description,category,location) VALUES (?, 'spot', '', 'bench', POINT(?,?))`, e.uid, lon, lat)
+		e.db.Exec(`INSERT INTO spots (user_id,title,description,location) VALUES (?, 'spot', '', POINT(?,?))`, e.uid, lon, lat)
 	}
 	e.db.Exec(`ANALYZE TABLE spots`)
 	q, args := bboxQuery(BBox{50, 10, 51, 11}, Filter{Limit: 20})

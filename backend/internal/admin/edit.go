@@ -210,9 +210,9 @@ func (r repo) patchUser(ctx context.Context, id, caller uint64, p userPatch) (us
 // ---- spots ----
 
 type spotPatch struct {
-	title, description, category, status *string
-	lat, lon                             *float64
-	tags                                 *[]string
+	title, description, status *string
+	lat, lon                   *float64
+	tags                       *[]string
 }
 
 func (h handler) patchSpot(w http.ResponseWriter, r *http.Request) {
@@ -221,7 +221,7 @@ func (h handler) patchSpot(w http.ResponseWriter, r *http.Request) {
 		notFound(w, "spot")
 		return
 	}
-	p, ok := readPatch(w, r, "title", "description", "category", "status", "lat", "lon", "tags")
+	p, ok := readPatch(w, r, "title", "description", "status", "lat", "lon", "tags")
 	if !ok {
 		return
 	}
@@ -238,7 +238,7 @@ func (h handler) patchSpot(w http.ResponseWriter, r *http.Request) {
 		}
 		return true
 	}
-	if !str("title", &sp.title) || !str("description", &sp.description) || !str("category", &sp.category) || !str("status", &sp.status) {
+	if !str("title", &sp.title) || !str("description", &sp.description) || !str("status", &sp.status) {
 		return
 	}
 	var lat, lon float64
@@ -274,10 +274,6 @@ func (h handler) patchSpot(w http.ResponseWriter, r *http.Request) {
 	}
 	if sp.description != nil && utf8.RuneCountInString(*sp.description) > 1000 {
 		httpx.Error(w, http.StatusBadRequest, "invalid_description", "description must be at most 1000 characters")
-		return
-	}
-	if sp.category != nil && !spots.Categories[*sp.category] {
-		httpx.Error(w, http.StatusBadRequest, "invalid_category", "unknown category")
 		return
 	}
 	if sp.status != nil && *sp.status != "active" && *sp.status != "hidden" {
@@ -325,7 +321,7 @@ func (r repo) patchSpot(ctx context.Context, id uint64, p spotPatch) (spotItem, 
 	for _, f := range []struct {
 		col string
 		v   *string
-	}{{"title", p.title}, {"description", p.description}, {"category", p.category}, {"status", p.status}} {
+	}{{"title", p.title}, {"description", p.description}, {"status", p.status}} {
 		if f.v != nil {
 			sets, args = append(sets, f.col+" = ?"), append(args, *f.v)
 		}

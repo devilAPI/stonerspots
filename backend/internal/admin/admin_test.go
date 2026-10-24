@@ -71,8 +71,8 @@ func exec(t *testing.T, db *sql.DB, q string, args ...any) int64 {
 }
 
 func newSpot(t *testing.T, db *sql.DB, owner uint64, title, status string) uint64 {
-	return uint64(exec(t, db, `INSERT INTO spots (user_id, title, description, category, location, status)
-		VALUES (?, ?, 'd', 'bench', ST_GeomFromText('POINT(10 50)'), ?)`, owner, title, status))
+	return uint64(exec(t, db, `INSERT INTO spots (user_id, title, description, location, status)
+		VALUES (?, ?, 'd', ST_GeomFromText('POINT(10 50)'), ?)`, owner, title, status))
 }
 
 func newUpdate(t *testing.T, db *sql.DB, spot, owner uint64, body string) uint64 {
@@ -310,7 +310,6 @@ func TestSpots(t *testing.T) {
 	type item struct {
 		ID          uint64  `json:"id"`
 		Title       string  `json:"title"`
-		Category    string  `json:"category"`
 		Lat         float64 `json:"lat"`
 		Lon         float64 `json:"lon"`
 		Status      string  `json:"status"`
@@ -336,7 +335,7 @@ func TestSpots(t *testing.T) {
 		t.Fatalf("%+v", p.Items)
 	}
 	h := p.Items[1]
-	if h.Status != "hidden" || h.ReportCount != 1 || h.Author.ID != au || h.Category != "bench" || h.Lat != 50 || h.Lon != 10 || h.CreatedAt == "" {
+	if h.Status != "hidden" || h.ReportCount != 1 || h.Author.ID != au || h.Lat != 50 || h.Lon != 10 || h.CreatedAt == "" {
 		t.Fatalf("hidden item %+v", h)
 	}
 	_, p, _ = get("?status=hidden")

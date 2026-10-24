@@ -152,7 +152,6 @@ type spotItem struct {
 	ID          uint64    `json:"id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
-	Category    string    `json:"category"`
 	Lat         float64   `json:"lat"`
 	Lon         float64   `json:"lon"`
 	Status      string    `json:"status"`
@@ -163,14 +162,14 @@ type spotItem struct {
 	Tags        []string  `json:"tags"`
 }
 
-const spotSelect = `SELECT s.id, s.title, s.description, s.category, ST_Y(s.location), ST_X(s.location), s.status, s.like_count, s.created_at,
+const spotSelect = `SELECT s.id, s.title, s.description, ST_Y(s.location), ST_X(s.location), s.status, s.like_count, s.created_at,
 		u.id, u.display_name,
 		(SELECT COUNT(DISTINCT r.user_id) FROM reports r WHERE r.target_type = 'spot' AND r.target_id = s.id)
 	FROM spots s JOIN users u ON u.id = s.user_id `
 
 func scanSpot(row interface{ Scan(...any) error }) (spotItem, error) {
 	var it spotItem
-	err := row.Scan(&it.ID, &it.Title, &it.Description, &it.Category, &it.Lat, &it.Lon, &it.Status, &it.LikeCount, &it.CreatedAt,
+	err := row.Scan(&it.ID, &it.Title, &it.Description, &it.Lat, &it.Lon, &it.Status, &it.LikeCount, &it.CreatedAt,
 		&it.Author.ID, &it.Author.DisplayName, &it.ReportCount)
 	it.CreatedAt = it.CreatedAt.UTC()
 	it.Tags = []string{}

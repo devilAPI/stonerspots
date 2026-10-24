@@ -12,7 +12,6 @@ type Spot struct {
 	ID          uint64    `json:"id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
-	Category    string    `json:"category"`
 	Lat         float64   `json:"lat"`
 	Lon         float64   `json:"lon"`
 	LikeCount   int       `json:"like_count"`
@@ -45,15 +44,8 @@ type BBox struct{ South, West, North, East float64 }
 
 // Filter narrows a bounding-box query.
 type Filter struct {
-	Category string   // empty = all
-	Tags     []string // normalized; spots must have ALL of them
-	Limit    int
-}
-
-// Categories lists the allowed spot categories.
-var Categories = map[string]bool{
-	"bench": true, "river": true, "lake": true, "viewpoint": true,
-	"forest": true, "park": true, "other": true,
+	Tags  []string // normalized; spots must have ALL of them
+	Limit int
 }
 
 // Region bounding box (DACH, rough) and duplicate radius.

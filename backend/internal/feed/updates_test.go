@@ -76,7 +76,7 @@ func getFeedRaw(t *testing.T, h http.Handler) (int, []item, string) {
 func TestUpdateTagDefaultAndValidation(t *testing.T) {
 	db, h, _ := setupDir(t)
 	u := testutil.NewUser(t, db)
-	s := newSpot(t, db, u, "lake", 48, 11, 0)
+	s := newSpot(t, db, u, 48, 11, 0)
 	path := fmt.Sprintf("/spots/%d/updates", s)
 	rec := call(t, h, "POST", path, u, `{"body":"hi"}`)
 	if it := decode(t, rec); rec.Code != 201 || it.Tag != "note" || it.EditedAt != nil {
@@ -104,7 +104,7 @@ func TestUpdateTagDefaultAndValidation(t *testing.T) {
 func TestFeedSpotRatings(t *testing.T) {
 	db, h, _ := setupDir(t)
 	u, r1, r2 := testutil.NewUser(t, db), testutil.NewUser(t, db), testutil.NewUser(t, db)
-	s := newSpot(t, db, u, "lake", 48, 11, 0)
+	s := newSpot(t, db, u, 48, 11, 0)
 	newUpdate(t, db, s, u, "a", "2026-01-01 10:00:00")
 	db.Exec(`INSERT INTO spot_reviews (spot_id,user_id,rating,body) VALUES (?,?,5,''),(?,?,4,'')`, s, r1, s, r2)
 	_, items, body := getFeedRaw(t, h)
@@ -116,7 +116,7 @@ func TestFeedSpotRatings(t *testing.T) {
 func TestPatchUpdate(t *testing.T) {
 	db, h, _ := setupDir(t)
 	u, other := testutil.NewUser(t, db), testutil.NewUser(t, db)
-	s := newSpot(t, db, u, "lake", 48, 11, 0)
+	s := newSpot(t, db, u, 48, 11, 0)
 	id := newUpdate(t, db, s, u, "orig", "2026-01-01 10:00:00")
 	path := fmt.Sprintf("/updates/%d", id)
 
@@ -174,7 +174,7 @@ func TestPatchUpdate(t *testing.T) {
 func TestDeleteUpdate(t *testing.T) {
 	db, h, dir := setupDir(t)
 	u, other := testutil.NewUser(t, db), testutil.NewUser(t, db)
-	s := newSpot(t, db, u, "lake", 48, 11, 0)
+	s := newSpot(t, db, u, 48, 11, 0)
 	id := newUpdate(t, db, s, u, "orig", "2026-01-01 10:00:00")
 	keep := newUpdate(t, db, s, u, "keep", "2026-01-02 10:00:00")
 	os.MkdirAll(filepath.Join(dir, "a"), 0o755)

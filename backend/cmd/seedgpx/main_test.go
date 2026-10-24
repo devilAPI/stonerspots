@@ -22,6 +22,8 @@ func TestInferTags(t *testing.T) {
 		{"Sitzgelegenheit", []string{"seating"}},
 		{"Bänke", []string{"seating"}},
 		{"Tolle Aussicht", []string{"view"}},
+		{"Biotop", []string{"water"}},
+		{"Ruhestege", []string{"seating"}},
 		{"Blick auf die Stadt", []string{"view"}},
 		{"ruhig und chill", []string{"quiet"}},
 		{"Teich", []string{"water"}},

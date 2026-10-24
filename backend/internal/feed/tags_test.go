@@ -15,9 +15,9 @@ func TestFeedSpotCarriesTagsAndFilters(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)
 	// 25 matching items (spot with roof+quiet), 10 with only roof, 5 with none.
-	both := newSpot(t, db, u, "bench", 48, 11, 1)
-	roofOnly := newSpot(t, db, u, "bench", 48.1, 11.1, 2)
-	none := newSpot(t, db, u, "bench", 48.2, 11.2, 3)
+	both := newSpot(t, db, u, 48, 11, 1)
+	roofOnly := newSpot(t, db, u, 48.1, 11.1, 2)
+	none := newSpot(t, db, u, 48.2, 11.2, 3)
 	db.Exec(`INSERT INTO spot_tags (spot_id, tag) VALUES (?, 'roof'), (?, 'quiet'), (?, 'roof')`, both, both, roofOnly)
 	for i := 0; i < 25; i++ {
 		newUpdate(t, db, both, u, fmt.Sprintf("b%d", i), fmt.Sprintf("2026-01-01 10:%02d:00", i))
@@ -90,15 +90,12 @@ func TestFeedSpotCarriesTagsAndFilters(t *testing.T) {
 			t.Fatalf("tags must be an array: %v", it.Spot)
 		}
 	}
-	// empty param = no filter; combined with category; unknown = 400
+	// empty param = no filter; unknown = 400
 	if _, fr, _ := getFeed(t, h, url.Values{"tags": {""}, "limit": {"50"}}); len(fr.Items) != 40 {
 		t.Fatalf("empty param: %d", len(fr.Items))
 	}
-	if _, fr, _ := getFeed(t, h, url.Values{"tags": {"quiet"}, "category": {"lake"}}); len(fr.Items) != 0 {
-		t.Fatalf("category+tags: %d", len(fr.Items))
-	}
-	if _, fr, _ := getFeed(t, h, url.Values{"tags": {"quiet"}, "category": {"bench"}, "limit": {"50"}}); len(fr.Items) != 25 {
-		t.Fatalf("category+tags: %d", len(fr.Items))
+	if _, fr, _ := getFeed(t, h, url.Values{"tags": {"quiet"}, "category": {"lake"}, "limit": {"50"}}); len(fr.Items) != 25 {
+		t.Fatalf("stray category must be ignored: %d", len(fr.Items))
 	}
 	code, _, body := getFeed(t, h, url.Values{"tags": {"roof,bogus"}})
 	if code != 400 {
@@ -114,7 +111,7 @@ func TestFeedSpotCarriesTagsAndFilters(t *testing.T) {
 func TestPostedUpdateItemHasTagsArray(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)
-	s := newSpot(t, db, u, "lake", 48, 11, 0)
+	s := newSpot(t, db, u, 48, 11, 0)
 	db.Exec(`INSERT INTO spot_tags (spot_id, tag) VALUES (?, 'view'), (?, 'lit')`, s, s)
 	rec := post(t, h, u, s, map[string]any{"body": "hi"})
 	var out struct {

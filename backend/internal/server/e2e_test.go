@@ -88,7 +88,7 @@ func TestEndToEndFlow(t *testing.T) {
 
 	// create spot in Zurich with the photo and description
 	code, spot, raw := c.do("POST", "/api/v1/spots", map[string]any{
-		"title": "Bench by the lake", "description": "great view", "category": "bench",
+		"title": "Bench by the lake", "description": "great view",
 		"lat": 47.3667, "lon": 8.5400, "photo_ids": []any{photoID}})
 	if code != 201 {
 		t.Fatalf("create spot: %d %s", code, raw)
@@ -100,7 +100,7 @@ func TestEndToEndFlow(t *testing.T) {
 
 	// a second spot 5 m away is flagged as a duplicate with the existing id
 	code, dup, _ := c.do("POST", "/api/v1/spots", map[string]any{
-		"title": "Same bench", "category": "bench", "lat": 47.36674, "lon": 8.5400})
+		"title": "Same bench", "lat": 47.36674, "lon": 8.5400})
 	if code != 409 || int(dup["existing_id"].(float64)) != spotID {
 		t.Fatalf("duplicate: %d %v", code, dup)
 	}
@@ -121,7 +121,7 @@ func TestEndToEndFlow(t *testing.T) {
 
 	// a spot with a bad photo id is rejected and not left behind
 	code, _, _ = c.do("POST", "/api/v1/spots", map[string]any{
-		"title": "Ghost spot", "category": "park", "lat": 48.2, "lon": 16.37, "photo_ids": []any{99999}})
+		"title": "Ghost spot", "lat": 48.2, "lon": 16.37, "photo_ids": []any{99999}})
 	if code != 400 {
 		t.Fatalf("bad photo: %d", code)
 	}

@@ -53,8 +53,8 @@ func TestMigrationsApplyAndRollBack(t *testing.T) {
 		t.Fatal(err)
 	}
 	const lat, lon = 47.3769, 8.5417
-	if _, err := d.Exec(`INSERT INTO spots (user_id, title, description, category, location)
-		VALUES (1, 'Zurich bench', '', 'bench', POINT(?, ?))`, lon, lat); err != nil {
+	if _, err := d.Exec(`INSERT INTO spots (user_id, title, description, location)
+		VALUES (1, 'Zurich bench', '', POINT(?, ?))`, lon, lat); err != nil {
 		t.Fatalf("insert spot: %v", err)
 	}
 	var gotLat, gotLon float64

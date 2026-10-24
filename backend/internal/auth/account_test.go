@@ -153,7 +153,7 @@ func TestDeleteRemovesDataAndFiles(t *testing.T) {
 		return id
 	}
 	spot := func(uid uint64) int64 {
-		return ins("INSERT INTO spots (user_id, title, description, category, location) VALUES (?, 't', 'd', 'bench', ST_GeomFromText('POINT(1 1)'))", uid)
+		return ins("INSERT INTO spots (user_id, title, description, location) VALUES (?, 't', 'd', ST_GeomFromText('POINT(1 1)'))", uid)
 	}
 	sMine, sTheirs := spot(u.User.ID), spot(o.User.ID)
 	upd := func(s int64, uid uint64) int64 {

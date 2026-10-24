@@ -14,7 +14,7 @@ func TestDeleteAccountRemovesReportsAboutContent(t *testing.T) {
 		id, _ := res.LastInsertId()
 		return id
 	}
-	const ins = "INSERT INTO spots (user_id, title, description, category, location) VALUES (?, 't', 'd', 'bench', ST_GeomFromText('POINT(1 1)'))"
+	const ins = "INSERT INTO spots (user_id, title, description, location) VALUES (?, 't', 'd', ST_GeomFromText('POINT(1 1)'))"
 	mine, theirs := mk(ins, u.User.ID), mk(ins, o.User.ID)
 	myUpd := mk("INSERT INTO spot_updates (spot_id, user_id, body) VALUES (?, ?, 'x')", theirs, u.User.ID)
 	theirUpd := mk("INSERT INTO spot_updates (spot_id, user_id, body) VALUES (?, ?, 'x')", theirs, o.User.ID)

@@ -16,7 +16,7 @@ type Repo struct {
 	PublicBaseURL string
 }
 
-const selectCols = `s.id, s.title, s.description, s.category, ST_Y(s.location), ST_X(s.location),
+const selectCols = `s.id, s.title, s.description, ST_Y(s.location), ST_X(s.location),
   s.like_count, s.created_at,
   COALESCE((SELECT CONCAT(?, '/api/v1/media/', p.` + "`key`" + `)
             FROM photos p JOIN spot_updates u ON u.id = p.update_id
@@ -40,8 +40,8 @@ func (r *Repo) Create(ctx context.Context, s Spot, userID uint64) (uint64, error
 	}
 	defer tx.Rollback() //nolint:errcheck
 	res, err := tx.ExecContext(ctx,
-		`INSERT INTO spots (user_id, title, description, category, location) VALUES (?, ?, ?, ?, POINT(?, ?))`,
-		userID, s.Title, s.Description, s.Category, s.Lon, s.Lat)
+		`INSERT INTO spots (user_id, title, description, location) VALUES (?, ?, ?, POINT(?, ?))`,
+		userID, s.Title, s.Description, s.Lon, s.Lat)
 	if err != nil {
 		return 0, err
 	}
@@ -134,10 +134,6 @@ func (r *Repo) Get(ctx context.Context, id uint64) (*Spot, error) {
 func bboxQuery(b BBox, fl Filter) (string, []any) {
 	q := `SELECT ` + selectCols + ` FROM spots s WHERE s.status = 'active' AND MBRContains(ST_GeomFromText(?), s.location)`
 	args := []any{"", polygon(b)}
-	if fl.Category != "" {
-		q += ` AND s.category = ?`
-		args = append(args, fl.Category)
-	}
 	tq, targs := tagset.FilterSQL("s", fl.Tags)
 	q += tq
 	args = append(args, targs...)
@@ -232,7 +228,7 @@ func scan(rows *sql.Rows, withDist bool) ([]Spot, error) {
 	out := []Spot{}
 	for rows.Next() {
 		s := Spot{Tags: []string{}}
-		dst := []any{&s.ID, &s.Title, &s.Description, &s.Category, &s.Lat, &s.Lon, &s.LikeCount, &s.CreatedAt, &s.CoverURL, &s.RatingAvg, &s.RatingCount}
+		dst := []any{&s.ID, &s.Title, &s.Description, &s.Lat, &s.Lon, &s.LikeCount, &s.CreatedAt, &s.CoverURL, &s.RatingAvg, &s.RatingCount}
 		var d float64
 		if withDist {
 			dst = append(dst, &d)

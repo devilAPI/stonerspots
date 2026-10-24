@@ -28,8 +28,8 @@ func setup(t *testing.T) (*sql.DB, http.Handler) {
 
 func newSpot(t *testing.T, db *sql.DB, owner uint64) uint64 {
 	t.Helper()
-	res, err := db.Exec(`INSERT INTO spots (user_id, title, description, category, location)
-		VALUES (?, 's', 'd', 'bench', ST_GeomFromText('POINT(10 50)'))`, owner)
+	res, err := db.Exec(`INSERT INTO spots (user_id, title, description, location)
+		VALUES (?, 's', 'd', ST_GeomFromText('POINT(10 50)'))`, owner)
 	if err != nil {
 		t.Fatal(err)
 	}

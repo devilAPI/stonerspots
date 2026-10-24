@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -27,10 +28,10 @@ func setup(t *testing.T) (*sql.DB, http.Handler) {
 	return db, r
 }
 
-func newSpot(t *testing.T, db *sql.DB, uid uint64, category string, lat, lon float64, likes int) uint64 {
+func newSpot(t *testing.T, db *sql.DB, uid uint64, lat, lon float64, likes int) uint64 {
 	t.Helper()
-	res, err := db.Exec(`INSERT INTO spots (user_id, title, description, category, location, like_count) VALUES (?, 'S', '', ?, POINT(?, ?), ?)`,
-		uid, category, lon, lat, likes)
+	res, err := db.Exec(`INSERT INTO spots (user_id, title, description, location, like_count) VALUES (?, 'S', '', POINT(?, ?), ?)`,
+		uid, lon, lat, likes)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +74,6 @@ type feedResp struct {
 		} `json:"author"`
 		Spot struct {
 			ID        uint64   `json:"id"`
-			Category  string   `json:"category"`
 			Lat       float64  `json:"lat"`
 			Lon       float64  `json:"lon"`
 			LikeCount int      `json:"like_count"`
@@ -110,7 +110,7 @@ func post(t *testing.T, h http.Handler, uid uint64, spot uint64, body any) *http
 func TestPostUpdateWithPhotos(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)
-	s := newSpot(t, db, u, "lake", 48, 11, 0)
+	s := newSpot(t, db, u, 48, 11, 0)
 	p1, p2 := newPhoto(t, db, u), newPhoto(t, db, u)
 
 	rec := post(t, h, u, s, map[string]any{"body": "nice", "photo_ids": []uint64{p1, p2}})
@@ -153,7 +153,7 @@ func TestPostUpdateWithPhotos(t *testing.T) {
 func TestCannotAttachSomeoneElsesPhoto(t *testing.T) {
 	db, h := setup(t)
 	u, other := testutil.NewUser(t, db), testutil.NewUser(t, db)
-	s := newSpot(t, db, u, "lake", 48, 11, 0)
+	s := newSpot(t, db, u, 48, 11, 0)
 	p := newPhoto(t, db, other)
 
 	rec := post(t, h, u, s, map[string]any{"body": "x", "photo_ids": []uint64{p}})
@@ -188,7 +188,7 @@ func TestCannotAttachSomeoneElsesPhoto(t *testing.T) {
 func TestFeedNewestFirst(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)
-	s := newSpot(t, db, u, "lake", 48, 11, 0)
+	s := newSpot(t, db, u, 48, 11, 0)
 	a := newUpdate(t, db, s, u, "a", "2026-01-01 10:00:00")
 	b := newUpdate(t, db, s, u, "b", "2026-01-03 10:00:00")
 	c := newUpdate(t, db, s, u, "c", "2026-01-02 10:00:00")
@@ -215,8 +215,8 @@ func TestFeedEmptyIsArray(t *testing.T) {
 func TestFeedTopSortsBySpotLikeCount(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)
-	low := newSpot(t, db, u, "lake", 48, 11, 1)
-	high := newSpot(t, db, u, "lake", 48, 11, 9)
+	low := newSpot(t, db, u, 48, 11, 1)
+	high := newSpot(t, db, u, 48, 11, 9)
 	a := newUpdate(t, db, low, u, "a", "2026-01-01 10:00:00")
 	b := newUpdate(t, db, high, u, "b", "2026-01-01 10:00:00")
 	c := newUpdate(t, db, high, u, "c", "2026-01-01 10:00:00")
@@ -233,9 +233,9 @@ func TestFeedTopSortsBySpotLikeCount(t *testing.T) {
 func TestFeedNearbyRequiresLatLon(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)
-	near := newSpot(t, db, u, "lake", 48.0, 11.0, 0)
-	far := newSpot(t, db, u, "lake", 50.0, 11.0, 0)
-	mid := newSpot(t, db, u, "lake", 48.5, 11.0, 0)
+	near := newSpot(t, db, u, 48.0, 11.0, 0)
+	far := newSpot(t, db, u, 50.0, 11.0, 0)
+	mid := newSpot(t, db, u, 48.5, 11.0, 0)
 	un := newUpdate(t, db, near, u, "n", "2026-01-01 10:00:00")
 	uf := newUpdate(t, db, far, u, "f", "2026-01-01 10:00:00")
 	um := newUpdate(t, db, mid, u, "m", "2026-01-01 10:00:00")
@@ -258,26 +258,28 @@ func TestFeedNearbyRequiresLatLon(t *testing.T) {
 	}
 }
 
-func TestFeedCategoryFilter(t *testing.T) {
+func TestFeedIgnoresCategoryParamAndHasNoCategory(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)
-	lake := newSpot(t, db, u, "lake", 48, 11, 0)
-	bench := newSpot(t, db, u, "bench", 48, 11, 0)
-	newUpdate(t, db, lake, u, "l", "2026-01-01 10:00:00")
-	b := newUpdate(t, db, bench, u, "b", "2026-01-01 10:00:00")
-	_, fr, body := getFeed(t, h, url.Values{"category": {"bench"}})
-	if len(fr.Items) != 1 || fr.Items[0].ID != b || fr.Items[0].Spot.Category != "bench" {
-		t.Fatal(body)
-	}
-	if code, _, _ := getFeed(t, h, url.Values{"category": {"nope"}}); code != 400 {
-		t.Fatal(code)
+	s1 := newSpot(t, db, u, 48, 11, 0)
+	s2 := newSpot(t, db, u, 48, 11, 0)
+	newUpdate(t, db, s1, u, "l", "2026-01-01 10:00:00")
+	newUpdate(t, db, s2, u, "b", "2026-01-01 10:00:00")
+	for _, c := range []string{"bench", "lake", "forest", "nope"} {
+		code, fr, body := getFeed(t, h, url.Values{"category": {c}})
+		if code != 200 || len(fr.Items) != 2 {
+			t.Fatalf("category=%s: %d %s", c, code, body)
+		}
+		if strings.Contains(body, "category") {
+			t.Fatalf("feed must not contain category: %s", body)
+		}
 	}
 }
 
 func TestCursorPaginationWithIdenticalTimestamps(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)
-	s := newSpot(t, db, u, "lake", 48, 11, 0)
+	s := newSpot(t, db, u, 48, 11, 0)
 	want := map[uint64]bool{}
 	for i := 0; i < 25; i++ {
 		want[newUpdate(t, db, s, u, "x", "2026-01-01 10:00:00")] = true
@@ -327,8 +329,8 @@ func TestMalformedCursor400(t *testing.T) {
 func TestHiddenUpdatesExcluded(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)
-	s := newSpot(t, db, u, "lake", 48, 11, 0)
-	hiddenSpot := newSpot(t, db, u, "lake", 48, 11, 0)
+	s := newSpot(t, db, u, 48, 11, 0)
+	hiddenSpot := newSpot(t, db, u, 48, 11, 0)
 	vis := newUpdate(t, db, s, u, "v", "2026-01-01 10:00:00")
 	hid := newUpdate(t, db, s, u, "h", "2026-01-01 10:00:00")
 	newUpdate(t, db, hiddenSpot, u, "hs", "2026-01-01 10:00:00")
