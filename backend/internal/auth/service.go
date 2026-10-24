@@ -92,7 +92,7 @@ func (s *service) register(ctx context.Context, email, password, name string) (*
 		return nil, err
 	}
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO users (email, password_hash, display_name) VALUES (?, ?, ?)`, email, string(hash), name)
+		`INSERT INTO users (email, password_hash, display_name, adult_confirmed_at) VALUES (?, ?, ?, NOW())`, email, string(hash), name)
 	if err != nil {
 		var me *mysql.MySQLError
 		if errors.As(err, &me) && me.Number == 1062 {

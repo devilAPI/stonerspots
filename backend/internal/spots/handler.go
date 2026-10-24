@@ -13,6 +13,7 @@ import (
 
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/auth"
+	"stonerspots/backend/internal/feed"
 	"stonerspots/backend/internal/httpx"
 )
 
@@ -34,6 +35,7 @@ type createReq struct {
 	Lat         *float64 `json:"lat"`
 	Lon         *float64 `json:"lon"`
 	Force       bool     `json:"force"`
+	PhotoIDs    []uint64 `json:"photo_ids"`
 }
 
 func validCoord(lat, lon float64) bool {
@@ -98,6 +100,18 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		internal(w, err)
 		return
+	}
+	// The description and photos become the spot's first feed update.
+	if body := strings.TrimSpace(req.Description); body != "" || len(req.PhotoIDs) > 0 {
+		if _, err := feed.CreateUpdate(r.Context(), h.repo.DB, uid, id, body, req.PhotoIDs); err != nil {
+			_, _ = h.repo.DB.ExecContext(r.Context(), "DELETE FROM spots WHERE id = ?", id)
+			if errors.Is(err, feed.ErrInvalidPhoto) {
+				httpx.Error(w, http.StatusBadRequest, "invalid_photo", "photo is missing, not yours, or already used")
+				return
+			}
+			internal(w, err)
+			return
+		}
 	}
 	s, err := h.repo.Get(r.Context(), id)
 	if err != nil {

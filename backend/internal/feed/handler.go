@@ -83,6 +83,14 @@ func (h *handler) getFeed(w http.ResponseWriter, r *http.Request) {
 		}
 		q.category = c
 	}
+	if sid := p.Get("spot_id"); sid != "" {
+		n, err := strconv.ParseUint(sid, 10, 64)
+		if err != nil || n == 0 {
+			httpx.Error(w, http.StatusBadRequest, "invalid_spot_id", "spot_id must be a positive integer")
+			return
+		}
+		q.spotID = n
+	}
 	if l := p.Get("limit"); l != "" {
 		n, err := strconv.Atoi(l)
 		if err != nil || n < 1 {

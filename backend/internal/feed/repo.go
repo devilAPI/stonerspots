@@ -157,6 +157,7 @@ const (
 type query struct {
 	sort     sortMode
 	category string
+	spotID   uint64
 	lat, lon float64
 	hasCur   bool
 	curKey   float64
@@ -222,7 +223,11 @@ func list(ctx context.Context, db *sql.DB, base string, q query) ([]FeedItem, *s
 		catWhere = " AND s.category = ?"
 		catArgs = []any{q.category}
 	}
-	// Placeholder order follows the SQL text: select, where(category, cursor), order, limit.
+	if q.spotID != 0 {
+		catWhere += " AND s.id = ?"
+		catArgs = append(catArgs, q.spotID)
+	}
+	// Placeholder order follows the SQL text: select, where(category, spot, cursor), order, limit.
 	args := append(append(append(append(keyArgs, catArgs...), curArgs...), orderArgs...), q.limit+1)
 
 	rows, err := db.QueryContext(ctx, selectBase+", "+keyCol+fromBase+activeOnly+catWhere+where+order+" LIMIT ?", args...)
