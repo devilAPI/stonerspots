@@ -150,6 +150,12 @@ class _Fake implements AdminRepository {
     dismissCalls.add((targetType, targetId, restore));
     return dismissRemoved;
   }
+
+  @override
+  Future<void> deleteReview(int id) async {}
+
+  @override
+  Future<void> deleteUpdate(int id) async {}
 }
 
 class _FakeAuth extends AuthController {

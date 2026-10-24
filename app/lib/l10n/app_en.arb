@@ -199,5 +199,23 @@
         "type": "int"
       }
     }
+  },
+  "adminTargetReview": "Review",
+  "adminTargetUpdate": "Update",
+  "adminRemoveReview": "Remove review",
+  "adminRemoveUpdate": "Remove update",
+  "adminRemoveReviewTitle": "Remove review?",
+  "adminRemoveUpdateTitle": "Remove update?",
+  "adminRemoveReviewBody": "This deletes this review permanently.",
+  "adminRemoveUpdateBody": "This deletes this update permanently.",
+  "adminReviewRemoved": "Review removed",
+  "adminUpdateRemoved": "Update removed",
+  "adminRatingStars": "{count, plural, =1{1 star} other{{count} stars}}",
+  "@adminRatingStars": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

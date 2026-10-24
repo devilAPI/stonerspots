@@ -859,6 +859,72 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'{count, plural, =1{1 Meldung verworfen} other{{count} Meldungen verworfen}}'**
   String adminReportsDismissed(int count);
+
+  /// No description provided for @adminTargetReview.
+  ///
+  /// In de, this message translates to:
+  /// **'Bewertung'**
+  String get adminTargetReview;
+
+  /// No description provided for @adminTargetUpdate.
+  ///
+  /// In de, this message translates to:
+  /// **'Update'**
+  String get adminTargetUpdate;
+
+  /// No description provided for @adminRemoveReview.
+  ///
+  /// In de, this message translates to:
+  /// **'Bewertung entfernen'**
+  String get adminRemoveReview;
+
+  /// No description provided for @adminRemoveUpdate.
+  ///
+  /// In de, this message translates to:
+  /// **'Update entfernen'**
+  String get adminRemoveUpdate;
+
+  /// No description provided for @adminRemoveReviewTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Bewertung entfernen?'**
+  String get adminRemoveReviewTitle;
+
+  /// No description provided for @adminRemoveUpdateTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Update entfernen?'**
+  String get adminRemoveUpdateTitle;
+
+  /// No description provided for @adminRemoveReviewBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Damit wird diese Bewertung endgültig gelöscht.'**
+  String get adminRemoveReviewBody;
+
+  /// No description provided for @adminRemoveUpdateBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Damit wird dieses Update endgültig gelöscht.'**
+  String get adminRemoveUpdateBody;
+
+  /// No description provided for @adminReviewRemoved.
+  ///
+  /// In de, this message translates to:
+  /// **'Bewertung entfernt'**
+  String get adminReviewRemoved;
+
+  /// No description provided for @adminUpdateRemoved.
+  ///
+  /// In de, this message translates to:
+  /// **'Update entfernt'**
+  String get adminUpdateRemoved;
+
+  /// No description provided for @adminRatingStars.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =1{1 Stern} other{{count} Sterne}}'**
+  String adminRatingStars(int count);
 }
 
 class _AppLocalizationsDelegate

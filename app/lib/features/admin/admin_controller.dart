@@ -143,6 +143,10 @@ class ReportsController extends AdminListController<AdminReport> {
   void removeSpot(int spotId) =>
       removeWhere((r) => r.target.exists && r.target.spotId == spotId);
 
+  /// Drops every report about the review/update [targetId].
+  void removeTarget(String targetType, int targetId) =>
+      removeWhere((r) => r.targetType == targetType && r.targetId == targetId);
+
   /// Mirrors an edited spot into the report tiles that show it.
   void applySpot(AdminSpot spot) => _map(
     (r) => r.target.exists && r.target.spotId == spot.id
@@ -313,4 +317,23 @@ Future<int> dismissAdminReportsOfTarget(
         .reportsDismissed(report.target.spotId!, removed, restore: restore);
   }
   return removed;
+}
+
+/// Deletes the reported review or update ([report]'s target) on the server
+/// and drops every report about it. A 404 means it is already gone. Other
+/// errors propagate and leave the list untouched.
+Future<void> removeAdminReportTarget(WidgetRef ref, AdminReport report) async {
+  final repo = ref.read(adminRepositoryProvider);
+  try {
+    if (report.targetType == 'review') {
+      await repo.deleteReview(report.targetId);
+    } else {
+      await repo.deleteUpdate(report.targetId);
+    }
+  } on ApiException catch (e) {
+    if (e.status != 404) rethrow;
+  }
+  ref
+      .read(adminReportsProvider.notifier)
+      .removeTarget(report.targetType, report.targetId);
 }

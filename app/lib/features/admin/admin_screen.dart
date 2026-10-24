@@ -100,6 +100,83 @@ Future<void> _confirmRemoveSpot(
   }
 }
 
+/// Confirms and removes the reported review/update; reports the result in a
+/// snackbar.
+Future<void> _confirmRemoveTarget(
+  BuildContext context,
+  WidgetRef ref,
+  AdminReport report,
+) async {
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final review = report.targetType == 'review';
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(
+        review ? l10n.adminRemoveReviewTitle : l10n.adminRemoveUpdateTitle,
+      ),
+      content: Text(
+        review ? l10n.adminRemoveReviewBody : l10n.adminRemoveUpdateBody,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          key: const Key('confirm-remove-target'),
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(ctx).colorScheme.error,
+            foregroundColor: Theme.of(ctx).colorScheme.onError,
+          ),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(l10n.adminRemove),
+        ),
+      ],
+    ),
+  );
+  if (ok != true) return;
+  try {
+    await removeAdminReportTarget(ref, report);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          review ? l10n.adminReviewRemoved : l10n.adminUpdateRemoved,
+        ),
+      ),
+    );
+  } catch (_) {
+    messenger.showSnackBar(SnackBar(content: Text(l10n.errorGeneric)));
+  }
+}
+
+/// Read-only row of five stars, [rating] of them filled.
+class _StarRow extends StatelessWidget {
+  const _StarRow(this.rating);
+  final int rating;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.primary;
+    return Semantics(
+      label: AppLocalizations.of(context).adminRatingStars(rating),
+      excludeSemantics: true,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 1; i <= 5; i++)
+            Icon(
+              i <= rating ? Icons.star : Icons.star_border,
+              size: 18,
+              color: color,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 Future<void> _editUser(
   BuildContext context,
   WidgetRef ref,
@@ -431,6 +508,7 @@ class _ReportTile extends ConsumerWidget {
     final theme = Theme.of(context);
     final t = report.target;
     final isUpdate = report.targetType == 'update';
+    final isReview = report.targetType == 'review';
     return _Tile(
       key: Key('report-${report.id}'),
       body: [
@@ -472,7 +550,15 @@ class _ReportTile extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (isUpdate && t.body.isNotEmpty)
+                    if (isReview || isUpdate)
+                      Text(
+                        isReview
+                            ? l10n.adminTargetReview
+                            : l10n.adminTargetUpdate,
+                        style: theme.textTheme.labelLarge,
+                      ),
+                    if (isReview && t.rating > 0) _StarRow(t.rating),
+                    if ((isReview || isUpdate) && t.body.isNotEmpty)
                       Text(
                         t.body,
                         maxLines: 4,
@@ -480,10 +566,15 @@ class _ReportTile extends ConsumerWidget {
                       ),
                     Text(
                       isUpdate ? l10n.adminUpdateOn(t.title) : t.title,
-                      style: isUpdate
+                      style: isUpdate || isReview
                           ? theme.textTheme.bodySmall
                           : theme.textTheme.titleSmall,
                     ),
+                    if (isReview && t.author != null)
+                      Text(
+                        t.author!.displayName,
+                        style: theme.textTheme.bodySmall,
+                      ),
                   ],
                 ),
               ),
@@ -498,31 +589,44 @@ class _ReportTile extends ConsumerWidget {
           onPressed: () => _dismissOne(context, ref, report),
           child: Text(l10n.adminDismiss),
         ),
+        if (t.exists && (isReview || isUpdate))
+          OutlinedButton(
+            key: Key('report-remove-target-${report.id}'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: theme.colorScheme.error,
+            ),
+            onPressed: () => _confirmRemoveTarget(context, ref, report),
+            child: Text(
+              isReview ? l10n.adminRemoveReview : l10n.adminRemoveUpdate,
+            ),
+          ),
         if (t.exists && t.spotId != null) ...[
           OutlinedButton(
             key: Key('report-open-${report.id}'),
             onPressed: () => context.push('/spot/${t.spotId}'),
             child: Text(l10n.adminOpenSpot),
           ),
-          OutlinedButton(
-            key: Key('report-edit-spot-${report.id}'),
-            onPressed: () =>
-                _editSpot(context, ref, t.spotId!, fallbackTitle: t.title),
-            child: Text(l10n.adminEditSpot),
-          ),
-          OutlinedButton(
-            key: Key('report-remove-${report.id}'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: theme.colorScheme.error,
+          if (!isReview) ...[
+            OutlinedButton(
+              key: Key('report-edit-spot-${report.id}'),
+              onPressed: () =>
+                  _editSpot(context, ref, t.spotId!, fallbackTitle: t.title),
+              child: Text(l10n.adminEditSpot),
             ),
-            onPressed: () => _confirmRemoveSpot(
-              context,
-              ref,
-              spotId: t.spotId!,
-              title: t.title,
+            OutlinedButton(
+              key: Key('report-remove-${report.id}'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: theme.colorScheme.error,
+              ),
+              onPressed: () => _confirmRemoveSpot(
+                context,
+                ref,
+                spotId: t.spotId!,
+                title: t.title,
+              ),
+              child: Text(l10n.adminRemoveSpot),
             ),
-            child: Text(l10n.adminRemoveSpot),
-          ),
+          ],
         ],
         PopupMenuButton<bool>(
           key: Key('report-more-${report.id}'),

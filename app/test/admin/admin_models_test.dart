@@ -48,6 +48,38 @@ void main() {
     expect(r.target.author?.displayName, 'Al');
   });
 
+  test('AdminReport parses a review target with rating', () {
+    Map<String, dynamic> base(Map<String, dynamic> target) => {
+      'id': 1,
+      'target_type': 'review',
+      'target_id': 9,
+      'reason': 'spam',
+      'created_at': '2026-10-01T10:00:00Z',
+      'report_count': 3,
+      'reporter': {'id': 2, 'display_name': 'Rita', 'email': 'r@x.de'},
+      'target': target,
+    };
+    final r = AdminReport.fromJson(
+      base({
+        'exists': true,
+        'spot_id': 5,
+        'title': 'Bench',
+        'status': 'active',
+        'body': 'nice',
+        'rating': 4,
+        'author': {'id': 1, 'display_name': 'Al'},
+      }),
+    );
+    expect(r.targetType, 'review');
+    expect(r.target.rating, 4);
+    expect(r.target.body, 'nice');
+    expect(r.target.copyWith(status: 'hidden').rating, 4);
+    expect(
+      AdminReport.fromJson(base({'exists': false, 'body': ''})).target.rating,
+      0,
+    );
+  });
+
   test('AdminReport parses a missing target', () {
     final r = AdminReport.fromJson({
       'id': 1,

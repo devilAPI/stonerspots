@@ -25,6 +25,14 @@ abstract class AdminRepository {
   /// [ApiException] for the caller to treat as success.
   Future<void> deleteSpot(int id);
 
+  /// Deletes a review. 404 `not_found` is thrown as [ApiException] for the
+  /// caller to treat as success.
+  Future<void> deleteReview(int id);
+
+  /// Deletes a spot update. 404 `not_found` is thrown as [ApiException] for
+  /// the caller to treat as success.
+  Future<void> deleteUpdate(int id);
+
   /// Updates the given user fields; returns the updated user.
   Future<AdminUser> updateUser(int id, AdminUserPatch patch);
 
@@ -98,6 +106,16 @@ class ApiAdminRepository implements AdminRepository {
   @override
   Future<void> deleteSpot(int id) async {
     await _api.delete<dynamic>('/admin/spots/$id');
+  }
+
+  @override
+  Future<void> deleteReview(int id) async {
+    await _api.delete<dynamic>('/admin/reviews/$id');
+  }
+
+  @override
+  Future<void> deleteUpdate(int id) async {
+    await _api.delete<dynamic>('/admin/updates/$id');
   }
 
   @override
