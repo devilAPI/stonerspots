@@ -16,6 +16,7 @@ import (
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/config"
 	"stonerspots/backend/internal/engagement"
+	"stonerspots/backend/internal/reviews"
 	"stonerspots/backend/internal/spots"
 	"stonerspots/backend/internal/testutil"
 )
@@ -39,6 +40,7 @@ func setup(t *testing.T) *env {
 		admin.Mount(r, deps)
 		engagement.Mount(r, deps)
 		spots.Mount(r, deps)
+		reviews.Mount(r, deps)
 	})
 	a := testutil.NewUser(t, db)
 	if _, err := db.Exec(`UPDATE users SET is_admin=1 WHERE id=?`, a); err != nil {
@@ -106,6 +108,7 @@ func TestAccessControl(t *testing.T) {
 	utok := testutil.Token(t, user)
 	routes := [][2]string{
 		{"GET", "/admin/reports"}, {"GET", "/admin/users"}, {"GET", "/admin/spots"}, {"DELETE", "/admin/spots/1"},
+		{"DELETE", "/admin/reviews/1"}, {"DELETE", "/admin/updates/1"},
 	}
 	for _, rt := range routes {
 		if c := e.do(t, rt[0], rt[1], "").Code; c != 401 {

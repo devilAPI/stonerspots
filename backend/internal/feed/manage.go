@@ -73,13 +73,30 @@ func editUpdate(ctx context.Context, db *sql.DB, id, userID uint64, body, tag *s
 // deleteUpdate removes the update, its photo rows and its reports, then the
 // photo files best-effort.
 func deleteUpdate(ctx context.Context, db *sql.DB, uploadDir string, id, userID uint64) error {
+	return removeUpdate(ctx, db, uploadDir, id, &userID)
+}
+
+// removeUpdate is the shared delete. With ownerID set only the author may
+// delete an active update; nil (admin) deletes any update.
+func removeUpdate(ctx context.Context, db *sql.DB, uploadDir string, id uint64, ownerID *uint64) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback() //nolint:errcheck
-	if _, err := lockOwn(ctx, tx, id, userID); err != nil {
-		return err
+	if ownerID != nil {
+		if _, err := lockOwn(ctx, tx, id, *ownerID); err != nil {
+			return err
+		}
+	} else {
+		var one uint64
+		err := tx.QueryRowContext(ctx, "SELECT id FROM spot_updates WHERE id = ? FOR UPDATE", id).Scan(&one)
+		if errors.Is(err, sql.ErrNoRows) {
+			return errNotFound
+		}
+		if err != nil {
+			return err
+		}
 	}
 	rows, err := tx.QueryContext(ctx, "SELECT `key`, thumb_key FROM photos WHERE update_id = ?", id)
 	if err != nil {

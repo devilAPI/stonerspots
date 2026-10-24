@@ -176,11 +176,7 @@ func (h *handler) delete(w http.ResponseWriter, r *http.Request) {
 		internal(w)
 		return
 	}
-	if _, err := tx.ExecContext(r.Context(), `DELETE FROM reports WHERE target_type = 'review' AND target_id = ?`, id); err != nil {
-		internal(w)
-		return
-	}
-	if _, err := tx.ExecContext(r.Context(), `DELETE FROM spot_reviews WHERE id = ?`, id); err != nil {
+	if err := deleteInTx(r.Context(), tx, id); err != nil {
 		internal(w)
 		return
 	}

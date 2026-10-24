@@ -18,6 +18,8 @@ func Mount(r chi.Router, d app.Deps) {
 	g.Get("/admin/spots", h.spots)
 	g.Delete("/admin/spots/{id}", h.deleteSpot)
 	g.Patch("/admin/spots/{id}", h.patchSpot)
+	g.Delete("/admin/reviews/{id}", h.deleteReview)
+	g.Delete("/admin/updates/{id}", h.deleteUpdate)
 	g.Patch("/admin/users/{id}", h.patchUser)
 	g.Delete("/admin/reports/{id}", h.deleteReport)
 	g.Post("/admin/reports/dismiss", h.dismiss)

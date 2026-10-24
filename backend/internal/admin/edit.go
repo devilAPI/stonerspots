@@ -15,7 +15,9 @@ import (
 	"github.com/go-sql-driver/mysql"
 
 	"stonerspots/backend/internal/auth"
+	"stonerspots/backend/internal/feed"
 	"stonerspots/backend/internal/httpx"
+	"stonerspots/backend/internal/reviews"
 	"stonerspots/backend/internal/spots"
 )
 
@@ -358,8 +360,8 @@ func (h handler) dismiss(w http.ResponseWriter, r *http.Request) {
 		badBody(w)
 		return
 	}
-	if in.TargetType != "spot" && in.TargetType != "update" {
-		httpx.Error(w, http.StatusBadRequest, "invalid_target", "target_type must be spot or update")
+	if in.TargetType != "spot" && in.TargetType != "update" && in.TargetType != "review" {
+		httpx.Error(w, http.StatusBadRequest, "invalid_target", "target_type must be spot, update or review")
 		return
 	}
 	n, err := h.repo.dismiss(r.Context(), in.TargetType, in.TargetID, in.Restore)
@@ -375,8 +377,11 @@ func (h handler) dismiss(w http.ResponseWriter, r *http.Request) {
 
 func (r repo) dismiss(ctx context.Context, typ string, id int64, restore bool) (int64, error) {
 	table := "spots"
-	if typ == "update" {
+	switch typ {
+	case "update":
 		table = "spot_updates"
+	case "review":
+		table = "spot_reviews"
 	}
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -405,4 +410,38 @@ func (r repo) dismiss(ctx context.Context, typ string, id int64, restore bool) (
 		return 0, err
 	}
 	return n, tx.Commit()
+}
+
+// ---- review / update deletion ----
+
+func (h handler) deleteReview(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(r)
+	if !ok {
+		notFound(w, "review")
+		return
+	}
+	switch err := reviews.DeleteByID(r.Context(), h.repo.db, id); {
+	case errors.Is(err, reviews.ErrNotFound):
+		notFound(w, "review")
+	case err != nil:
+		serverError(w)
+	default:
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func (h handler) deleteUpdate(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(r)
+	if !ok {
+		notFound(w, "update")
+		return
+	}
+	switch err := feed.DeleteUpdateByID(r.Context(), h.repo.db, h.repo.uploadDir, id); {
+	case errors.Is(err, feed.ErrUpdateNotFound):
+		notFound(w, "update")
+	case err != nil:
+		serverError(w)
+	default:
+		w.WriteHeader(http.StatusNoContent)
+	}
 }

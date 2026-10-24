@@ -99,6 +99,16 @@ func (s *service) deleteAccount(ctx context.Context, userID uint64, password str
 		return err
 	}
 	rows.Close()
+	// Reports are polymorphic (no FK): drop those about the user's spots and
+	// everything below them, and their own updates/reviews, before the cascade.
+	const mySpots = `(SELECT id FROM spots WHERE user_id = ?)`
+	if _, err := tx.ExecContext(ctx, `DELETE FROM reports WHERE
+		(target_type = 'spot' AND target_id IN `+mySpots+`)
+		OR (target_type = 'update' AND target_id IN (SELECT id FROM spot_updates WHERE user_id = ? OR spot_id IN `+mySpots+`))
+		OR (target_type = 'review' AND target_id IN (SELECT id FROM spot_reviews WHERE user_id = ? OR spot_id IN `+mySpots+`))`,
+		userID, userID, userID, userID, userID); err != nil {
+		return err
+	}
 	res, err := tx.ExecContext(ctx, `DELETE FROM users WHERE id = ?`, userID)
 	if err != nil {
 		return err
