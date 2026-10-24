@@ -27,7 +27,6 @@ Future<void> pumpSheet(WidgetTester t, Spot spot, {Size? size}) async {
 const noPhoto = Spot(
   id: 1,
   title: 'Lake bench',
-  category: 'bench',
   lat: 48.1,
   lon: 11.6,
   likeCount: 2,
@@ -49,7 +48,6 @@ void main() {
       const Spot(
         id: 1,
         title: 'Lake bench',
-        category: 'bench',
         lat: 48.1,
         lon: 11.6,
         coverUrl: 'http://test/api/v1/media/a.jpg',
@@ -72,7 +70,6 @@ void main() {
         const Spot(
           id: 1,
           title: 'Lake bench',
-          category: 'bench',
           lat: 48.1,
           lon: 11.6,
           coverUrl: '',
@@ -98,7 +95,6 @@ void main() {
       const Spot(
         id: 1,
         title: 'Lake bench',
-        category: 'bench',
         lat: 48.1,
         lon: 11.6,
         ratingAvg: 4.25,
@@ -115,7 +111,6 @@ void main() {
       const Spot(
         id: 1,
         title: 'T',
-        category: 'bench',
         lat: 1,
         lon: 2,
         tags: [SpotTag.roof, SpotTag.water],
@@ -136,14 +131,7 @@ void main() {
     testWidgets('all tags fit at $size', (t) async {
       await pumpSheet(
         t,
-        Spot(
-          id: 1,
-          title: 'T',
-          category: 'bench',
-          lat: 1,
-          lon: 2,
-          tags: SpotTag.values,
-        ),
+        Spot(id: 1, title: 'T', lat: 1, lon: 2, tags: SpotTag.values),
         size: size,
       );
       expect(t.takeException(), isNull);

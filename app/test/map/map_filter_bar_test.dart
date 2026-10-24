@@ -40,12 +40,9 @@ void main() {
   for (final size in const [Size(400, 800), Size(844, 390), Size(1100, 700)]) {
     testWidgets('tag chips toggle the controller state at $size', (t) async {
       final c = await pumpBar(t, size);
-      // categories first, then the divider, then the seven tags
-      expect(find.text('All'), findsOneWidget);
-      await reveal(t, 'mapTagDivider');
-      final roof = t.getTopLeft(find.byKey(const Key('mapTag-roof')));
-      final divider = t.getTopLeft(find.byKey(const Key('mapTagDivider')));
-      expect(divider.dx, lessThan(roof.dx));
+      // only the tag chips: no category chips, no divider
+      expect(find.text('All'), findsNothing);
+      expect(find.byKey(const Key('mapTagDivider')), findsNothing);
       expect(find.byKey(const Key('mapTagsClear')), findsNothing);
 
       await t.tap(find.byKey(const Key('mapTag-roof')));
@@ -69,11 +66,4 @@ void main() {
       expect(t.takeException(), isNull);
     });
   }
-
-  testWidgets('category chips still set the category', (t) async {
-    final c = await pumpBar(t, const Size(400, 800));
-    await t.tap(find.text('Bench'));
-    await t.pump();
-    expect(c.read(spotsControllerProvider).category, 'bench');
-  });
 }

@@ -25,13 +25,7 @@ class FakeSpotApi implements SpotApi {
     draftTags.add(draft.tags);
     final e = createError;
     if (e != null && !force) throw e;
-    return Spot(
-      id: 7,
-      title: draft.title,
-      category: draft.category,
-      lat: draft.lat,
-      lon: draft.lon,
-    );
+    return Spot(id: 7, title: draft.title, lat: draft.lat, lon: draft.lon);
   }
 
   @override
@@ -107,15 +101,12 @@ void main() {
 
   void fillRequired() {
     ctrl().setTitle('Bench');
-    ctrl().setCategory('bench');
     ctrl().setPoint(const LatLng(49.5, 10.5));
   }
 
-  test('submit is disabled until title, category and point are set', () {
+  test('submit is disabled until title and point are set', () {
     expect(st().canSubmit, isFalse);
     ctrl().setTitle('Bench');
-    expect(st().canSubmit, isFalse);
-    ctrl().setCategory('bench');
     expect(st().canSubmit, isFalse);
     ctrl().setPoint(const LatLng(49.5, 10.5));
     expect(st().canSubmit, isTrue);

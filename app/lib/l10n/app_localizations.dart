@@ -218,60 +218,6 @@ abstract class AppLocalizations {
   /// **'Pflichtfeld'**
   String get fieldRequired;
 
-  /// No description provided for @categoryBench.
-  ///
-  /// In de, this message translates to:
-  /// **'Bank'**
-  String get categoryBench;
-
-  /// No description provided for @categoryRiver.
-  ///
-  /// In de, this message translates to:
-  /// **'Fluss'**
-  String get categoryRiver;
-
-  /// No description provided for @categoryLake.
-  ///
-  /// In de, this message translates to:
-  /// **'See'**
-  String get categoryLake;
-
-  /// No description provided for @categoryViewpoint.
-  ///
-  /// In de, this message translates to:
-  /// **'Aussichtspunkt'**
-  String get categoryViewpoint;
-
-  /// No description provided for @categoryForest.
-  ///
-  /// In de, this message translates to:
-  /// **'Wald'**
-  String get categoryForest;
-
-  /// No description provided for @categoryPark.
-  ///
-  /// In de, this message translates to:
-  /// **'Park'**
-  String get categoryPark;
-
-  /// No description provided for @categoryOther.
-  ///
-  /// In de, this message translates to:
-  /// **'Sonstiges'**
-  String get categoryOther;
-
-  /// No description provided for @categoryAll.
-  ///
-  /// In de, this message translates to:
-  /// **'Alle'**
-  String get categoryAll;
-
-  /// No description provided for @category.
-  ///
-  /// In de, this message translates to:
-  /// **'Kategorie'**
-  String get category;
-
   /// No description provided for @sort.
   ///
   /// In de, this message translates to:
@@ -409,6 +355,12 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'{count, plural, =0{Keine Likes} =1{1 Like} other{{count} Likes}}'**
   String likesCount(int count);
+
+  /// No description provided for @feedUpdateCount.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =1{1 Update} other{{count} Updates}}'**
+  String feedUpdateCount(int count);
 
   /// No description provided for @changePassword.
   ///

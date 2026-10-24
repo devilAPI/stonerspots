@@ -9,7 +9,6 @@ import '../../core/spot_tag_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
 import '../feed/satellite_thumb.dart';
-import 'add_spot_screen.dart' show categoryLabel;
 import '../reviews/rating_widgets.dart';
 import '../reviews/reviews_section.dart';
 import 'edit_tags_dialog.dart';
@@ -241,7 +240,6 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   spacing: 12,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Text(categoryLabel(l, spot.category)),
                     RatingBadge(
                       key: const Key('spotRating'),
                       avg: spot.ratingAvg,

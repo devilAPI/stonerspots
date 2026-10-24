@@ -7,8 +7,6 @@ import '../../core/coordinates.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/models.dart' show SpotTag;
 import '../../core/spot_tag_widgets.dart';
-import '../spots/add_spot_controller.dart' show kCategories;
-import '../spots/add_spot_screen.dart' show categoryLabel;
 import 'admin_models.dart';
 import 'admin_repository.dart';
 
@@ -221,9 +219,6 @@ class _EditSpotDialogState extends ConsumerState<_EditSpotDialog> {
   late final _coords = TextEditingController(
     text: formatLatLon(widget.spot.lat, widget.spot.lon),
   );
-  late String _category = kCategories.contains(widget.spot.category)
-      ? widget.spot.category
-      : 'other';
   late String _status = widget.spot.status == 'hidden' ? 'hidden' : 'active';
   late List<SpotTag> _tags = SpotTag.sorted(widget.spot.tags);
   bool _busy = false;
@@ -268,7 +263,6 @@ class _EditSpotDialogState extends ConsumerState<_EditSpotDialog> {
     final patch = AdminSpotPatch(
       title: title != s.title ? title : null,
       description: description != s.description ? description : null,
-      category: _category != s.category ? _category : null,
       status: _status != s.status ? _status : null,
       lat: point?.latitude,
       lon: point?.longitude,
@@ -314,18 +308,6 @@ class _EditSpotDialogState extends ConsumerState<_EditSpotDialog> {
           minLines: 2,
           maxLines: 5,
           decoration: InputDecoration(labelText: l10n.description),
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          key: const Key('edit-spot-category'),
-          initialValue: _category,
-          isExpanded: true,
-          decoration: InputDecoration(labelText: l10n.category),
-          items: [
-            for (final c in kCategories)
-              DropdownMenuItem(value: c, child: Text(categoryLabel(l10n, c))),
-          ],
-          onChanged: (v) => setState(() => _category = v ?? _category),
         ),
         const SizedBox(height: 12),
         Text(l10n.adminStatus, style: Theme.of(context).textTheme.labelLarge),

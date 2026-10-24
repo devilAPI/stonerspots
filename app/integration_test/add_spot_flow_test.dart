@@ -72,22 +72,13 @@ void main() {
 
     await t.enterText(find.byKey(const Key('title')), 'Integrationstest');
     await t.pump(const Duration(milliseconds: 300));
-    await t.ensureVisible(find.byKey(const Key('category')));
-    await t.tap(find.byKey(const Key('category')));
-    await t.pump(const Duration(milliseconds: 600));
-    final items = find.byType(DropdownMenuItem<String>);
-    print('STEP 4 category dropdown items: ${items.evaluate().length}');
-    if (items.evaluate().isNotEmpty) {
-      await t.tap(items.last);
-      await t.pump(const Duration(milliseconds: 600));
-    }
 
     final save = find.byKey(const Key('save'));
     await t.ensureVisible(save);
     final btn = t.widget<FilledButton>(save);
     print('STEP 5 save button enabled: ${btn.onPressed != null}');
     if (btn.onPressed == null) {
-      print('RESULT: Save stays disabled (needs title + category + a point)');
+      print('RESULT: Save stays disabled (needs title + a point)');
       return;
     }
     await t.tap(save);

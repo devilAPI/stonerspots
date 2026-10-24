@@ -9,22 +9,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 
-Spot spot(int id) =>
-    Spot(id: id, title: 's$id', category: 'park', lat: 50, lon: 10);
+Spot spot(int id) => Spot(id: id, title: 's$id', lat: 50, lon: 10);
 
 class FakeRepo implements SpotsRepository {
   final calls = <Completer<List<Spot>>>[];
-  final categories = <String?>[];
   final tagsSeen = <List<SpotTag>>[];
   final boundsSeen = <LatLngBounds>[];
 
   @override
   Future<List<Spot>> inBounds(
     LatLngBounds bounds, {
-    String? category,
     List<SpotTag> tags = const [],
   }) {
-    categories.add(category);
     tagsSeen.add(tags);
     boundsSeen.add(bounds);
     final c = Completer<List<Spot>>();
@@ -109,16 +105,6 @@ void main() {
     final s = c.read(spotsControllerProvider);
     expect(s.loading, isTrue);
     expect(s.spots.map((x) => x.id), [1]);
-  });
-
-  test('category change refetches immediately with the category', () async {
-    final repo = FakeRepo();
-    final c = make(repo);
-    final ctrl = c.read(spotsControllerProvider.notifier);
-    ctrl.onCameraMoved(bounds);
-    await Future<void>.delayed(wait);
-    ctrl.setCategory('lake');
-    expect(repo.categories, [null, 'lake']);
   });
 
   test('permission denied falls back to region centre', () async {
@@ -225,14 +211,6 @@ void main() {
         );
       },
     );
-
-    test('changing the category forgets the loaded area', () async {
-      final (_, repo, ctrl) = await loaded([spot(1)]);
-      ctrl.setCategory('bench');
-      await Future<void>.delayed(wait);
-      expect(repo.calls, hasLength(2));
-      expect(repo.categories.last, 'bench');
-    });
   });
 
   group('tags', () {
@@ -264,14 +242,6 @@ void main() {
         SpotTag.quiet,
       ]);
       ctrl.toggleTag(SpotTag.quiet);
-      expect(repo.tagsSeen.last, [SpotTag.roof]);
-    });
-
-    test('tags and category travel together', () async {
-      final (_, repo, ctrl) = await loaded();
-      ctrl.setCategory('bench');
-      ctrl.toggleTag(SpotTag.roof);
-      expect(repo.categories.last, 'bench');
       expect(repo.tagsSeen.last, [SpotTag.roof]);
     });
 

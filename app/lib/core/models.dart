@@ -83,7 +83,6 @@ class Spot {
     required this.id,
     required this.title,
     this.description = '',
-    required this.category,
     required this.lat,
     required this.lon,
     this.likeCount = 0,
@@ -98,7 +97,6 @@ class Spot {
   final int id;
   final String title;
   final String description;
-  final String category;
   final double lat;
   final double lon;
   final int likeCount;
@@ -119,7 +117,6 @@ class Spot {
     id: j['id'] as int,
     title: (j['title'] ?? '') as String,
     description: (j['description'] ?? '') as String,
-    category: (j['category'] ?? 'other') as String,
     lat: _d(j['lat']),
     lon: _d(j['lon']),
     likeCount: (j['like_count'] ?? 0) as int,
@@ -188,6 +185,7 @@ class FeedItem {
     required this.spot,
     this.tag = UpdateTag.note,
     this.editedAt,
+    this.updateCount = 1,
   });
 
   final int id;
@@ -198,6 +196,9 @@ class FeedItem {
   final Spot spot;
   final UpdateTag tag;
   final DateTime? editedAt;
+
+  /// How many updates the spot has (the feed shows one card per spot).
+  final int updateCount;
 
   factory FeedItem.fromJson(Map<String, dynamic> j) => FeedItem(
     id: j['id'] as int,
@@ -212,6 +213,7 @@ class FeedItem {
     editedAt: j['edited_at'] == null
         ? null
         : DateTime.parse(j['edited_at'] as String),
+    updateCount: (j['update_count'] as num?)?.toInt() ?? 1,
   );
 }
 

@@ -172,7 +172,6 @@ class AdminSpot {
     required this.id,
     required this.title,
     this.description = '',
-    required this.category,
     required this.lat,
     required this.lon,
     required this.status,
@@ -186,7 +185,6 @@ class AdminSpot {
   final int id;
   final String title;
   final String description;
-  final String category;
   final double lat;
   final double lon;
   final List<SpotTag> tags;
@@ -202,7 +200,6 @@ class AdminSpot {
     id: j['id'] as int,
     title: (j['title'] ?? '') as String,
     description: (j['description'] ?? '') as String,
-    category: (j['category'] ?? 'other') as String,
     lat: ((j['lat'] ?? 0) as num).toDouble(),
     lon: ((j['lon'] ?? 0) as num).toDouble(),
     status: (j['status'] ?? 'active') as String,
@@ -217,7 +214,6 @@ class AdminSpot {
     id: id,
     title: title,
     description: description,
-    category: category,
     lat: lat,
     lon: lon,
     status: status ?? this.status,
@@ -252,7 +248,6 @@ class AdminSpotPatch {
   const AdminSpotPatch({
     this.title,
     this.description,
-    this.category,
     this.status,
     this.lat,
     this.lon,
@@ -263,7 +258,6 @@ class AdminSpotPatch {
   final List<SpotTag>? tags;
   final String? title;
   final String? description;
-  final String? category;
   final String? status;
   final double? lat;
   final double? lon;
@@ -273,7 +267,6 @@ class AdminSpotPatch {
   Map<String, dynamic> toJson() => {
     'title': ?title,
     'description': ?description,
-    'category': ?category,
     'status': ?status,
     if (lat != null && lon != null) ...{'lat': lat, 'lon': lon},
     if (tags != null) 'tags': [for (final t in SpotTag.sorted(tags!)) t.wire],

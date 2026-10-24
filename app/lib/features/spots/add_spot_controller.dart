@@ -8,21 +8,11 @@ import 'photo_uploader.dart';
 import 'spot_api.dart';
 
 const int kMaxPhotos = 4;
-const List<String> kCategories = [
-  'bench',
-  'river',
-  'lake',
-  'viewpoint',
-  'forest',
-  'park',
-  'other',
-];
 
 class AddSpotState {
   const AddSpotState({
     this.title = '',
     this.description = '',
-    this.category,
     this.point,
     this.photos = const [],
     this.tags = const [],
@@ -35,7 +25,6 @@ class AddSpotState {
 
   final String title;
   final String description;
-  final String? category;
   final LatLng? point;
   final List<XFile> photos;
 
@@ -51,16 +40,11 @@ class AddSpotState {
   final int? createdSpotId;
   final Object? error;
 
-  bool get canSubmit =>
-      !submitting &&
-      title.trim().isNotEmpty &&
-      category != null &&
-      point != null;
+  bool get canSubmit => !submitting && title.trim().isNotEmpty && point != null;
 
   AddSpotState copyWith({
     String? title,
     String? description,
-    String? category,
     LatLng? point,
     List<XFile>? photos,
     List<SpotTag>? tags,
@@ -74,7 +58,6 @@ class AddSpotState {
   }) => AddSpotState(
     title: title ?? this.title,
     description: description ?? this.description,
-    category: category ?? this.category,
     point: point ?? this.point,
     photos: photos ?? this.photos,
     tags: tags ?? this.tags,
@@ -103,7 +86,6 @@ class AddSpotController extends Notifier<AddSpotState> {
 
   void setTitle(String v) => state = state.copyWith(title: v);
   void setDescription(String v) => state = state.copyWith(description: v);
-  void setCategory(String v) => state = state.copyWith(category: v);
 
   void setTags(Iterable<SpotTag> tags) =>
       state = state.copyWith(tags: SpotTag.sorted(tags));
@@ -157,7 +139,6 @@ class AddSpotController extends Notifier<AddSpotState> {
             SpotDraft(
               title: state.title.trim(),
               description: state.description.trim(),
-              category: state.category!,
               lat: state.point!.latitude,
               lon: state.point!.longitude,
               photoIds: photoIds,

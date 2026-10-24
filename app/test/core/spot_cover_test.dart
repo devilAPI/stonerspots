@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 Map<String, dynamic> json(Object? cover) => {
   'id': 1,
   'title': 'Bench',
-  'category': 'bench',
   'lat': 48.1,
   'lon': 11.6,
   'cover_url': ?cover,

@@ -31,7 +31,6 @@ class _Api implements SpotApi {
   Future<Spot> getSpot(int id) async => Spot(
     id: 5,
     title: 'Lake bench',
-    category: 'lake',
     lat: 1,
     lon: 2,
     likeCount: 3,

@@ -5,15 +5,14 @@ import 'package:latlong2/latlong.dart';
 import '../../core/models.dart';
 import '../../core/theme.dart';
 
-IconData categoryIcon(String category) => switch (category) {
-  'bench' => Icons.chair_alt,
-  'river' => Icons.water,
-  'lake' => Icons.pool,
-  'viewpoint' => Icons.landscape,
-  'forest' => Icons.park,
-  'park' => Icons.nature_people,
-  _ => Icons.place,
-};
+/// Marker icon from the spot's tags only; first match in this priority.
+IconData spotIcon(List<SpotTag> tags) {
+  if (tags.contains(SpotTag.roof)) return Icons.roofing;
+  if (tags.contains(SpotTag.water)) return Icons.water_drop;
+  if (tags.contains(SpotTag.view)) return Icons.landscape;
+  if (tags.contains(SpotTag.seating)) return Icons.chair_alt;
+  return Icons.place;
+}
 
 Marker buildSpotMarker(Spot spot, {required bool large, VoidCallback? onTap}) {
   final size = large ? 52.0 : 34.0;
@@ -32,7 +31,7 @@ Marker buildSpotMarker(Spot spot, {required bool large, VoidCallback? onTap}) {
           boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black45)],
         ),
         child: Icon(
-          categoryIcon(spot.category),
+          spotIcon(spot.tags),
           size: large ? 28 : 18,
           color: Colors.black,
         ),

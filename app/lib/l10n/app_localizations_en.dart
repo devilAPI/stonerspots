@@ -70,33 +70,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fieldRequired => 'Required';
 
   @override
-  String get categoryBench => 'Bench';
-
-  @override
-  String get categoryRiver => 'River';
-
-  @override
-  String get categoryLake => 'Lake';
-
-  @override
-  String get categoryViewpoint => 'Viewpoint';
-
-  @override
-  String get categoryForest => 'Forest';
-
-  @override
-  String get categoryPark => 'Park';
-
-  @override
-  String get categoryOther => 'Other';
-
-  @override
-  String get categoryAll => 'All';
-
-  @override
-  String get category => 'Category';
-
-  @override
   String get sort => 'Sort';
 
   @override
@@ -171,6 +144,17 @@ class AppLocalizationsEn extends AppLocalizations {
       other: '$count likes',
       one: '1 like',
       zero: 'No likes',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String feedUpdateCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count updates',
+      one: '1 update',
     );
     return '$_temp0';
   }
