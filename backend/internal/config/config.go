@@ -16,6 +16,8 @@ type Config struct {
 	// PublicBaseURL is the externally visible origin of this server
 	// (e.g. "http://localhost:8080"), used to build absolute photo URLs.
 	PublicBaseURL string
+	// GeocoderURL is the base URL of a Nominatim-compatible geocoder.
+	GeocoderURL string
 }
 
 // Load reads configuration from the environment. JWT_SECRET is required.
@@ -26,6 +28,7 @@ func Load() (Config, error) {
 		UploadDir:     getenv("UPLOAD_DIR", "./uploads"),
 		Addr:          getenv("ADDR", ":8080"),
 		PublicBaseURL: getenv("PUBLIC_BASE_URL", "http://localhost:8080"),
+		GeocoderURL:   getenv("GEOCODER_URL", "https://nominatim.openstreetmap.org"),
 	}
 	if len(c.JWTSecret) == 0 {
 		return Config{}, errors.New("JWT_SECRET must be set")

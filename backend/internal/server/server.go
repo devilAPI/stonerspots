@@ -12,6 +12,7 @@ import (
 	"stonerspots/backend/internal/auth"
 	"stonerspots/backend/internal/engagement"
 	"stonerspots/backend/internal/feed"
+	"stonerspots/backend/internal/geocode"
 	"stonerspots/backend/internal/httpx"
 	"stonerspots/backend/internal/photos"
 	"stonerspots/backend/internal/spots"
@@ -27,6 +28,7 @@ func New(d app.Deps) http.Handler {
 		photos.Mount(r, d)
 		feed.Mount(r, d)
 		engagement.Mount(r, d)
+		geocode.Mount(r, d)
 	})
 	return r
 }
