@@ -83,13 +83,19 @@ func (r repo) AddReport(ctx context.Context, userID uint64, targetType string, t
 		table = "spots"
 	case "update":
 		table = "spot_updates"
+	case "review":
+		table = "spot_reviews"
 	default:
 		return false, errBadType
 	}
 	created := false
 	err := r.inTx(ctx, func(tx *sql.Tx) error {
 		var x uint64
-		err := tx.QueryRowContext(ctx, `SELECT id FROM `+table+` WHERE id = ? FOR UPDATE`, targetID).Scan(&x)
+		lock := `SELECT id FROM ` + table + ` WHERE id = ?`
+		if targetType == "review" {
+			lock += ` AND status = 'active'`
+		}
+		err := tx.QueryRowContext(ctx, lock+` FOR UPDATE`, targetID).Scan(&x)
 		if errors.Is(err, sql.ErrNoRows) {
 			return errNotFound
 		}

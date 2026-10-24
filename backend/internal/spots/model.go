@@ -13,6 +13,8 @@ type Spot struct {
 	Lon         float64   `json:"lon"`
 	LikeCount   int       `json:"like_count"`
 	CoverURL    string    `json:"cover_url"`
+	RatingAvg   float64   `json:"rating_avg"`
+	RatingCount int       `json:"rating_count"`
 	DistanceM   *float64  `json:"distance_m,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }

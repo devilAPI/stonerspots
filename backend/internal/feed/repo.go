@@ -17,7 +17,22 @@ var (
 	ErrSpotNotFound = errors.New("feed: spot not found")
 	// ErrInvalidBody: body too long or update has neither text nor photos. Map to 400 invalid_body.
 	ErrInvalidBody = errors.New("feed: invalid body")
+	// ErrInvalidTag: tag is not one of Tags. Map to 400 invalid_tag.
+	ErrInvalidTag = errors.New("feed: invalid tag")
 )
+
+// Tags are the allowed update tags.
+var Tags = []string{"note", "still_good", "crowded", "dirty", "closed"}
+
+// ValidTag reports whether t is an allowed update tag.
+func ValidTag(t string) bool {
+	for _, x := range Tags {
+		if x == t {
+			return true
+		}
+	}
+	return false
+}
 
 const (
 	MaxPhotos  = 4
@@ -42,6 +57,9 @@ type SpotRef struct {
 	Lat       float64 `json:"lat"`
 	Lon       float64 `json:"lon"`
 	LikeCount int     `json:"like_count"`
+
+	RatingAvg   float64 `json:"rating_avg"`
+	RatingCount int     `json:"rating_count"`
 }
 
 type FeedItem struct {
@@ -49,6 +67,8 @@ type FeedItem struct {
 	Body      string     `json:"body"`
 	Photos    []PhotoRef `json:"photos"`
 	CreatedAt time.Time  `json:"created_at"`
+	Tag       string     `json:"tag"`
+	EditedAt  *time.Time `json:"edited_at"`
 	Author    Author     `json:"author"`
 	Spot      SpotRef    `json:"spot"`
 
@@ -58,6 +78,17 @@ type FeedItem struct {
 // CreateUpdate inserts an update for spotID and atomically attaches photoIDs,
 // which must belong to userID and be unattached. Returns the new update id.
 func CreateUpdate(ctx context.Context, db *sql.DB, userID, spotID uint64, body string, photoIDs []uint64) (uint64, error) {
+	return CreateUpdateTagged(ctx, db, userID, spotID, body, "note", photoIDs)
+}
+
+// CreateUpdateTagged is CreateUpdate with a tag (see ValidTag); "" means "note".
+func CreateUpdateTagged(ctx context.Context, db *sql.DB, userID, spotID uint64, body, tag string, photoIDs []uint64) (uint64, error) {
+	if tag == "" {
+		tag = "note"
+	}
+	if !ValidTag(tag) {
+		return 0, ErrInvalidTag
+	}
 	body = strings.TrimSpace(body)
 	if len(body) > MaxBodyLen || (body == "" && len(photoIDs) == 0) {
 		return 0, ErrInvalidBody
@@ -109,7 +140,7 @@ func CreateUpdate(ctx context.Context, db *sql.DB, userID, spotID uint64, body s
 		}
 	}
 
-	res, err := tx.ExecContext(ctx, "INSERT INTO spot_updates (spot_id, user_id, body) VALUES (?, ?, ?)", spotID, userID, body)
+	res, err := tx.ExecContext(ctx, "INSERT INTO spot_updates (spot_id, user_id, body, tag) VALUES (?, ?, ?, ?)", spotID, userID, body, tag)
 	if err != nil {
 		return 0, err
 	}
@@ -166,9 +197,11 @@ type query struct {
 }
 
 // The last selected column is always the sort key (see scanItem).
-const selectBase = `SELECT u.id, u.body, u.created_at,
+const selectBase = `SELECT u.id, u.body, u.created_at, u.tag, u.edited_at,
   a.id, a.display_name,
-  s.id, s.title, s.category, ST_Y(s.location), ST_X(s.location), s.like_count`
+  s.id, s.title, s.category, ST_Y(s.location), ST_X(s.location), s.like_count,
+  (SELECT COALESCE(ROUND(AVG(rv.rating), 1), 0) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active'),
+  (SELECT COUNT(*) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active')`
 
 const fromBase = ` FROM spot_updates u
   JOIN spots s ON s.id = u.spot_id
@@ -180,9 +213,10 @@ const distExpr = "ST_Distance_Sphere(s.location, POINT(?, ?))"
 
 func scanItem(rows *sql.Rows) (FeedItem, error) {
 	var it FeedItem
-	err := rows.Scan(&it.ID, &it.Body, &it.CreatedAt,
+	err := rows.Scan(&it.ID, &it.Body, &it.CreatedAt, &it.Tag, &it.EditedAt,
 		&it.Author.ID, &it.Author.DisplayName,
 		&it.Spot.ID, &it.Spot.Title, &it.Spot.Category, &it.Spot.Lat, &it.Spot.Lon, &it.Spot.LikeCount,
+		&it.Spot.RatingAvg, &it.Spot.RatingCount,
 		&it.sortKey)
 	it.Photos = []PhotoRef{}
 	return it, err
