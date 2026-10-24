@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/models.dart';
 import '../../l10n/app_localizations.dart';
+import 'satellite_thumb.dart';
 
 /// Language-neutral compact relative time: now, 5m, 3h, 2d, 4w, 1y.
 String relativeTime(DateTime t, {DateTime? now}) {
@@ -31,7 +32,9 @@ class FeedCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (item.photos.isNotEmpty)
+          if (item.photos.isEmpty)
+            SatelliteThumb(lat: item.spot.lat, lon: item.spot.lon)
+          else
             AspectRatio(
               aspectRatio: 4 / 3,
               child: CachedNetworkImage(

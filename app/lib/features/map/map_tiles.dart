@@ -39,3 +39,15 @@ Widget buildMapAttribution(BuildContext context) {
     ],
   );
 }
+
+/// Esri World Imagery (top-down satellite). Credit "Esri World Imagery" must
+/// stay visible wherever it is shown; check Esri's terms before a commercial
+/// launch.
+const _satelliteTiles =
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+
+TileLayer buildSatelliteTileLayer() => TileLayer(
+  urlTemplate: _satelliteTiles,
+  userAgentPackageName: 'de.stonerspots.app',
+  maxNativeZoom: 19,
+);
