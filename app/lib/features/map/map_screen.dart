@@ -126,6 +126,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
+              maxZoom: kMapMaxZoom,
               initialCenter: kRegionCentre,
               initialZoom: kRegionZoom,
               onMapReady: _notifyBounds,

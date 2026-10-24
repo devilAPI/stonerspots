@@ -47,4 +47,21 @@ void main() {
     final l = await layerFor(t, Brightness.light, key: 'abc123');
     expect(l.urlTemplate, 'https://tile.openstreetmap.org/{z}/{x}/{y}.png');
   });
+
+  // CARTO answers 403 (blank tile) above zoom 18, OSM stops at 19; closer
+  // views must scale those tiles up instead of asking for tiles that do not exist.
+  testWidgets('dark tiles are never requested above zoom 18', (t) async {
+    final l = await layerFor(t, Brightness.dark, key: 'abc123');
+    expect(l.maxNativeZoom, 18);
+  });
+
+  testWidgets('osm tiles are never requested above zoom 19', (t) async {
+    final l = await layerFor(t, Brightness.light);
+    expect(l.maxNativeZoom, 19);
+  });
+
+  test('the maps cannot be zoomed further than scaled tiles stay readable', () {
+    expect(kMapMaxZoom, lessThanOrEqualTo(20));
+    expect(kMapMaxZoom, greaterThanOrEqualTo(19));
+  });
 }

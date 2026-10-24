@@ -5,6 +5,11 @@ import 'package:flutter_map/flutter_map.dart';
 /// `--dart-define=TILE_URL=https://.../{z}/{x}/{y}.png`
 const String kTileUrlOverride = String.fromEnvironment('TILE_URL');
 
+/// Highest zoom the user can reach. The tile servers have no tiles that
+/// close (CARTO: up to 18 - it answers 403 above -, OSM: up to 19), so the
+/// last levels are scaled-up tiles instead of blank ones.
+const double kMapMaxZoom = 20;
+
 const _osmTiles = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 /// CARTO API key for the dark basemap:
@@ -36,7 +41,7 @@ TileLayer buildTileLayer(BuildContext context, {String cartoKey = kCartoKey}) {
       urlTemplate: _cartoDarkUrl(cartoKey),
       retinaMode: RetinaMode.isHighDensity(context),
       userAgentPackageName: 'de.stonerspots.app',
-      maxNativeZoom: 20,
+      maxNativeZoom: 18,
     );
   }
   return TileLayer(
