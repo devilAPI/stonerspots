@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/models.dart';
 import '../../l10n/app_localizations.dart';
+import '../feed/satellite_thumb.dart';
 
 class SpotPreviewSheet extends StatelessWidget {
   const SpotPreviewSheet({super.key, required this.spot, required this.onOpen});
@@ -21,27 +22,30 @@ class SpotPreviewSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (cover != null)
-              Center(
-                child: ConstrainedBox(
-                  // landscape phones are short: keep the title and button visible
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.sizeOf(context).height * 0.4,
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: CachedNetworkImage(
-                        imageUrl: cover,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, _, _) =>
-                            const Center(child: Icon(Icons.broken_image)),
-                      ),
-                    ),
-                  ),
+            // User photos first; a spot nobody photographed yet is shown
+            // from above instead.
+            Center(
+              child: ConstrainedBox(
+                // landscape phones are short: keep the title and button visible
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(context).height * 0.4,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: cover != null
+                      ? AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: CachedNetworkImage(
+                            imageUrl: cover,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, _, _) =>
+                                const Center(child: Icon(Icons.broken_image)),
+                          ),
+                        )
+                      : SatelliteThumb(lat: spot.lat, lon: spot.lon),
                 ),
               ),
+            ),
             const SizedBox(height: 12),
             Text(spot.title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 4),

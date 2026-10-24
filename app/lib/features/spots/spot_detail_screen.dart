@@ -367,7 +367,16 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
           return ListView(
             padding: const EdgeInsets.only(bottom: 24),
             children: [
-              if (urls.isNotEmpty) gallery,
+              if (urls.isNotEmpty)
+                gallery
+              else
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: SatelliteThumb(lat: spot.lat, lon: spot.lon),
+                  ),
+                ),
               info,
               const Divider(),
               timeline,

@@ -171,5 +171,7 @@ void main() {
     await _pump(tester, null);
     expect(find.byKey(const Key('detailTwoPane')), findsNothing);
     expect(find.byKey(const Key('like')), findsOneWidget);
+    // no user photos -> the spot is shown from above
+    expect(find.byType(SatelliteThumb), findsOneWidget);
   });
 }
