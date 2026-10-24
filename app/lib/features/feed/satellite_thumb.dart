@@ -12,7 +12,7 @@ class SatelliteThumb extends StatelessWidget {
     super.key,
     required this.lat,
     required this.lon,
-    this.zoom = 18,
+    this.zoom = 19,
   });
 
   final double lat;

@@ -1,5 +1,6 @@
 import 'package:app/core/models.dart';
 import 'package:app/features/auth/auth_controller.dart';
+import 'package:app/features/feed/satellite_thumb.dart';
 import 'package:app/features/spots/maps_link.dart';
 import 'package:app/features/spots/spot_api.dart';
 import 'package:app/features/spots/spot_detail_screen.dart';
@@ -145,5 +146,30 @@ void main() {
     await tester.tap(button);
     await tester.pump();
     expect(find.text('Something went wrong'), findsOneWidget);
+  });
+
+  testWidgets(
+    'wide windows and landscape phones get two panes with a satellite view',
+    (tester) async {
+      tester.view.physicalSize = const Size(844, 390);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _pump(tester, null);
+      expect(find.byKey(const Key('detailTwoPane')), findsOneWidget);
+      // no photos yet -> the left pane shows the spot from above
+      expect(find.byType(SatelliteThumb), findsOneWidget);
+      expect(find.text('Lake bench'), findsWidgets);
+      expect(find.byKey(const Key('like')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('phone portrait stays a single column', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await _pump(tester, null);
+    expect(find.byKey(const Key('detailTwoPane')), findsNothing);
+    expect(find.byKey(const Key('like')), findsOneWidget);
   });
 }

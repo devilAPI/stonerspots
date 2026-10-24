@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/location_service.dart';
+import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import 'add_spot_controller.dart';
 import 'location_picker.dart';
@@ -64,137 +65,169 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l.addSpotTitle)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    final pickerBox = ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: FutureBuilder<LatLng?>(
+        future: _location,
+        builder: (context, snap) {
+          if (snap.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return LocationPicker(
+            point: s.point,
+            initialCenter: snap.data,
+            onChanged: ctrl.setPoint,
+          );
+        },
+      ),
+    );
+    final Widget deniedNote = _locationDenied
+        ? Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              l.locationDenied,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          )
+        : const SizedBox.shrink();
+    final form = <Widget>[
+      TextField(
+        key: const Key('title'),
+        decoration: InputDecoration(labelText: l.title),
+        onChanged: ctrl.setTitle,
+      ),
+      const SizedBox(height: 12),
+      DropdownButtonFormField<String>(
+        key: const Key('category'),
+        initialValue: s.category,
+        decoration: InputDecoration(labelText: l.category),
+        items: [
+          for (final c in kCategories)
+            DropdownMenuItem(value: c, child: Text(categoryLabel(l, c))),
+        ],
+        onChanged: (v) => v == null ? null : ctrl.setCategory(v),
+      ),
+      const SizedBox(height: 12),
+      TextField(
+        key: const Key('description'),
+        decoration: InputDecoration(labelText: l.description),
+        maxLines: 4,
+        onChanged: ctrl.setDescription,
+      ),
+      const SizedBox(height: 12),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
         children: [
-          SizedBox(
-            height: 240,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: FutureBuilder<LatLng?>(
-                future: _location,
-                builder: (context, snap) {
-                  if (snap.connectionState != ConnectionState.done) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  return LocationPicker(
-                    point: s.point,
-                    initialCenter: snap.data,
-                    onChanged: ctrl.setPoint,
-                  );
-                },
+          for (final p in s.photos)
+            InputChip(
+              label: Text(
+                p.name.isEmpty ? 'photo' : p.name,
+                overflow: TextOverflow.ellipsis,
               ),
+              avatar: const Icon(Icons.photo),
+              onDeleted: () => ctrl.removePhoto(p),
             ),
-          ),
-          if (_locationDenied)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                l.locationDenied,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+          if (s.photos.length < kMaxPhotos)
+            ActionChip(
+              key: const Key('addPhotos'),
+              avatar: const Icon(Icons.add_a_photo),
+              label: Text(l.addPhotos),
+              onPressed: _pickPhotos,
             ),
-          const SizedBox(height: 16),
-          TextField(
-            key: const Key('title'),
-            decoration: InputDecoration(labelText: l.title),
-            onChanged: ctrl.setTitle,
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            key: const Key('category'),
-            initialValue: s.category,
-            decoration: InputDecoration(labelText: l.category),
-            items: [
-              for (final c in kCategories)
-                DropdownMenuItem(value: c, child: Text(categoryLabel(l, c))),
-            ],
-            onChanged: (v) => v == null ? null : ctrl.setCategory(v),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            key: const Key('description'),
-            decoration: InputDecoration(labelText: l.description),
-            maxLines: 4,
-            onChanged: ctrl.setDescription,
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final p in s.photos)
-                InputChip(
-                  label: Text(
-                    p.name.isEmpty ? 'photo' : p.name,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  avatar: const Icon(Icons.photo),
-                  onDeleted: () => ctrl.removePhoto(p),
-                ),
-              if (s.photos.length < kMaxPhotos)
-                ActionChip(
-                  key: const Key('addPhotos'),
-                  avatar: const Icon(Icons.add_a_photo),
-                  label: Text(l.addPhotos),
-                  onPressed: _pickPhotos,
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (s.duplicate)
-            Card(
-              color: Theme.of(context).colorScheme.secondaryContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      const SizedBox(height: 16),
+      if (s.duplicate)
+        Card(
+          color: Theme.of(context).colorScheme.secondaryContainer,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l.duplicateSpot),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
                   children: [
-                    Text(l.duplicateSpot),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        if (s.duplicateSpotId != null)
-                          OutlinedButton(
-                            onPressed: () =>
-                                context.push('/spot/${s.duplicateSpotId}'),
-                            child: Text(l.openSpot),
-                          ),
-                        FilledButton(
-                          key: const Key('addAnyway'),
-                          onPressed: () => ctrl.submit(force: true),
-                          child: Text(l.addAnyway),
-                        ),
-                      ],
+                    if (s.duplicateSpotId != null)
+                      OutlinedButton(
+                        onPressed: () =>
+                            context.push('/spot/${s.duplicateSpotId}'),
+                        child: Text(l.openSpot),
+                      ),
+                    FilledButton(
+                      key: const Key('addAnyway'),
+                      onPressed: () => ctrl.submit(force: true),
+                      child: Text(l.addAnyway),
                     ),
                   ],
                 ),
-              ),
+              ],
             ),
-          if (s.error != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                l.errorGeneric,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ),
-          FilledButton(
-            key: const Key('save'),
-            onPressed: s.canSubmit ? () => ctrl.submit() : null,
-            child: s.submitting
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(l.save),
           ),
-        ],
+        ),
+      if (s.error != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            l.errorGeneric,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ),
+      FilledButton(
+        key: const Key('save'),
+        onPressed: s.canSubmit ? () => ctrl.submit() : null,
+        child: s.submitting
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(l.save),
       ),
+    ];
+
+    return Scaffold(
+      appBar: AppBar(title: Text(l.addSpotTitle)),
+      body: context.twoPane
+          ? Row(
+              key: const Key('addSpotTwoPane'),
+              children: [
+                // map fills the left half, form scrolls on the right
+                Expanded(
+                  flex: 5,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: pickerBox),
+                        deniedNote,
+                      ],
+                    ),
+                  ),
+                ),
+                const VerticalDivider(width: 1),
+                Expanded(
+                  flex: 6,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: form,
+                  ),
+                ),
+              ],
+            )
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                SizedBox(height: 240, child: pickerBox),
+                deniedNote,
+                const SizedBox(height: 16),
+                ...form,
+              ],
+            ),
     );
   }
 }

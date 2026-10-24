@@ -83,6 +83,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _showPreview(Spot spot) {
     showModalBottomSheet<void>(
       context: context,
+      // full height available (landscape phones are short) but never wider
+      // than a comfortable card on big windows
+      isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 560),
       builder: (sheetContext) => SpotPreviewSheet(
         spot: spot,
         onOpen: () {
@@ -175,14 +179,22 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               bottom: 88,
               left: 16,
               right: 16,
-              child: Material(
-                borderRadius: BorderRadius.circular(8),
-                color: Theme.of(context).colorScheme.errorContainer,
-                child: ListTile(
-                  title: Text(l10n.errorGeneric),
-                  trailing: TextButton(
-                    onPressed: ref.read(spotsControllerProvider.notifier).retry,
-                    child: Text(l10n.retry),
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: Material(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Theme.of(context).colorScheme.errorContainer,
+                    child: ListTile(
+                      title: Text(l10n.errorGeneric),
+                      trailing: TextButton(
+                        onPressed: ref
+                            .read(spotsControllerProvider.notifier)
+                            .retry,
+                        child: Text(l10n.retry),
+                      ),
+                    ),
                   ),
                 ),
               ),

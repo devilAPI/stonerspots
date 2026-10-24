@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/models.dart';
+import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
+import '../feed/satellite_thumb.dart';
 import 'add_spot_screen.dart' show categoryLabel;
 import 'maps_link.dart';
 import 'photo_uploader.dart';
@@ -230,101 +232,145 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
               for (final p in i.photos)
                 if (p.url != spot.coverUrl) p.url,
           ];
+          final gallery = SizedBox(
+            height: 220,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.all(8),
+              itemCount: urls.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (_, i) => ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: CachedNetworkImage(imageUrl: urls[i], fit: BoxFit.cover),
+              ),
+            ),
+          );
+          final info = Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  spot.title,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 4),
+                Text(categoryLabel(l, spot.category)),
+                if (spot.description.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(spot.description),
+                ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    FilledButton.tonalIcon(
+                      key: const Key('like'),
+                      onPressed: () => _gated(_toggleLike),
+                      icon: Icon(
+                        _liked ? Icons.favorite : Icons.favorite_border,
+                      ),
+                      label: Text(l.like),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(l.likesCount(_likeCount ?? spot.likeCount)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: const Key('postUpdate'),
+                  onPressed: () => _gated(_postUpdate),
+                  icon: const Icon(Icons.edit),
+                  label: Text(l.postUpdate),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: const Key('openInMaps'),
+                  onPressed: () => _openInMaps(spot),
+                  icon: const Icon(Icons.map_outlined),
+                  label: Text(l.openInGoogleMaps),
+                ),
+              ],
+            ),
+          );
+          final timeline = updates.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (_, _) => Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(l.errorGeneric),
+            ),
+            data: (list) => Column(
+              children: [
+                for (final u in list)
+                  ListTile(
+                    title: Text(u.body),
+                    subtitle: Text(
+                      '${u.author.displayName} · ${u.createdAt.toLocal().toString().substring(0, 16)}',
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.flag_outlined),
+                      tooltip: l.report,
+                      onPressed: () => _gated(() => _report('update', u.id)),
+                    ),
+                  ),
+              ],
+            ),
+          );
+
+          if (context.twoPane) {
+            // Wide window / landscape phone: pictures stay visible on the left
+            // while details and updates scroll on the right.
+            return Row(
+              key: const Key('detailTwoPane'),
+              children: [
+                Expanded(
+                  flex: 5,
+                  child: ListView(
+                    padding: const EdgeInsets.all(8),
+                    children: [
+                      if (urls.isEmpty)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: SatelliteThumb(lat: spot.lat, lon: spot.lon),
+                        )
+                      else
+                        for (final u in urls)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: AspectRatio(
+                                aspectRatio: 4 / 3,
+                                child: CachedNetworkImage(
+                                  imageUrl: u,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          ),
+                    ],
+                  ),
+                ),
+                const VerticalDivider(width: 1),
+                Expanded(
+                  flex: 6,
+                  child: ListView(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    children: [info, const Divider(), timeline],
+                  ),
+                ),
+              ],
+            );
+          }
           return ListView(
             padding: const EdgeInsets.only(bottom: 24),
             children: [
-              if (urls.isNotEmpty)
-                SizedBox(
-                  height: 220,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.all(8),
-                    itemCount: urls.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 8),
-                    itemBuilder: (_, i) => ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: CachedNetworkImage(
-                        imageUrl: urls[i],
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      spot.title,
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(categoryLabel(l, spot.category)),
-                    if (spot.description.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Text(spot.description),
-                    ],
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        FilledButton.tonalIcon(
-                          key: const Key('like'),
-                          onPressed: () => _gated(_toggleLike),
-                          icon: Icon(
-                            _liked ? Icons.favorite : Icons.favorite_border,
-                          ),
-                          label: Text(l.like),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(l.likesCount(_likeCount ?? spot.likeCount)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      key: const Key('postUpdate'),
-                      onPressed: () => _gated(_postUpdate),
-                      icon: const Icon(Icons.edit),
-                      label: Text(l.postUpdate),
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      key: const Key('openInMaps'),
-                      onPressed: () => _openInMaps(spot),
-                      icon: const Icon(Icons.map_outlined),
-                      label: Text(l.openInGoogleMaps),
-                    ),
-                  ],
-                ),
-              ),
+              if (urls.isNotEmpty) gallery,
+              info,
               const Divider(),
-              updates.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (_, _) => Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(l.errorGeneric),
-                ),
-                data: (list) => Column(
-                  children: [
-                    for (final u in list)
-                      ListTile(
-                        title: Text(u.body),
-                        subtitle: Text(
-                          '${u.author.displayName} · ${u.createdAt.toLocal().toString().substring(0, 16)}',
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.flag_outlined),
-                          tooltip: l.report,
-                          onPressed: () =>
-                              _gated(() => _report('update', u.id)),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+              timeline,
             ],
           );
         },

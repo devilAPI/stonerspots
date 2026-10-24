@@ -42,7 +42,7 @@ void main() {
       final camera = MapCamera.of(tester.element(find.byType(TileLayer)));
       expect(camera.center.latitude, closeTo(48.1234, 1e-6));
       expect(camera.center.longitude, closeTo(11.5678, 1e-6));
-      expect(camera.zoom, greaterThanOrEqualTo(17));
+      expect(camera.zoom, 19);
       expect(find.text('Lake bench'), findsOneWidget);
     },
   );
@@ -62,6 +62,7 @@ void main() {
         ),
       );
       expect(layer.urlTemplate, contains('World_Imagery'));
+      expect(layer.maxNativeZoom, 18);
     },
   );
 }

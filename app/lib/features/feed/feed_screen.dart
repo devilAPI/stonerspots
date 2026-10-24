@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import 'feed_card.dart';
 import 'feed_controller.dart';
@@ -79,6 +80,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       }
     });
 
+    // Cards stay at a readable width on wide windows, while the scrollable
+    // area (and its mouse-wheel/scrollbar) spans the whole window.
+    final gutter = sideGutter(MediaQuery.sizeOf(context).width);
     Widget body;
     if (state.error != null && state.items.isEmpty) {
       body = Center(
@@ -94,6 +98,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       body = const Center(child: CircularProgressIndicator());
     } else if (state.loadedOnce && state.items.isEmpty) {
       body = ListView(
+        padding: EdgeInsets.symmetric(horizontal: gutter),
         children: [
           const SizedBox(height: 120),
           Center(child: Text(l10n.noResults)),
@@ -102,6 +107,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     } else {
       body = ListView.builder(
         controller: _scroll,
+        padding: EdgeInsets.symmetric(horizontal: gutter),
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: state.items.length + (state.loadingMore ? 1 : 0),
         itemBuilder: (_, i) => i >= state.items.length
@@ -118,6 +124,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       body: Column(
         children: [
           _ChipRow(
+            gutter: gutter,
             children: [
               for (final s in FeedSort.values)
                 ChoiceChip(
@@ -128,6 +135,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             ],
           ),
           _ChipRow(
+            gutter: gutter,
             children: [
               ChoiceChip(
                 label: Text(l10n.categoryAll),
@@ -152,15 +160,16 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 }
 
 class _ChipRow extends StatelessWidget {
-  const _ChipRow({required this.children});
+  const _ChipRow({required this.children, this.gutter = 0});
   final List<Widget> children;
+  final double gutter;
 
   @override
   Widget build(BuildContext context) => SizedBox(
     height: 48,
     child: ListView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 12 + gutter, vertical: 4),
       children: [
         for (final c in children)
           Padding(padding: const EdgeInsets.only(right: 8), child: c),

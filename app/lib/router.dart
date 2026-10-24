@@ -7,6 +7,7 @@ import 'features/auth/login_screen.dart';
 import 'features/auth/profile_screen.dart';
 import 'features/auth/register_screen.dart';
 import 'features/feed/feed_screen.dart';
+import 'core/adaptive_nav.dart';
 import 'features/map/map_screen.dart';
 import 'features/spots/add_spot_screen.dart';
 import 'features/spots/spot_detail_screen.dart';
@@ -30,27 +31,16 @@ class _ScaffoldWithNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
+    return AdaptiveNavScaffold(
+      selectedIndex: shell.currentIndex,
+      onSelected: (i) =>
+          shell.goBranch(i, initialLocation: i == shell.currentIndex),
+      items: [
+        NavItem(Icons.map_outlined, l10n.navMap),
+        NavItem(Icons.dynamic_feed_outlined, l10n.navFeed),
+        NavItem(Icons.person_outline, l10n.navProfile),
+      ],
       body: shell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: shell.currentIndex,
-        onDestinationSelected: (i) =>
-            shell.goBranch(i, initialLocation: i == shell.currentIndex),
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.map_outlined),
-            label: l10n.navMap,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.dynamic_feed_outlined),
-            label: l10n.navFeed,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.person_outline),
-            label: l10n.navProfile,
-          ),
-        ],
-      ),
     );
   }
 }

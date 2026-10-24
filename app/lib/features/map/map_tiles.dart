@@ -67,8 +67,10 @@ Widget buildMapAttribution(
 const _satelliteTiles =
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 
+/// Tiles are requested up to zoom 18 (Esri often has no sharper imagery and
+/// answers with a "not yet available" tile); closer views are scaled up.
 TileLayer buildSatelliteTileLayer() => TileLayer(
   urlTemplate: _satelliteTiles,
   userAgentPackageName: 'de.stonerspots.app',
-  maxNativeZoom: 19,
+  maxNativeZoom: 18,
 );

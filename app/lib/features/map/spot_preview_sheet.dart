@@ -15,22 +15,30 @@ class SpotPreviewSheet extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final cover = spot.coverUrl;
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (cover != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: CachedNetworkImage(
-                    imageUrl: cover,
-                    fit: BoxFit.cover,
-                    errorWidget: (_, _, _) =>
-                        const Center(child: Icon(Icons.broken_image)),
+              Center(
+                child: ConstrainedBox(
+                  // landscape phones are short: keep the title and button visible
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.sizeOf(context).height * 0.4,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: CachedNetworkImage(
+                        imageUrl: cover,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, _, _) =>
+                            const Center(child: Icon(Icons.broken_image)),
+                      ),
+                    ),
                   ),
                 ),
               ),
