@@ -4,9 +4,9 @@ services:
     container_name: stonerspots-db
     restart: unless-stopped
     ports:
-      - "3307:3306"
+      - "127.0.0.1:3307:3306"
     environment:
-      MARIADB_ROOT_PASSWORD: stonerspots
+      MARIADB_ROOT_PASSWORD: stonerspots # local dev only
       MARIADB_DATABASE: stonerspots
       MARIADB_USER: stonerspots
       MARIADB_PASSWORD: stonerspots
