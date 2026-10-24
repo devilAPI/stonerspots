@@ -1,0 +1,212 @@
+name: Dev build & release
+
+# Every push to main: test, build Android / Linux / iOS, and publish a
+# prerelease tagged dev-<run number> (dev-1, dev-2, ...). Can also be started
+# by hand from the Actions tab.
+#
+# Optional repository settings (Settings -> Secrets and variables -> Actions):
+#   variable API_URL   backend the dev builds talk to (default: http://localhost:8080/api/v1)
+#   secret   CARTO_KEY CARTO basemaps key for the dark map (without it the app falls
+#                      back to OpenStreetMap tiles). The key is compiled into the app.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: dev-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: "3.47.5"
+  TAG: dev-${{ github.run_number }}
+  BUILD_NUMBER: ${{ github.run_number }}
+  API_URL: ${{ vars.API_URL || 'http://localhost:8080/api/v1' }}
+
+jobs:
+  test-backend:
+    name: Test backend
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: stonerspots
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    env:
+      TEST_DATABASE_URL: root:stonerspots@tcp(127.0.0.1:3306)/?parseTime=true&multiStatements=true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Vet and test
+        working-directory: backend
+        run: |
+          go vet ./...
+          go test ./...
+
+  test-app:
+    name: Test app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Analyze and test
+        working-directory: app
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+
+  build-android:
+    name: Build Android
+    needs: [test-app]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build APK
+        working-directory: app
+        env:
+          CARTO_KEY: ${{ secrets.CARTO_KEY }}
+        run: |
+          flutter pub get
+          flutter build apk --release \
+            --build-number="$BUILD_NUMBER" \
+            --dart-define=API_URL="$API_URL" \
+            --dart-define=CARTO_KEY="$CARTO_KEY"
+          mkdir -p ../dist
+          cp build/app/outputs/flutter-apk/app-release.apk "../dist/stonerspots-${TAG}-android.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-android
+          path: dist/*
+          if-no-files-found: error
+
+  build-linux:
+    name: Build Linux
+    needs: [test-app]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libsecret-1-dev libjsoncpp-dev
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build bundle
+        working-directory: app
+        env:
+          CARTO_KEY: ${{ secrets.CARTO_KEY }}
+        run: |
+          flutter config --enable-linux-desktop
+          flutter pub get
+          flutter build linux --release \
+            --build-number="$BUILD_NUMBER" \
+            --dart-define=API_URL="$API_URL" \
+            --dart-define=CARTO_KEY="$CARTO_KEY"
+          mkdir -p ../dist
+          tar -czf "../dist/stonerspots-${TAG}-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-linux
+          path: dist/*
+          if-no-files-found: error
+
+  build-ios:
+    name: Build iOS (unsigned)
+    needs: [test-app]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build app (no code signing)
+        working-directory: app
+        env:
+          CARTO_KEY: ${{ secrets.CARTO_KEY }}
+        run: |
+          flutter pub get
+          flutter build ios --release --no-codesign \
+            --build-number="$BUILD_NUMBER" \
+            --dart-define=API_URL="$API_URL" \
+            --dart-define=CARTO_KEY="$CARTO_KEY"
+          mkdir -p Payload ../dist
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qry "../dist/stonerspots-${TAG}-ios-unsigned.ipa" Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-ios
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Publish ${{ github.run_number }} as dev-${{ github.run_number }}
+    needs: [test-backend, build-android, build-linux, build-ios]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS.txt
+      - name: Create prerelease
+        env:
+          # untrusted text: only ever read through the environment
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          short="${GITHUB_SHA::7}"
+          notes="Development build ${BUILD_NUMBER} of commit ${short}. Not for production.
+          The iOS file is unsigned and must be re-signed before it can be installed; the Android APK is signed with a debug key.
+
+          ${COMMIT_MSG}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # re-run of the same workflow run: replace the files
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* \
+              --target "$GITHUB_SHA" \
+              --prerelease \
+              --title "Dev build ${BUILD_NUMBER} (${short})" \
+              --notes "$notes"
+          fi
