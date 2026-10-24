@@ -1,0 +1,22 @@
+services:
+  db:
+    image: mariadb:11.4
+    container_name: stonerspots-db
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: stonerspots
+      MARIADB_DATABASE: stonerspots
+      MARIADB_USER: stonerspots
+      MARIADB_PASSWORD: stonerspots
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - dbdata:/var/lib/mysql
+volumes:
+  dbdata:
