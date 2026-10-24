@@ -55,7 +55,6 @@ type Author struct {
 type SpotRef struct {
 	ID        uint64  `json:"id"`
 	Title     string  `json:"title"`
-	Category  string  `json:"category"`
 	Lat       float64 `json:"lat"`
 	Lon       float64 `json:"lon"`
 	LikeCount int     `json:"like_count"`
@@ -194,7 +193,6 @@ const (
 
 type query struct {
 	sort     sortMode
-	category string
 	tags     []string
 	spotID   uint64
 	lat, lon float64
@@ -207,7 +205,7 @@ type query struct {
 // The last selected column is always the sort key (see scanItem).
 const selectBase = `SELECT u.id, u.body, u.created_at, u.tag, u.edited_at,
   a.id, a.display_name,
-  s.id, s.title, s.category, ST_Y(s.location), ST_X(s.location), s.like_count,
+  s.id, s.title, ST_Y(s.location), ST_X(s.location), s.like_count,
   (SELECT COALESCE(ROUND(AVG(rv.rating), 1), 0) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active'),
   (SELECT COUNT(*) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active'),
   (SELECT COUNT(*) FROM spot_updates uc WHERE uc.spot_id = s.id AND uc.status = 'active')`
@@ -224,7 +222,7 @@ func scanItem(rows *sql.Rows) (FeedItem, error) {
 	var it FeedItem
 	err := rows.Scan(&it.ID, &it.Body, &it.CreatedAt, &it.Tag, &it.EditedAt,
 		&it.Author.ID, &it.Author.DisplayName,
-		&it.Spot.ID, &it.Spot.Title, &it.Spot.Category, &it.Spot.Lat, &it.Spot.Lon, &it.Spot.LikeCount,
+		&it.Spot.ID, &it.Spot.Title, &it.Spot.Lat, &it.Spot.Lon, &it.Spot.LikeCount,
 		&it.Spot.RatingAvg, &it.Spot.RatingCount,
 		&it.UpdateCount,
 		&it.sortKey)
@@ -264,10 +262,6 @@ func list(ctx context.Context, db *sql.DB, base string, q query) ([]FeedItem, *s
 	}
 	var catWhere string
 	var catArgs []any
-	if q.category != "" {
-		catWhere = " AND s.category = ?"
-		catArgs = []any{q.category}
-	}
 	if q.spotID != 0 {
 		// a spot's own timeline lists every update
 		catWhere += " AND s.id = ?"
@@ -279,7 +273,7 @@ func list(ctx context.Context, db *sql.DB, base string, q query) ([]FeedItem, *s
 	tq, targs := tagset.FilterSQL("s", q.tags)
 	catWhere += tq
 	catArgs = append(catArgs, targs...)
-	// Placeholder order follows the SQL text: select, where(category, spot, cursor), order, limit.
+	// Placeholder order follows the SQL text: select, where(spot, tags, cursor), order, limit.
 	args := append(append(append(append(keyArgs, catArgs...), curArgs...), orderArgs...), q.limit+1)
 
 	rows, err := db.QueryContext(ctx, selectBase+", "+keyCol+fromBase+activeOnly+catWhere+where+order+" LIMIT ?", args...)

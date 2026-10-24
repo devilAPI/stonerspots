@@ -18,18 +18,18 @@ func TestFeedSpotCarriesTagsAndFilters(t *testing.T) {
 	// roof, 5 with none, each with one update.
 	both := map[uint64]bool{}
 	for i := 0; i < 25; i++ {
-		s := newSpot(t, db, u, "bench", 48+float64(i)*0.001, 11, i)
+		s := newSpot(t, db, u, 48+float64(i)*0.001, 11, i)
 		both[s] = true
 		db.Exec(`INSERT INTO spot_tags (spot_id, tag) VALUES (?, 'roof'), (?, 'quiet')`, s, s)
 		newUpdate(t, db, s, u, fmt.Sprintf("b%d", i), fmt.Sprintf("2026-01-01 10:%02d:00", i))
 	}
 	for i := 0; i < 10; i++ {
-		s := newSpot(t, db, u, "bench", 48.1+float64(i)*0.001, 11.1, i)
+		s := newSpot(t, db, u, 48.1+float64(i)*0.001, 11.1, i)
 		db.Exec(`INSERT INTO spot_tags (spot_id, tag) VALUES (?, 'roof')`, s)
 		newUpdate(t, db, s, u, fmt.Sprintf("r%d", i), fmt.Sprintf("2026-01-01 11:%02d:00", i))
 	}
 	for i := 0; i < 5; i++ {
-		s := newSpot(t, db, u, "bench", 48.2+float64(i)*0.001, 11.2, i)
+		s := newSpot(t, db, u, 48.2+float64(i)*0.001, 11.2, i)
 		newUpdate(t, db, s, u, fmt.Sprintf("n%d", i), fmt.Sprintf("2026-01-01 12:%02d:00", i))
 	}
 
@@ -94,15 +94,12 @@ func TestFeedSpotCarriesTagsAndFilters(t *testing.T) {
 			t.Fatalf("tags must be an array: %v", it.Spot)
 		}
 	}
-	// empty param = no filter; combined with category; unknown = 400
+	// empty param = no filter; unknown = 400
 	if _, fr, _ := getFeed(t, h, url.Values{"tags": {""}, "limit": {"50"}}); len(fr.Items) != 40 {
 		t.Fatalf("empty param: %d", len(fr.Items))
 	}
-	if _, fr, _ := getFeed(t, h, url.Values{"tags": {"quiet"}, "category": {"lake"}}); len(fr.Items) != 0 {
-		t.Fatalf("category+tags: %d", len(fr.Items))
-	}
-	if _, fr, _ := getFeed(t, h, url.Values{"tags": {"quiet"}, "category": {"bench"}, "limit": {"50"}}); len(fr.Items) != 25 {
-		t.Fatalf("category+tags: %d", len(fr.Items))
+	if _, fr, _ := getFeed(t, h, url.Values{"tags": {"quiet"}, "category": {"lake"}, "limit": {"50"}}); len(fr.Items) != 25 {
+		t.Fatalf("stray category must be ignored: %d", len(fr.Items))
 	}
 	code, _, body := getFeed(t, h, url.Values{"tags": {"roof,bogus"}})
 	if code != 400 {
@@ -118,7 +115,7 @@ func TestFeedSpotCarriesTagsAndFilters(t *testing.T) {
 func TestPostedUpdateItemHasTagsArray(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)
-	s := newSpot(t, db, u, "lake", 48, 11, 0)
+	s := newSpot(t, db, u, 48, 11, 0)
 	db.Exec(`INSERT INTO spot_tags (spot_id, tag) VALUES (?, 'view'), (?, 'lit')`, s, s)
 	rec := post(t, h, u, s, map[string]any{"body": "hi"})
 	var out struct {

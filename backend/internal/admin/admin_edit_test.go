@@ -202,7 +202,6 @@ type spotOut struct {
 	ID          uint64  `json:"id"`
 	Title       string  `json:"title"`
 	Description string  `json:"description"`
-	Category    string  `json:"category"`
 	Lat         float64 `json:"lat"`
 	Lon         float64 `json:"lon"`
 	Status      string  `json:"status"`
@@ -241,8 +240,8 @@ func TestPatchSpotValidation(t *testing.T) {
 		{"desc 1000", `{"description":"` + strings.Repeat("ü", 1000) + `"}`, 200, ""},
 		{"desc 1001", `{"description":"` + strings.Repeat("ü", 1001) + `"}`, 400, "invalid_description"},
 		{"desc empty", `{"description":""}`, 200, ""},
-		{"category", `{"category":"mars"}`, 400, "invalid_category"},
-		{"category ok", `{"category":"lake"}`, 200, ""},
+		{"category alone is ignored", `{"category":"mars"}`, 400, "empty_patch"},
+		{"category plus title", `{"title":"abc","category":"mars"}`, 200, ""},
 		{"status", `{"status":"deleted"}`, 400, "invalid_status"},
 		{"lat only", `{"lat":50}`, 400, "invalid_location"},
 		{"lon only", `{"lon":10}`, 400, "invalid_location"},
@@ -270,9 +269,12 @@ func TestPatchSpotChangesOnlyGivenAndMoves(t *testing.T) {
 	e.expect(t, w, 200, "")
 	var s spotOut
 	decode(t, w, &s)
-	if s.Title != "Original" || s.Description != "new desc" || s.Category != "bench" || s.Lat != 50 || s.Lon != 10 ||
+	if s.Title != "Original" || s.Description != "new desc" || s.Lat != 50 || s.Lon != 10 ||
 		s.Status != "active" || s.Author.ID != owner || s.Author.DisplayName == "" || s.CreatedAt == "" {
 		t.Fatalf("got %+v", s)
+	}
+	if strings.Contains(w.Body.String(), "category") {
+		t.Fatalf("admin spot must not contain category: %s", w.Body)
 	}
 	var pub struct {
 		Description string `json:"description"`

@@ -33,7 +33,6 @@ type handler struct{ repo *Repo }
 type createReq struct {
 	Title       string   `json:"title"`
 	Description string   `json:"description"`
-	Category    string   `json:"category"`
 	Lat         *float64 `json:"lat"`
 	Lon         *float64 `json:"lon"`
 	Force       bool     `json:"force"`
@@ -148,10 +147,6 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_description", "description must be at most 1000 characters")
 		return
 	}
-	if !Categories[req.Category] {
-		httpx.Error(w, http.StatusBadRequest, "invalid_category", "unknown category")
-		return
-	}
 	if req.Lat == nil || req.Lon == nil || !validCoord(*req.Lat, *req.Lon) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_location", "lat must be in -90..90 and lon in -180..180")
 		return
@@ -183,7 +178,7 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	id, err := h.repo.Create(r.Context(), Spot{Title: req.Title, Description: req.Description, Category: req.Category, Lat: lat, Lon: lon, Tags: tags}, uid)
+	id, err := h.repo.Create(r.Context(), Spot{Title: req.Title, Description: req.Description, Lat: lat, Lon: lon, Tags: tags}, uid)
 	if err != nil {
 		internal(w, err)
 		return
@@ -269,16 +264,11 @@ func (h *handler) list(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_limit", "limit must be an integer")
 		return
 	}
-	cat := r.URL.Query().Get("category")
-	if cat != "" && !Categories[cat] {
-		httpx.Error(w, http.StatusBadRequest, "invalid_category", "unknown category")
-		return
-	}
 	tags, ok := tagsParam(w, r)
 	if !ok {
 		return
 	}
-	list, err := h.repo.InBBox(r.Context(), b, Filter{Category: cat, Limit: limit, Tags: tags})
+	list, err := h.repo.InBBox(r.Context(), b, Filter{Limit: limit, Tags: tags})
 	if err != nil {
 		internal(w, err)
 		return

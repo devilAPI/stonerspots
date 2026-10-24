@@ -41,8 +41,8 @@ func feedItems(t *testing.T, _ *sql.DB, h http.Handler, q url.Values) ([]collaps
 func TestFeedShowsEachSpotOnceWithItsLatestUpdate(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)
-	s := newSpot(t, db, u, "lake", 48, 11, 0)
-	other := newSpot(t, db, u, "park", 48.1, 11.1, 0)
+	s := newSpot(t, db, u, 48, 11, 0)
+	other := newSpot(t, db, u, 48.1, 11.1, 0)
 	first := newUpdate(t, db, s, u, "created", "2026-01-01 10:00:00")
 	_ = first
 	newUpdate(t, db, s, u, "second", "2026-01-02 10:00:00")
@@ -64,7 +64,7 @@ func TestFeedShowsEachSpotOnceWithItsLatestUpdate(t *testing.T) {
 func TestSpotTimelineStillListsAllUpdates(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)
-	s := newSpot(t, db, u, "lake", 48, 11, 0)
+	s := newSpot(t, db, u, 48, 11, 0)
 	for i := 1; i <= 3; i++ {
 		newUpdate(t, db, s, u, fmt.Sprintf("u%d", i), fmt.Sprintf("2026-01-0%d 10:00:00", i))
 	}
@@ -77,7 +77,7 @@ func TestSpotTimelineStillListsAllUpdates(t *testing.T) {
 func TestHiddenLatestUpdateFallsBackToThePreviousOne(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)
-	s := newSpot(t, db, u, "lake", 48, 11, 0)
+	s := newSpot(t, db, u, 48, 11, 0)
 	older := newUpdate(t, db, s, u, "older", "2026-01-01 10:00:00")
 	newer := newUpdate(t, db, s, u, "newer", "2026-01-02 10:00:00")
 	if _, err := db.Exec(`UPDATE spot_updates SET status='hidden' WHERE id=?`, newer); err != nil {
@@ -94,7 +94,7 @@ func TestCollapsedFeedPaginatesWithoutRepeatingSpots(t *testing.T) {
 	u := testutil.NewUser(t, db)
 	want := map[uint64]bool{}
 	for i := 0; i < 10; i++ {
-		s := newSpot(t, db, u, "lake", 48+float64(i)*0.01, 11, i)
+		s := newSpot(t, db, u, 48+float64(i)*0.01, 11, i)
 		want[s] = true
 		for j := 1; j <= 3; j++ {
 			newUpdate(t, db, s, u, "x", fmt.Sprintf("2026-01-%02d 10:00:00", j+i))

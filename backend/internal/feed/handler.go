@@ -21,8 +21,6 @@ type handler struct {
 	uploadDir string
 }
 
-var categories = map[string]bool{"bench": true, "river": true, "lake": true, "viewpoint": true, "forest": true, "park": true, "other": true}
-
 func (h *handler) postUpdate(w http.ResponseWriter, r *http.Request) {
 	uid, ok := auth.UserID(r.Context())
 	if !ok {
@@ -81,13 +79,6 @@ func (h *handler) getFeed(w http.ResponseWriter, r *http.Request) {
 	default:
 		httpx.Error(w, http.StatusBadRequest, "invalid_sort", "sort must be new, top or nearby")
 		return
-	}
-	if c := p.Get("category"); c != "" {
-		if !categories[c] {
-			httpx.Error(w, http.StatusBadRequest, "invalid_category", "unknown category")
-			return
-		}
-		q.category = c
 	}
 	tags, err := tagset.ParseParam(p.Get("tags"))
 	if err != nil {

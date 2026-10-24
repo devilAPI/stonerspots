@@ -303,7 +303,7 @@ func TestTagFilters(t *testing.T) {
 		{box + "&tags=", []uint64{a.ID, b.ID, c.ID, d.ID}},
 		{box + "&tags=roof,roof", []uint64{a.ID, b.ID, c.ID}},
 		{box + "&tags=roof&category=bench", []uint64{a.ID, b.ID, c.ID}},
-		{box + "&tags=roof&category=lake", []uint64{}},
+		{box + "&tags=roof,seating", []uint64{}},
 		{"/spots?south=47&west=10&north=49&east=12&tags=roof", []uint64{far.ID}},
 		{"/spots/nearby?lat=52.5&lon=13.4&radius_m=5000&tags=roof,quiet", []uint64{a.ID, b.ID}},
 		{"/spots/nearby?lat=52.5&lon=13.4&radius_m=5000&tags=water", []uint64{a.ID}},
@@ -336,7 +336,7 @@ func TestBBoxQueryWithTagFilterUsesSpatialIndex(t *testing.T) {
 	e := setup(t)
 	for i := 0; i < 300; i++ {
 		lat, lon := 46+float64(i%30)*0.3, 6+float64(i/30)*1.1
-		res, _ := e.db.Exec(`INSERT INTO spots (user_id,title,description,category,location) VALUES (?, 'spot', '', 'bench', POINT(?,?))`, e.uid, lon, lat)
+		res, _ := e.db.Exec(`INSERT INTO spots (user_id,title,description,location) VALUES (?, 'spot', '', POINT(?,?))`, e.uid, lon, lat)
 		id, _ := res.LastInsertId()
 		if i%3 == 0 {
 			e.db.Exec(`INSERT INTO spot_tags (spot_id, tag) VALUES (?, 'roof')`, id)
