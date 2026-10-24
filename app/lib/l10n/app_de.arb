@@ -217,5 +217,66 @@
         "type": "int"
       }
     }
+  },
+  "reviewsTitle": "Bewertungen",
+  "reviewNone": "Noch keine Bewertungen",
+  "reviewCount": "{count, plural, =1{1 Bewertung} other{{count} Bewertungen}}",
+  "@reviewCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reviewWrite": "Bewertung schreiben",
+  "reviewEditMine": "Deine Bewertung bearbeiten",
+  "reviewYours": "Deine Bewertung",
+  "reviewStarLabel": "{count, plural, =1{1 Stern} other{{count} Sterne}}",
+  "@reviewStarLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reviewBodyHint": "Deine Erfahrung (optional)",
+  "reviewDeleteTitle": "Deine Bewertung löschen?",
+  "reviewDeleteConfirm": "Löschen",
+  "reviewEdited": "bearbeitet",
+  "reviewLoadMore": "Mehr laden",
+  "reviewActionEdit": "Bewertung bearbeiten",
+  "reviewActionDelete": "Bewertung löschen",
+  "reviewErrorInvalidRating": "Bitte wähle 1 bis 5 Sterne",
+  "reviewErrorInvalidBody": "Der Text ist zu lang",
+  "reviewErrorOwnSpot": "Du kannst deinen eigenen Spot nicht bewerten",
+  "updateTagLabel": "Status",
+  "updateTagNote": "Notiz",
+  "updateTagStillGood": "Weiterhin gut",
+  "updateTagCrowded": "Voll",
+  "updateTagDirty": "Dreckig",
+  "updateTagClosed": "Gesperrt",
+  "updateEditTitle": "Update bearbeiten",
+  "updateEdited": "bearbeitet",
+  "updatePost": "Posten",
+  "updateRemovePhoto": "Foto entfernen",
+  "updateActionEdit": "Update bearbeiten",
+  "updateActionDelete": "Update löschen",
+  "updateDeleteTitle": "Dieses Update löschen?",
+  "updateDeleteConfirm": "Löschen",
+  "updatePhotosReadOnly": "Fotos können nachträglich nicht geändert werden",
+  "updateErrorInvalidPhoto": "Eines der Fotos ist ungültig",
+  "updateErrorInvalidBody": "Der Text ist ungültig oder zu lang",
+  "updateErrorInvalidTag": "Bitte wähle einen gültigen Status",
+  "photoViewerClose": "Schließen",
+  "photoViewerPage": "{current} / {total}",
+  "@photoViewerPage": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
   }
 }

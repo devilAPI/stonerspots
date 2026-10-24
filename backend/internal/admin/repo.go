@@ -114,6 +114,7 @@ const userSelect = `SELECT u.id, u.email, u.display_name, u.is_admin, u.created_
 		(SELECT COUNT(*) FROM spots s WHERE s.user_id = u.id),
 		(SELECT COUNT(*) FROM reports r JOIN spots s ON r.target_type = 'spot' AND r.target_id = s.id WHERE s.user_id = u.id)
 		+ (SELECT COUNT(*) FROM reports r JOIN spot_updates su ON r.target_type = 'update' AND r.target_id = su.id WHERE su.user_id = u.id)
+		+ (SELECT COUNT(*) FROM reports r JOIN spot_reviews sr ON r.target_type = 'review' AND r.target_id = sr.id WHERE sr.user_id = u.id)
 	FROM users u `
 
 func scanUser(row interface{ Scan(...any) error }) (userItem, error) {

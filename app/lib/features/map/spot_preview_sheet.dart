@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/models.dart';
 import '../../l10n/app_localizations.dart';
 import '../feed/satellite_thumb.dart';
+import '../reviews/rating_widgets.dart';
 
 class SpotPreviewSheet extends StatelessWidget {
   const SpotPreviewSheet({super.key, required this.spot, required this.onOpen});
@@ -54,6 +55,8 @@ class SpotPreviewSheet extends StatelessWidget {
                 const Icon(Icons.favorite, size: 16),
                 const SizedBox(width: 4),
                 Text(l10n.likesCount(spot.likeCount)),
+                const SizedBox(width: 12),
+                RatingBadge(avg: spot.ratingAvg, count: spot.ratingCount),
               ],
             ),
             const SizedBox(height: 12),

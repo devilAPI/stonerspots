@@ -211,3 +211,28 @@ func TestDeleteSpotRemovesReviewReports(t *testing.T) {
 		t.Fatalf("reports left = %d", n)
 	}
 }
+
+func TestUsersReportsReceivedCountsReviews(t *testing.T) {
+	e := setup(t)
+	owner, author := testutil.NewUser(t, e.db), testutil.NewUser(t, e.db)
+	exec(t, e.db, `UPDATE users SET display_name='ReviewAuthor' WHERE id=?`, author)
+	sp := newSpot(t, e.db, owner, "Rated", "active")
+	rv := newReview(t, e, sp, author, 1, "rude")
+	for i := 0; i < 2; i++ {
+		report(t, e.db, testutil.NewUser(t, e.db), "review", rv, "")
+	}
+	w := e.do(t, "GET", "/admin/users?q=ReviewAuthor", e.tok)
+	if w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	var pg struct {
+		Items []struct {
+			ID              uint64 `json:"id"`
+			ReportsReceived int    `json:"reports_received"`
+		} `json:"items"`
+	}
+	decode(t, w, &pg)
+	if len(pg.Items) != 1 || pg.Items[0].ID != author || pg.Items[0].ReportsReceived != 2 {
+		t.Fatalf("reports_received should count the 2 reports on their review: %+v", pg.Items)
+	}
+}

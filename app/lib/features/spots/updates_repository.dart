@@ -9,7 +9,18 @@ abstract class UpdatesRepository {
   /// support the `spot_id` filter).
   Future<List<FeedItem>> listForSpot(int spotId);
 
-  Future<void> post(int spotId, {required String body, List<int> photoIds});
+  Future<void> post(
+    int spotId, {
+    required String body,
+    List<int> photoIds,
+    UpdateTag tag,
+  });
+
+  /// `PATCH /updates/{id}`; only the given fields are sent.
+  Future<void> edit(int id, {String? body, UpdateTag? tag});
+
+  /// `DELETE /updates/{id}`.
+  Future<void> delete(int id);
 }
 
 class ApiUpdatesRepository implements UpdatesRepository {
@@ -33,11 +44,25 @@ class ApiUpdatesRepository implements UpdatesRepository {
     int spotId, {
     required String body,
     List<int> photoIds = const [],
+    UpdateTag tag = UpdateTag.note,
   }) async {
     await _api.post<dynamic>(
       '/spots/$spotId/updates',
-      data: {'body': body, 'photo_ids': photoIds},
+      data: {'body': body, 'photo_ids': photoIds, 'tag': tag.wire},
     );
+  }
+
+  @override
+  Future<void> edit(int id, {String? body, UpdateTag? tag}) async {
+    await _api.patch<dynamic>(
+      '/updates/$id',
+      data: {'body': ?body, 'tag': ?tag?.wire},
+    );
+  }
+
+  @override
+  Future<void> delete(int id) async {
+    await _api.delete<dynamic>('/updates/$id');
   }
 }
 

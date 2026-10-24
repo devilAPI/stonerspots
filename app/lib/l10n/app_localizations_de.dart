@@ -495,4 +495,135 @@ class AppLocalizationsDe extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get reviewsTitle => 'Bewertungen';
+
+  @override
+  String get reviewNone => 'Noch keine Bewertungen';
+
+  @override
+  String reviewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Bewertungen',
+      one: '1 Bewertung',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reviewWrite => 'Bewertung schreiben';
+
+  @override
+  String get reviewEditMine => 'Deine Bewertung bearbeiten';
+
+  @override
+  String get reviewYours => 'Deine Bewertung';
+
+  @override
+  String reviewStarLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Sterne',
+      one: '1 Stern',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reviewBodyHint => 'Deine Erfahrung (optional)';
+
+  @override
+  String get reviewDeleteTitle => 'Deine Bewertung löschen?';
+
+  @override
+  String get reviewDeleteConfirm => 'Löschen';
+
+  @override
+  String get reviewEdited => 'bearbeitet';
+
+  @override
+  String get reviewLoadMore => 'Mehr laden';
+
+  @override
+  String get reviewActionEdit => 'Bewertung bearbeiten';
+
+  @override
+  String get reviewActionDelete => 'Bewertung löschen';
+
+  @override
+  String get reviewErrorInvalidRating => 'Bitte wähle 1 bis 5 Sterne';
+
+  @override
+  String get reviewErrorInvalidBody => 'Der Text ist zu lang';
+
+  @override
+  String get reviewErrorOwnSpot =>
+      'Du kannst deinen eigenen Spot nicht bewerten';
+
+  @override
+  String get updateTagLabel => 'Status';
+
+  @override
+  String get updateTagNote => 'Notiz';
+
+  @override
+  String get updateTagStillGood => 'Weiterhin gut';
+
+  @override
+  String get updateTagCrowded => 'Voll';
+
+  @override
+  String get updateTagDirty => 'Dreckig';
+
+  @override
+  String get updateTagClosed => 'Gesperrt';
+
+  @override
+  String get updateEditTitle => 'Update bearbeiten';
+
+  @override
+  String get updateEdited => 'bearbeitet';
+
+  @override
+  String get updatePost => 'Posten';
+
+  @override
+  String get updateRemovePhoto => 'Foto entfernen';
+
+  @override
+  String get updateActionEdit => 'Update bearbeiten';
+
+  @override
+  String get updateActionDelete => 'Update löschen';
+
+  @override
+  String get updateDeleteTitle => 'Dieses Update löschen?';
+
+  @override
+  String get updateDeleteConfirm => 'Löschen';
+
+  @override
+  String get updatePhotosReadOnly =>
+      'Fotos können nachträglich nicht geändert werden';
+
+  @override
+  String get updateErrorInvalidPhoto => 'Eines der Fotos ist ungültig';
+
+  @override
+  String get updateErrorInvalidBody => 'Der Text ist ungültig oder zu lang';
+
+  @override
+  String get updateErrorInvalidTag => 'Bitte wähle einen gültigen Status';
+
+  @override
+  String get photoViewerClose => 'Schließen';
+
+  @override
+  String photoViewerPage(int current, int total) {
+    return '$current / $total';
+  }
 }

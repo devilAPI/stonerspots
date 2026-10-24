@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/models.dart';
 import '../../l10n/app_localizations.dart';
+import '../reviews/rating_widgets.dart';
 import 'satellite_thumb.dart';
 
 /// Language-neutral compact relative time: now, 5m, 3h, 2d, 4w, 1y.
@@ -72,6 +73,12 @@ class FeedCard extends StatelessWidget {
                     const Icon(Icons.favorite_border, size: 18),
                     const SizedBox(width: 4),
                     Text(l10n.likesCount(item.spot.likeCount)),
+                    const SizedBox(width: 12),
+                    RatingBadge(
+                      avg: item.spot.ratingAvg,
+                      count: item.spot.ratingCount,
+                      size: 16,
+                    ),
                   ],
                 ),
               ],

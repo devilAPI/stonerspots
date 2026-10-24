@@ -217,5 +217,66 @@
         "type": "int"
       }
     }
+  },
+  "reviewsTitle": "Reviews",
+  "reviewNone": "No reviews yet",
+  "reviewCount": "{count, plural, =1{1 review} other{{count} reviews}}",
+  "@reviewCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reviewWrite": "Write a review",
+  "reviewEditMine": "Edit your review",
+  "reviewYours": "Your review",
+  "reviewStarLabel": "{count, plural, =1{1 star} other{{count} stars}}",
+  "@reviewStarLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reviewBodyHint": "Your experience (optional)",
+  "reviewDeleteTitle": "Delete your review?",
+  "reviewDeleteConfirm": "Delete",
+  "reviewEdited": "edited",
+  "reviewLoadMore": "Load more",
+  "reviewActionEdit": "Edit review",
+  "reviewActionDelete": "Delete review",
+  "reviewErrorInvalidRating": "Please choose 1 to 5 stars",
+  "reviewErrorInvalidBody": "The text is too long",
+  "reviewErrorOwnSpot": "You cannot review your own spot",
+  "updateTagLabel": "Status",
+  "updateTagNote": "Note",
+  "updateTagStillGood": "Still good",
+  "updateTagCrowded": "Crowded",
+  "updateTagDirty": "Dirty",
+  "updateTagClosed": "Closed",
+  "updateEditTitle": "Edit update",
+  "updateEdited": "edited",
+  "updatePost": "Post",
+  "updateRemovePhoto": "Remove photo",
+  "updateActionEdit": "Edit update",
+  "updateActionDelete": "Delete update",
+  "updateDeleteTitle": "Delete this update?",
+  "updateDeleteConfirm": "Delete",
+  "updatePhotosReadOnly": "Photos cannot be changed afterwards",
+  "updateErrorInvalidPhoto": "One of the photos is invalid",
+  "updateErrorInvalidBody": "The text is invalid or too long",
+  "updateErrorInvalidTag": "Please choose a valid status",
+  "photoViewerClose": "Close",
+  "photoViewerPage": "{current} / {total}",
+  "@photoViewerPage": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
   }
 }

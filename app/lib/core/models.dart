@@ -43,6 +43,8 @@ class Spot {
     this.likeCount = 0,
     this.coverUrl,
     this.distanceM,
+    this.ratingAvg = 0,
+    this.ratingCount = 0,
   });
 
   final int id;
@@ -54,6 +56,10 @@ class Spot {
   final int likeCount;
   final String? coverUrl;
   final double? distanceM;
+
+  /// Average review rating (1-5); 0 when [ratingCount] is 0.
+  final double ratingAvg;
+  final int ratingCount;
 
   /// Works for the full spot shape and for the reduced shape embedded in feed
   /// items (no description / cover / distance).
@@ -67,6 +73,8 @@ class Spot {
     likeCount: (j['like_count'] ?? 0) as int,
     coverUrl: j['cover_url'] as String?,
     distanceM: j['distance_m'] == null ? null : _d(j['distance_m']),
+    ratingAvg: j['rating_avg'] == null ? 0 : _d(j['rating_avg']),
+    ratingCount: (j['rating_count'] ?? 0) as int,
   );
 }
 
@@ -96,6 +104,24 @@ class Author {
   );
 }
 
+/// Kind of an update; plain notes are the default.
+enum UpdateTag {
+  note('note'),
+  stillGood('still_good'),
+  crowded('crowded'),
+  dirty('dirty'),
+  closed('closed');
+
+  const UpdateTag(this.wire);
+
+  /// Name used by the API.
+  final String wire;
+
+  /// Unknown or absent values map to [note].
+  static UpdateTag fromWire(String? w) =>
+      values.firstWhere((t) => t.wire == w, orElse: () => note);
+}
+
 class FeedItem {
   const FeedItem({
     required this.id,
@@ -104,6 +130,8 @@ class FeedItem {
     required this.createdAt,
     required this.author,
     required this.spot,
+    this.tag = UpdateTag.note,
+    this.editedAt,
   });
 
   final int id;
@@ -112,6 +140,8 @@ class FeedItem {
   final DateTime createdAt;
   final Author author;
   final Spot spot;
+  final UpdateTag tag;
+  final DateTime? editedAt;
 
   factory FeedItem.fromJson(Map<String, dynamic> j) => FeedItem(
     id: j['id'] as int,
@@ -122,5 +152,9 @@ class FeedItem {
     createdAt: DateTime.parse(j['created_at'] as String),
     author: Author.fromJson(j['author'] as Map<String, dynamic>),
     spot: Spot.fromJson(j['spot'] as Map<String, dynamic>),
+    tag: UpdateTag.fromWire(j['tag'] as String?),
+    editedAt: j['edited_at'] == null
+        ? null
+        : DateTime.parse(j['edited_at'] as String),
   );
 }
