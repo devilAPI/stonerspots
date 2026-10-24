@@ -12,4 +12,21 @@ void main() {
     expect(authRedirect(loggedIn: false, location: '/feed'), isNull);
     expect(authRedirect(loggedIn: false, location: '/spot/5'), isNull);
   });
+
+  test('admin route guard', () {
+    expect(
+      authRedirect(loggedIn: false, location: '/admin'),
+      '/login?from=%2Fadmin',
+    );
+    expect(authRedirect(loggedIn: true, location: '/admin'), '/');
+    expect(
+      authRedirect(loggedIn: true, isAdmin: false, location: '/admin'),
+      '/',
+    );
+    expect(
+      authRedirect(loggedIn: true, isAdmin: true, location: '/admin'),
+      isNull,
+    );
+    expect(authRedirect(loggedIn: true, location: '/feed'), isNull);
+  });
 }

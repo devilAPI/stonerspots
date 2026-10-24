@@ -242,4 +242,113 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get placeSearchShortLink =>
       'Short links cannot be resolved. Please paste the full link or the coordinates instead.';
+
+  @override
+  String get adminOpen => 'Admin';
+
+  @override
+  String get adminTitle => 'Admin';
+
+  @override
+  String get adminReports => 'Reports';
+
+  @override
+  String get adminUsers => 'Users';
+
+  @override
+  String get adminSpots => 'Spots';
+
+  @override
+  String adminReportCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count reports',
+      one: '1 report',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String adminReportedBy(String name, String email) {
+    return 'Reported by $name ($email)';
+  }
+
+  @override
+  String get adminTargetDeleted => 'Deleted';
+
+  @override
+  String adminUpdateOn(String title) {
+    return 'Update on $title';
+  }
+
+  @override
+  String get statusActive => 'Active';
+
+  @override
+  String get statusHidden => 'Hidden';
+
+  @override
+  String get statusAll => 'All';
+
+  @override
+  String get adminOpenSpot => 'Open spot';
+
+  @override
+  String get adminRemoveSpot => 'Remove spot';
+
+  @override
+  String get adminRemove => 'Remove';
+
+  @override
+  String get adminSearchUsers => 'Search name or email';
+
+  @override
+  String get adminSearchSpots => 'Search title';
+
+  @override
+  String get adminBadge => 'admin';
+
+  @override
+  String adminUserSpots(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count spots',
+      one: '1 spot',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String adminUserReports(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count reports received',
+      one: '1 report received',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String adminJoined(String date) {
+    return 'Joined $date';
+  }
+
+  @override
+  String adminSpotAuthor(String name) {
+    return 'by $name';
+  }
+
+  @override
+  String get adminRemoveTitle => 'Remove spot?';
+
+  @override
+  String adminRemoveBody(String title) {
+    return '\"$title\" deletes the spot with all its updates, likes and photos permanently.';
+  }
+
+  @override
+  String get adminSpotRemoved => 'Spot removed';
 }

@@ -79,5 +79,89 @@
   "placeSearchRateLimited": "Too many searches, please try again in a moment",
   "placeSearchUnavailable": "Address search is currently unavailable, please try again later",
   "placeSearchError": "Search failed, please try again",
-  "placeSearchShortLink": "Short links cannot be resolved. Please paste the full link or the coordinates instead."
+  "placeSearchShortLink": "Short links cannot be resolved. Please paste the full link or the coordinates instead.",
+  "adminOpen": "Admin",
+  "adminTitle": "Admin",
+  "adminReports": "Reports",
+  "adminUsers": "Users",
+  "adminSpots": "Spots",
+  "adminReportCount": "{count, plural, =1{1 report} other{{count} reports}}",
+  "@adminReportCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminReportedBy": "Reported by {name} ({email})",
+  "@adminReportedBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "adminTargetDeleted": "Deleted",
+  "adminUpdateOn": "Update on {title}",
+  "@adminUpdateOn": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "statusActive": "Active",
+  "statusHidden": "Hidden",
+  "statusAll": "All",
+  "adminOpenSpot": "Open spot",
+  "adminRemoveSpot": "Remove spot",
+  "adminRemove": "Remove",
+  "adminSearchUsers": "Search name or email",
+  "adminSearchSpots": "Search title",
+  "adminBadge": "admin",
+  "adminUserSpots": "{count, plural, =1{1 spot} other{{count} spots}}",
+  "@adminUserSpots": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminUserReports": "{count, plural, =1{1 report received} other{{count} reports received}}",
+  "@adminUserReports": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminJoined": "Joined {date}",
+  "@adminJoined": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "adminSpotAuthor": "by {name}",
+  "@adminSpotAuthor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "adminRemoveTitle": "Remove spot?",
+  "adminRemoveBody": "\"{title}\" deletes the spot with all its updates, likes and photos permanently.",
+  "@adminRemoveBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "adminSpotRemoved": "Spot removed"
 }

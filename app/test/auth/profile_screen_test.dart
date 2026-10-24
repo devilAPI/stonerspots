@@ -15,7 +15,7 @@ class _Repo implements AuthRepository {
   ApiException? failWith;
   String? changedNext;
   String? deletedWith;
-  final user = const User(id: 1, email: 'a@b.ch', displayName: 'Alex');
+  User user = const User(id: 1, email: 'a@b.ch', displayName: 'Alex');
 
   @override
   Future<AuthSession> login(String email, String password) =>
@@ -52,8 +52,10 @@ class _Repo implements AuthRepository {
 Future<(_Repo, TokenStore)> _pump(
   WidgetTester tester, {
   bool auth = true,
+  User? user,
 }) async {
   final repo = _Repo();
+  if (user != null) repo.user = user;
   final store = TokenStore.memory();
   if (auth) {
     await store.write(const Tokens(accessToken: 'a', refreshToken: 'r'));
@@ -75,6 +77,7 @@ Future<(_Repo, TokenStore)> _pump(
           routes: [
             GoRoute(path: '/', builder: (_, _) => const ProfileScreen()),
             GoRoute(path: '/login', builder: (_, _) => const Text('LOGIN')),
+            GoRoute(path: '/admin', builder: (_, _) => const Text('ADMIN')),
           ],
         ),
       ),
@@ -112,6 +115,29 @@ void main() {
     expect(find.text('Log in'), findsOneWidget);
     expect(find.byKey(const Key('change-password')), findsNothing);
     expect(find.byKey(const Key('delete-account')), findsNothing);
+  });
+
+  testWidgets('normal user does not see the Admin button', (tester) async {
+    await _pump(tester);
+    expect(find.byKey(const Key('open-admin')), findsNothing);
+  });
+
+  testWidgets('admin sees the Admin button and it opens /admin', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      user: const User(
+        id: 2,
+        email: 'r@b.ch',
+        displayName: 'Root',
+        isAdmin: true,
+      ),
+    );
+    expect(find.byKey(const Key('open-admin')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('open-admin')));
+    await tester.pumpAndSettle();
+    expect(find.text('ADMIN'), findsOneWidget);
   });
 
   testWidgets('change password validates, succeeds, keeps session', (
