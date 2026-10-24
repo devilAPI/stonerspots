@@ -36,7 +36,6 @@ AdminReport _report(int id, {int spotId = 100, bool exists = true}) =>
 AdminSpot _spot(int id, {String status = 'active'}) => AdminSpot(
   id: id,
   title: 'Spot$id',
-  category: 'bench',
   lat: 48,
   lon: 11,
   status: status,

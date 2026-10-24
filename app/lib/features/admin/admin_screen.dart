@@ -10,16 +10,6 @@ import 'admin_edit_dialogs.dart';
 import 'admin_models.dart';
 import 'admin_repository.dart';
 
-String _categoryLabel(AppLocalizations l, String c) => switch (c) {
-  'bench' => l.categoryBench,
-  'river' => l.categoryRiver,
-  'lake' => l.categoryLake,
-  'viewpoint' => l.categoryViewpoint,
-  'forest' => l.categoryForest,
-  'park' => l.categoryPark,
-  _ => l.categoryOther,
-};
-
 String _formatDateTime(BuildContext context, DateTime d) {
   final loc = MaterialLocalizations.of(context);
   final local = d.toLocal();
@@ -822,8 +812,7 @@ class _SpotsTabState extends ConsumerState<_SpotsTab> {
                     ],
                   ),
                   Text(
-                    '${_categoryLabel(l10n, s.category)} · '
-                    '${l10n.adminSpotAuthor(s.author.displayName)}',
+                    l10n.adminSpotAuthor(s.author.displayName),
                     style: theme.textTheme.bodyMedium,
                   ),
                   Text(

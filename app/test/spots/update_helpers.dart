@@ -23,13 +23,7 @@ FeedItem feedItem({
   photos: photos,
   createdAt: DateTime.now().subtract(const Duration(hours: 3)),
   author: Author(id: authorId, displayName: 'Ann'),
-  spot: const Spot(
-    id: 5,
-    title: 'Lake bench',
-    category: 'lake',
-    lat: 1,
-    lon: 2,
-  ),
+  spot: const Spot(id: 5, title: 'Lake bench', lat: 1, lon: 2),
   tag: tag,
   editedAt: editedAt,
 );

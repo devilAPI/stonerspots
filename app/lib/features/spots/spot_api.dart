@@ -8,7 +8,6 @@ class SpotDraft {
   const SpotDraft({
     required this.title,
     required this.description,
-    required this.category,
     required this.lat,
     required this.lon,
     this.photoIds = const [],
@@ -17,7 +16,6 @@ class SpotDraft {
 
   final String title;
   final String description;
-  final String category;
   final double lat;
   final double lon;
 
@@ -68,7 +66,6 @@ class ApiSpotApi implements SpotApi {
       data: {
         'title': d.title,
         'description': d.description,
-        'category': d.category,
         'lat': d.lat,
         'lon': d.lon,
         if (d.photoIds.isNotEmpty) 'photo_ids': d.photoIds,

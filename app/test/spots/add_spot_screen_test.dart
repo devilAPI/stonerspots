@@ -84,6 +84,7 @@ void main() {
     expect(find.byKey(const Key('addSpotTwoPane')), findsNothing);
     expect(find.byType(LocationPicker), findsOneWidget);
     expect(find.byKey(const Key('title')), findsOneWidget);
+    expect(find.byKey(const Key('category')), findsNothing);
   });
 
   testWidgets('tags section offers all seven chips and toggles them', (

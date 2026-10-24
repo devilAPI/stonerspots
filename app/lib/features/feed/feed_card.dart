@@ -30,61 +30,86 @@ class FeedCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (item.photos.isEmpty)
-            SatelliteThumb(lat: item.spot.lat, lon: item.spot.lon)
-          else
-            AspectRatio(
-              aspectRatio: 4 / 3,
-              child: CachedNetworkImage(
-                imageUrl: item.photos.first.thumbUrl,
-                fit: BoxFit.cover,
-                placeholder: (_, _) => const ColoredBox(color: Colors.black12),
-                errorWidget: (_, _, _) =>
-                    const Center(child: Icon(Icons.broken_image_outlined)),
+      child: InkWell(
+        onTap: () => context.push('/spot/${item.spot.id}'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (item.photos.isEmpty)
+              SatelliteThumb(lat: item.spot.lat, lon: item.spot.lon)
+            else
+              AspectRatio(
+                aspectRatio: 4 / 3,
+                child: CachedNetworkImage(
+                  imageUrl: item.photos.first.thumbUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (_, _) =>
+                      const ColoredBox(color: Colors.black12),
+                  errorWidget: (_, _, _) =>
+                      const Center(child: Icon(Icons.broken_image_outlined)),
+                ),
               ),
-            ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                InkWell(
-                  onTap: () => context.push('/spot/${item.spot.id}'),
-                  child: Text(
-                    item.spot.title,
-                    style: theme.textTheme.titleMedium,
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  InkWell(
+                    onTap: () => context.push('/spot/${item.spot.id}'),
+                    child: Text(
+                      item.spot.title,
+                      style: theme.textTheme.titleMedium,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${item.author.displayName} · '
-                  '${relativeTime(item.createdAt)}',
-                ),
-                if (item.body.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(item.body, maxLines: 3, overflow: TextOverflow.ellipsis),
-                ],
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.favorite_border, size: 18),
-                    const SizedBox(width: 4),
-                    Text(l10n.likesCount(item.spot.likeCount)),
-                    const SizedBox(width: 12),
-                    RatingBadge(
-                      avg: item.spot.ratingAvg,
-                      count: item.spot.ratingCount,
-                      size: 16,
+                  const SizedBox(height: 4),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        '${item.author.displayName} · '
+                        '${relativeTime(item.createdAt)}',
+                      ),
+                      if (item.updateCount > 1)
+                        InkWell(
+                          key: const Key('feedUpdateCount'),
+                          onTap: () => context.push('/spot/${item.spot.id}'),
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 6),
+                            child: Text(
+                              '· ${l10n.feedUpdateCount(item.updateCount)}',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  if (item.body.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      item.body,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.favorite_border, size: 18),
+                      const SizedBox(width: 4),
+                      Text(l10n.likesCount(item.spot.likeCount)),
+                      const SizedBox(width: 12),
+                      RatingBadge(
+                        avg: item.spot.ratingAvg,
+                        count: item.spot.ratingCount,
+                        size: 16,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

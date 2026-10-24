@@ -12,21 +12,13 @@ FeedItem item(int id) => FeedItem(
   photos: const [],
   createdAt: DateTime(2026, 1, 1),
   author: const Author(id: 1, displayName: 'a'),
-  spot: const Spot(id: 1, title: 's', category: 'park', lat: 0, lon: 0),
+  spot: const Spot(id: 1, title: 's', lat: 0, lon: 0),
 );
 
 class Call {
-  Call(
-    this.sort,
-    this.category,
-    this.lat,
-    this.lon,
-    this.cursor, [
-    this.tags = const [],
-  ]);
+  Call(this.sort, this.lat, this.lon, this.cursor, [this.tags = const []]);
   final List<SpotTag> tags;
   final FeedSort sort;
-  final String? category;
   final double? lat, lon;
   final String? cursor;
 }
@@ -38,14 +30,13 @@ class FakeRepo implements FeedRepository {
   @override
   Future<FeedPage> fetch({
     required FeedSort sort,
-    String? category,
     double? lat,
     double? lon,
     String? cursor,
     int limit = 20,
     List<SpotTag> tags = const [],
   }) async {
-    final c = Call(sort, category, lat, lon, cursor, tags);
+    final c = Call(sort, lat, lon, cursor, tags);
     calls.add(c);
     return handler(c);
   }
@@ -89,9 +80,7 @@ void main() {
     expect(s.items.map((i) => i.id), [1, 2]);
     expect(s.nextCursor, 'c1');
 
-    await n.setCategory('lake');
     expect(repo.calls.last.cursor, isNull);
-    expect(repo.calls.last.category, 'lake');
     expect(repo.calls.last.sort, FeedSort.top);
   });
 
@@ -167,12 +156,10 @@ void main() {
     await n.loadMore();
     expect(c.read(feedControllerProvider).items, hasLength(3));
 
-    await n.setCategory('lake');
     await n.toggleTag(SpotTag.quiet);
     await n.toggleTag(SpotTag.roof);
     expect(repo.calls.last.tags, [SpotTag.roof, SpotTag.quiet]);
     expect(repo.calls.last.cursor, isNull);
-    expect(repo.calls.last.category, 'lake');
     expect(c.read(feedControllerProvider).items, hasLength(2));
 
     await n.loadMore();

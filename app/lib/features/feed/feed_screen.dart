@@ -8,26 +8,6 @@ import 'feed_card.dart';
 import 'feed_controller.dart';
 import 'feed_repository.dart';
 
-const _categories = [
-  'bench',
-  'river',
-  'lake',
-  'viewpoint',
-  'forest',
-  'park',
-  'other',
-];
-
-String _categoryLabel(AppLocalizations l, String c) => switch (c) {
-  'bench' => l.categoryBench,
-  'river' => l.categoryRiver,
-  'lake' => l.categoryLake,
-  'viewpoint' => l.categoryViewpoint,
-  'forest' => l.categoryForest,
-  'park' => l.categoryPark,
-  _ => l.categoryOther,
-};
-
 String _sortLabel(AppLocalizations l, FeedSort s) => switch (s) {
   FeedSort.newest => l.sortNew,
   FeedSort.top => l.sortTop,
@@ -132,22 +112,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   label: Text(_sortLabel(l10n, s)),
                   selected: state.sort == s,
                   onSelected: (_) => ctrl.setSort(s),
-                ),
-            ],
-          ),
-          _ChipRow(
-            gutter: gutter,
-            children: [
-              ChoiceChip(
-                label: Text(l10n.categoryAll),
-                selected: state.category == null,
-                onSelected: (_) => ctrl.setCategory(null),
-              ),
-              for (final c in _categories)
-                ChoiceChip(
-                  label: Text(_categoryLabel(l10n, c)),
-                  selected: state.category == c,
-                  onSelected: (_) => ctrl.setCategory(c),
                 ),
             ],
           ),

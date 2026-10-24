@@ -41,7 +41,6 @@ AdminSpot _spot(
   id: id,
   title: 'Spot$id',
   description: 'Desc$id',
-  category: 'bench',
   lat: 48.5,
   lon: 11.25,
   status: status,
@@ -129,7 +128,6 @@ class _Fake implements AdminRepository {
       id: id,
       title: patch.title ?? s.title,
       description: patch.description ?? s.description,
-      category: patch.category ?? s.category,
       lat: patch.lat ?? s.lat,
       lon: patch.lon ?? s.lon,
       status: patch.status ?? s.status,
@@ -404,21 +402,16 @@ void main() {
           ]);
         });
 
-        testWidgets('description, category and status are sent', (
-          tester,
-        ) async {
+        testWidgets('description and status are sent', (tester) async {
           final repo = base();
           await _pump(tester, repo, e.value);
           await _tab(tester, 'Spots');
           await _tap(tester, 'spot-edit-100');
           await _type(tester, 'edit-spot-description', 'New text');
-          await _tap(tester, 'edit-spot-category');
-          await tester.tap(find.text('Lake').last);
-          await tester.pumpAndSettle();
           await _tap(tester, 'edit-spot-status-hidden');
           await _tap(tester, 'edit-spot-save');
           expect(repo.spotPatches, [
-            {'description': 'New text', 'category': 'lake', 'status': 'hidden'},
+            {'description': 'New text', 'status': 'hidden'},
           ]);
           expect(find.text('Hidden'), findsWidgets);
         });

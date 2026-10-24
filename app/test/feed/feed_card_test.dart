@@ -13,13 +13,7 @@ FeedItem itemWithoutPhoto() => FeedItem(
   photos: const [],
   createdAt: DateTime(2026, 10, 24),
   author: const Author(id: 1, displayName: 'A'),
-  spot: const Spot(
-    id: 5,
-    title: 'Lake bench',
-    category: 'bench',
-    lat: 48.1234,
-    lon: 11.5678,
-  ),
+  spot: const Spot(id: 5, title: 'Lake bench', lat: 48.1234, lon: 11.5678),
 );
 
 void main() {
@@ -94,7 +88,6 @@ void main() {
       const Spot(
         id: 5,
         title: 'Lake bench',
-        category: 'bench',
         lat: 48.1,
         lon: 11.5,
         ratingAvg: 4.0,

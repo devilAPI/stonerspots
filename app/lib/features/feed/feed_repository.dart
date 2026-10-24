@@ -22,7 +22,6 @@ class FeedPage {
 abstract class FeedRepository {
   Future<FeedPage> fetch({
     required FeedSort sort,
-    String? category,
     double? lat,
     double? lon,
     String? cursor,
@@ -38,7 +37,6 @@ class ApiFeedRepository implements FeedRepository {
   @override
   Future<FeedPage> fetch({
     required FeedSort sort,
-    String? category,
     double? lat,
     double? lon,
     String? cursor,
@@ -49,7 +47,6 @@ class ApiFeedRepository implements FeedRepository {
       '/feed',
       query: {
         'sort': sort.apiValue,
-        'category': ?category,
         if (tags.isNotEmpty) 'tags': SpotTag.encode(tags),
         'lat': ?lat,
         'lon': ?lon,

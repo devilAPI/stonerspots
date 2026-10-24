@@ -37,14 +37,12 @@ class SpotsState {
     this.spots = const [],
     this.loading = false,
     this.error = false,
-    this.category,
     this.tags = const [],
   });
 
   final List<Spot> spots;
   final bool loading;
   final bool error;
-  final String? category;
 
   /// Selected tag filters (all must match), canonical order.
   final List<SpotTag> tags;
@@ -53,14 +51,11 @@ class SpotsState {
     List<Spot>? spots,
     bool? loading,
     bool? error,
-    String? category,
-    bool clearCategory = false,
     List<SpotTag>? tags,
   }) => SpotsState(
     spots: spots ?? this.spots,
     loading: loading ?? this.loading,
     error: error ?? this.error,
-    category: clearCategory ? null : (category ?? this.category),
     tags: tags ?? this.tags,
   );
 }
@@ -101,15 +96,6 @@ class SpotsController extends Notifier<SpotsState> {
     _timer = Timer(ref.read(mapDebounceProvider), _fetch);
   }
 
-  void setCategory(String? category) {
-    state = category == null
-        ? state.copyWith(clearCategory: true)
-        : state.copyWith(category: category);
-    _loaded = null;
-    _timer?.cancel();
-    if (_bounds != null) _fetch();
-  }
-
   void toggleTag(SpotTag tag) {
     final next = state.tags.contains(tag)
         ? state.tags.where((t) => t != tag)
@@ -119,7 +105,7 @@ class SpotsController extends Notifier<SpotsState> {
 
   void clearTags() => _setTags(const []);
 
-  /// Like a category change: forget the loaded area and refetch right away.
+  /// Like a filter change: forget the loaded area and refetch right away.
   void _setTags(List<SpotTag> tags) {
     state = state.copyWith(tags: tags);
     _loaded = null;
@@ -140,7 +126,7 @@ class SpotsController extends Notifier<SpotsState> {
     try {
       final spots = await ref
           .read(mapSpotsRepositoryProvider)
-          .inBounds(area, category: state.category, tags: state.tags);
+          .inBounds(area, tags: state.tags);
       if (id != _seq) return; // a newer request superseded this one
       _loaded = area;
       _loadedTruncated = spots.length >= kMapSpotLimit;

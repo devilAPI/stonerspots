@@ -12,7 +12,6 @@ class _Repo implements FeedRepository {
   @override
   Future<FeedPage> fetch({
     required FeedSort sort,
-    String? category,
     double? lat,
     double? lon,
     String? cursor,
@@ -55,6 +54,8 @@ void main() {
       );
       await t.pumpAndSettle();
       expect(repo.tagCalls.last, isEmpty);
+      expect(find.text('All'), findsNothing); // no category chips
+      expect(find.byType(ChoiceChip), findsNWidgets(3)); // sort chips only
 
       await t.tap(find.byKey(const Key('feedTag-roof')));
       await t.pumpAndSettle();

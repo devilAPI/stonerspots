@@ -13,16 +13,6 @@ import 'location_picker.dart';
 import 'photo_uploader.dart';
 import 'place_search.dart';
 
-String categoryLabel(AppLocalizations l, String c) => switch (c) {
-  'bench' => l.categoryBench,
-  'river' => l.categoryRiver,
-  'lake' => l.categoryLake,
-  'viewpoint' => l.categoryViewpoint,
-  'forest' => l.categoryForest,
-  'park' => l.categoryPark,
-  _ => l.categoryOther,
-};
-
 class AddSpotScreen extends ConsumerStatefulWidget {
   const AddSpotScreen({super.key});
 
@@ -104,16 +94,9 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
         onChanged: ctrl.setTitle,
       ),
       const SizedBox(height: 12),
-      DropdownButtonFormField<String>(
-        key: const Key('category'),
-        initialValue: s.category,
-        decoration: InputDecoration(labelText: l.category),
-        items: [
-          for (final c in kCategories)
-            DropdownMenuItem(value: c, child: Text(categoryLabel(l, c))),
-        ],
-        onChanged: (v) => v == null ? null : ctrl.setCategory(v),
-      ),
+      Text(l.tagsTitle, style: Theme.of(context).textTheme.labelLarge),
+      const SizedBox(height: 4),
+      SpotTagSelector(selected: s.tags, onChanged: ctrl.setTags),
       const SizedBox(height: 12),
       TextField(
         key: const Key('description'),
@@ -121,10 +104,6 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
         maxLines: 4,
         onChanged: ctrl.setDescription,
       ),
-      const SizedBox(height: 12),
-      Text(l.tagsTitle, style: Theme.of(context).textTheme.labelLarge),
-      const SizedBox(height: 4),
-      SpotTagSelector(selected: s.tags, onChanged: ctrl.setTags),
       const SizedBox(height: 12),
       Wrap(
         spacing: 8,

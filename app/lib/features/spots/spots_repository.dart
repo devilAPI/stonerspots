@@ -12,7 +12,6 @@ const kMapSpotLimit = 200;
 abstract class SpotsRepository {
   Future<List<Spot>> inBounds(
     LatLngBounds bounds, {
-    String? category,
     List<SpotTag> tags = const [],
   });
 }
@@ -25,7 +24,6 @@ class ApiSpotsRepository implements SpotsRepository {
   @override
   Future<List<Spot>> inBounds(
     LatLngBounds bounds, {
-    String? category,
     List<SpotTag> tags = const [],
   }) async {
     final data = await _api.get<List<dynamic>>(
@@ -35,7 +33,6 @@ class ApiSpotsRepository implements SpotsRepository {
         'west': bounds.west,
         'north': bounds.north,
         'east': bounds.east,
-        'category': ?category,
         if (tags.isNotEmpty) 'tags': SpotTag.encode(tags),
         'limit': kMapSpotLimit,
       },

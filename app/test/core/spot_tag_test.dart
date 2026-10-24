@@ -115,20 +115,13 @@ void main() {
       final a = _Adapter(_spotJson);
       final api = ApiSpotApi(_client(a));
       await api.createSpot(
-        const SpotDraft(
-          title: 't',
-          description: '',
-          category: 'bench',
-          lat: 1,
-          lon: 2,
-        ),
+        const SpotDraft(title: 't', description: '', lat: 1, lon: 2),
       );
       expect((a.seen.last.data as Map).containsKey('tags'), isFalse);
       await api.createSpot(
         const SpotDraft(
           title: 't',
           description: '',
-          category: 'bench',
           lat: 1,
           lon: 2,
           tags: [SpotTag.roof, SpotTag.lit],
@@ -151,17 +144,13 @@ void main() {
       expect(s.tags, [SpotTag.view]);
     });
 
-    test('map query carries category and canonical tags', () async {
+    test('map query carries no category, only canonical tags', () async {
       final a = _Adapter(<dynamic>[]);
       final repo = ApiSpotsRepository(_client(a));
       final b = LatLngBounds(const LatLng(1, 2), const LatLng(3, 4));
-      await repo.inBounds(
-        b,
-        category: 'bench',
-        tags: const [SpotTag.roof, SpotTag.quiet],
-      );
+      await repo.inBounds(b, tags: const [SpotTag.roof, SpotTag.quiet]);
       expect(a.seen.last.queryParameters['tags'], 'roof,quiet');
-      expect(a.seen.last.queryParameters['category'], 'bench');
+      expect(a.seen.last.queryParameters.containsKey('category'), isFalse);
       await repo.inBounds(b);
       expect(a.seen.last.queryParameters.containsKey('tags'), isFalse);
     });
@@ -171,14 +160,13 @@ void main() {
       final repo = ApiFeedRepository(_client(a));
       await repo.fetch(
         sort: FeedSort.top,
-        category: 'lake',
         cursor: 'c',
         tags: const [SpotTag.shade, SpotTag.lit],
       );
       final q = a.seen.last.queryParameters;
       expect(q['tags'], 'shade,lit');
       expect(q['sort'], 'top');
-      expect(q['category'], 'lake');
+      expect(q.containsKey('category'), isFalse);
       expect(q['cursor'], 'c');
       await repo.fetch(sort: FeedSort.top);
       expect(a.seen.last.queryParameters.containsKey('tags'), isFalse);
