@@ -19,7 +19,9 @@ const selectCols = `s.id, s.title, s.description, s.category, ST_Y(s.location), 
   COALESCE((SELECT CONCAT(?, '/api/v1/media/', p.` + "`key`" + `)
             FROM photos p JOIN spot_updates u ON u.id = p.update_id
             WHERE u.spot_id = s.id AND u.status = 'active'
-            ORDER BY p.id LIMIT 1), '')`
+            ORDER BY p.id LIMIT 1), ''),
+  (SELECT COALESCE(ROUND(AVG(rv.rating), 1), 0) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active'),
+  (SELECT COUNT(*) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active')`
 
 func f(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
 
@@ -146,7 +148,7 @@ func scan(rows *sql.Rows, withDist bool) ([]Spot, error) {
 	out := []Spot{}
 	for rows.Next() {
 		var s Spot
-		dst := []any{&s.ID, &s.Title, &s.Description, &s.Category, &s.Lat, &s.Lon, &s.LikeCount, &s.CreatedAt, &s.CoverURL}
+		dst := []any{&s.ID, &s.Title, &s.Description, &s.Category, &s.Lat, &s.Lon, &s.LikeCount, &s.CreatedAt, &s.CoverURL, &s.RatingAvg, &s.RatingCount}
 		var d float64
 		if withDist {
 			dst = append(dst, &d)

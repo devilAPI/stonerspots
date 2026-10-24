@@ -16,6 +16,7 @@ import (
 	"stonerspots/backend/internal/geocode"
 	"stonerspots/backend/internal/httpx"
 	"stonerspots/backend/internal/photos"
+	"stonerspots/backend/internal/reviews"
 	"stonerspots/backend/internal/spots"
 )
 
@@ -29,6 +30,7 @@ func New(d app.Deps) http.Handler {
 		photos.Mount(r, d)
 		feed.Mount(r, d)
 		engagement.Mount(r, d)
+		reviews.Mount(r, d)
 		geocode.Mount(r, d)
 		admin.Mount(r, d)
 	})

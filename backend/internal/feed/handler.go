@@ -15,8 +15,9 @@ import (
 )
 
 type handler struct {
-	db   *sql.DB
-	base string
+	db        *sql.DB
+	base      string
+	uploadDir string
 }
 
 var categories = map[string]bool{"bench": true, "river": true, "lake": true, "viewpoint": true, "forest": true, "park": true, "other": true}
@@ -34,14 +35,18 @@ func (h *handler) postUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	var in struct {
 		Body     string   `json:"body"`
+		Tag      string   `json:"tag"`
 		PhotoIDs []uint64 `json:"photo_ids"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&in); err != nil {
 		httpx.Error(w, http.StatusBadRequest, "invalid_json", "request body must be valid JSON")
 		return
 	}
-	id, err := CreateUpdate(r.Context(), h.db, uid, spotID, in.Body, in.PhotoIDs)
+	id, err := CreateUpdateTagged(r.Context(), h.db, uid, spotID, in.Body, in.Tag, in.PhotoIDs)
 	switch {
+	case errors.Is(err, ErrInvalidTag):
+		httpx.Error(w, http.StatusBadRequest, "invalid_tag", "tag must be one of note, still_good, crowded, dirty, closed")
+		return
 	case errors.Is(err, ErrInvalidPhoto):
 		httpx.Error(w, http.StatusBadRequest, "invalid_photo", "photos must be your own, unattached, unique and at most 4")
 		return
