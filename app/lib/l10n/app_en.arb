@@ -163,5 +163,41 @@
       }
     }
   },
-  "adminSpotRemoved": "Spot removed"
+  "adminSpotRemoved": "Spot removed",
+  "adminEdit": "Edit",
+  "adminEditUser": "Edit user",
+  "adminEditSpot": "Edit spot",
+  "adminIsAdmin": "Admin",
+  "adminSelfAdminHint": "You can't change your own admin status.",
+  "adminStatus": "Status",
+  "adminCoordinates": "Coordinates (lat, lon)",
+  "adminCoordsInvalid": "Could not read these coordinates. Use e.g. 48.137, 11.575 or a map link.",
+  "adminUserSaved": "User updated",
+  "adminSpotSaved": "Spot updated",
+  "adminErrInvalidDisplayName": "Invalid display name",
+  "adminErrInvalidEmail": "Invalid email address",
+  "adminErrEmailTaken": "This email is already in use",
+  "adminErrCannotDemoteSelf": "You can't remove your own admin rights",
+  "adminErrLastAdmin": "There must be at least one admin",
+  "adminErrInvalidTitle": "Invalid title",
+  "adminErrInvalidDescription": "Invalid description",
+  "adminErrInvalidCategory": "Invalid category",
+  "adminErrInvalidStatus": "Invalid status",
+  "adminErrInvalidLocation": "Invalid location",
+  "adminDismiss": "Dismiss",
+  "adminMoreActions": "More actions",
+  "adminDismissAllRestore": "Dismiss all and restore",
+  "adminDismissAllKeep": "Dismiss all (keep hidden)",
+  "adminDismissAllTitle": "Dismiss all reports?",
+  "adminDismissAllRestoreBody": "Removes all reports about this item and makes it visible again.",
+  "adminDismissAllKeepBody": "Removes all reports about this item. Hidden content stays hidden.",
+  "adminReportDismissed": "Report dismissed",
+  "adminReportsDismissed": "{count, plural, =1{1 report dismissed} other{{count} reports dismissed}}",
+  "@adminReportsDismissed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

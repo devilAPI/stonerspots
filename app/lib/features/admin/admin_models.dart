@@ -59,6 +59,16 @@ class AdminReportTarget {
   final String body;
   final Author? author;
 
+  AdminReportTarget copyWith({String? title, String? status}) =>
+      AdminReportTarget(
+        exists: exists,
+        spotId: spotId,
+        title: title ?? this.title,
+        status: status ?? this.status,
+        body: body,
+        author: author,
+      );
+
   factory AdminReportTarget.fromJson(Map<String, dynamic> j) =>
       AdminReportTarget(
         exists: (j['exists'] ?? false) as bool,
@@ -107,6 +117,18 @@ class AdminReport {
       (j['target'] ?? const {'exists': false}) as Map<String, dynamic>,
     ),
   );
+
+  AdminReport copyWith({int? reportCount, AdminReportTarget? target}) =>
+      AdminReport(
+        id: id,
+        targetType: targetType,
+        targetId: targetId,
+        reason: reason,
+        createdAt: createdAt,
+        reportCount: reportCount ?? this.reportCount,
+        reporter: reporter,
+        target: target ?? this.target,
+      );
 }
 
 class AdminUser {
@@ -143,6 +165,7 @@ class AdminSpot {
   const AdminSpot({
     required this.id,
     required this.title,
+    this.description = '',
     required this.category,
     required this.lat,
     required this.lon,
@@ -155,6 +178,7 @@ class AdminSpot {
 
   final int id;
   final String title;
+  final String description;
   final String category;
   final double lat;
   final double lon;
@@ -169,6 +193,7 @@ class AdminSpot {
   factory AdminSpot.fromJson(Map<String, dynamic> j) => AdminSpot(
     id: j['id'] as int,
     title: (j['title'] ?? '') as String,
+    description: (j['description'] ?? '') as String,
     category: (j['category'] ?? 'other') as String,
     lat: ((j['lat'] ?? 0) as num).toDouble(),
     lon: ((j['lon'] ?? 0) as num).toDouble(),
@@ -178,4 +203,65 @@ class AdminSpot {
     author: Author.fromJson(j['author'] as Map<String, dynamic>),
     reportCount: (j['report_count'] ?? 0) as int,
   );
+
+  AdminSpot copyWith({String? status, int? reportCount}) => AdminSpot(
+    id: id,
+    title: title,
+    description: description,
+    category: category,
+    lat: lat,
+    lon: lon,
+    status: status ?? this.status,
+    likeCount: likeCount,
+    createdAt: createdAt,
+    author: author,
+    reportCount: reportCount ?? this.reportCount,
+  );
+}
+
+/// Fields of `PATCH /admin/users/{id}`; only set fields are serialized.
+class AdminUserPatch {
+  const AdminUserPatch({this.displayName, this.email, this.isAdmin});
+
+  final String? displayName;
+  final String? email;
+  final bool? isAdmin;
+
+  bool get isEmpty => toJson().isEmpty;
+
+  Map<String, dynamic> toJson() => {
+    'display_name': ?displayName,
+    'email': ?email,
+    'is_admin': ?isAdmin,
+  };
+}
+
+/// Fields of `PATCH /admin/spots/{id}`; only set fields are serialized.
+/// [lat] and [lon] are only sent together.
+class AdminSpotPatch {
+  const AdminSpotPatch({
+    this.title,
+    this.description,
+    this.category,
+    this.status,
+    this.lat,
+    this.lon,
+  });
+
+  final String? title;
+  final String? description;
+  final String? category;
+  final String? status;
+  final double? lat;
+  final double? lon;
+
+  bool get isEmpty => toJson().isEmpty;
+
+  Map<String, dynamic> toJson() => {
+    'title': ?title,
+    'description': ?description,
+    'category': ?category,
+    'status': ?status,
+    if (lat != null && lon != null) ...{'lat': lat, 'lon': lon},
+  };
 }

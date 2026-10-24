@@ -24,6 +24,24 @@ abstract class AdminRepository {
   /// Deletes a spot with everything attached. 404 `not_found` is thrown as
   /// [ApiException] for the caller to treat as success.
   Future<void> deleteSpot(int id);
+
+  /// Updates the given user fields; returns the updated user.
+  Future<AdminUser> updateUser(int id, AdminUserPatch patch);
+
+  /// Updates the given spot fields; returns the updated spot.
+  Future<AdminSpot> updateSpot(int id, AdminSpotPatch patch);
+
+  /// Removes one report. 404 `not_found` is thrown as [ApiException] for the
+  /// caller to treat as success.
+  Future<void> deleteReport(int id);
+
+  /// Removes all reports of one target, optionally re-activating hidden
+  /// content. Returns how many reports were removed.
+  Future<int> dismissReports({
+    required String targetType,
+    required int targetId,
+    required bool restore,
+  });
 }
 
 class ApiAdminRepository implements AdminRepository {
@@ -80,6 +98,46 @@ class ApiAdminRepository implements AdminRepository {
   @override
   Future<void> deleteSpot(int id) async {
     await _api.delete<dynamic>('/admin/spots/$id');
+  }
+
+  @override
+  Future<AdminUser> updateUser(int id, AdminUserPatch patch) async =>
+      AdminUser.fromJson(
+        await _api.patch<Map<String, dynamic>>(
+          '/admin/users/$id',
+          data: patch.toJson(),
+        ),
+      );
+
+  @override
+  Future<AdminSpot> updateSpot(int id, AdminSpotPatch patch) async =>
+      AdminSpot.fromJson(
+        await _api.patch<Map<String, dynamic>>(
+          '/admin/spots/$id',
+          data: patch.toJson(),
+        ),
+      );
+
+  @override
+  Future<void> deleteReport(int id) async {
+    await _api.delete<dynamic>('/admin/reports/$id');
+  }
+
+  @override
+  Future<int> dismissReports({
+    required String targetType,
+    required int targetId,
+    required bool restore,
+  }) async {
+    final r = await _api.post<Map<String, dynamic>>(
+      '/admin/reports/dismiss',
+      data: {
+        'target_type': targetType,
+        'target_id': targetId,
+        'restore': restore,
+      },
+    );
+    return (r['removed'] ?? 0) as int;
   }
 }
 

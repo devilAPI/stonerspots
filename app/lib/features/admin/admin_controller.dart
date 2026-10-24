@@ -142,7 +142,44 @@ class ReportsController extends AdminListController<AdminReport> {
   /// Drops every report whose target belongs to [spotId].
   void removeSpot(int spotId) =>
       removeWhere((r) => r.target.exists && r.target.spotId == spotId);
+
+  /// Mirrors an edited spot into the report tiles that show it.
+  void applySpot(AdminSpot spot) => _map(
+    (r) => r.target.exists && r.target.spotId == spot.id
+        ? r.copyWith(
+            target: r.target.copyWith(title: spot.title, status: spot.status),
+          )
+        : r,
+  );
+
+  /// Removes one report and lowers the count shown on the remaining reports
+  /// of the same target.
+  void dismissOne(AdminReport report) {
+    final items = <AdminReport>[];
+    for (final r in state.items) {
+      if (r.id == report.id) continue;
+      items.add(
+        _sameTarget(r, report)
+            ? r.copyWith(reportCount: _dec(r.reportCount, 1))
+            : r,
+      );
+    }
+    state = state.copyWith(items: items);
+  }
+
+  /// Removes every loaded report of [report]'s target.
+  void dismissTarget(AdminReport report) =>
+      removeWhere((r) => _sameTarget(r, report));
+
+  static bool _sameTarget(AdminReport a, AdminReport b) =>
+      a.targetType == b.targetType && a.targetId == b.targetId;
+
+  void _map(AdminReport Function(AdminReport) f) {
+    state = state.copyWith(items: state.items.map(f).toList());
+  }
 }
+
+int _dec(int n, int by) => n - by < 0 ? 0 : n - by;
 
 class UsersController extends AdminListController<AdminUser> {
   @override
@@ -156,6 +193,10 @@ class UsersController extends AdminListController<AdminUser> {
     state = state.copyWith(q: q.trim());
     return reload();
   }
+
+  void replace(AdminUser user) => state = state.copyWith(
+    items: [for (final u in state.items) u.id == user.id ? user : u],
+  );
 }
 
 class SpotsController extends AdminListController<AdminSpot> {
@@ -180,6 +221,25 @@ class SpotsController extends AdminListController<AdminSpot> {
   }
 
   void removeSpot(int spotId) => removeWhere((s) => s.id == spotId);
+
+  void replace(AdminSpot spot) => state = state.copyWith(
+    items: [for (final s in state.items) s.id == spot.id ? spot : s],
+  );
+
+  /// After dismissing reports on a spot: lower its report count by [removed]
+  /// and, with [restore], show it as active again.
+  void reportsDismissed(int spotId, int removed, {required bool restore}) =>
+      state = state.copyWith(
+        items: [
+          for (final s in state.items)
+            s.id == spotId
+                ? s.copyWith(
+                    reportCount: _dec(s.reportCount, removed),
+                    status: restore ? 'active' : null,
+                  )
+                : s,
+        ],
+      );
 }
 
 final adminReportsProvider =
@@ -209,4 +269,48 @@ Future<void> removeAdminSpot(WidgetRef ref, int spotId) async {
   }
   ref.read(adminSpotsProvider.notifier).removeSpot(spotId);
   ref.read(adminReportsProvider.notifier).removeSpot(spotId);
+}
+
+/// Mirrors an edited spot the result into every loaded list.
+void applyEditedSpot(WidgetRef ref, AdminSpot spot) {
+  ref.read(adminSpotsProvider.notifier).replace(spot);
+  ref.read(adminReportsProvider.notifier).applySpot(spot);
+}
+
+/// Dismisses one report; 404 counts as already removed. Other errors
+/// propagate and leave the list untouched.
+Future<void> dismissAdminReport(WidgetRef ref, AdminReport report) async {
+  try {
+    await ref.read(adminRepositoryProvider).deleteReport(report.id);
+  } on ApiException catch (e) {
+    if (e.status != 404) rethrow;
+  }
+  ref.read(adminReportsProvider.notifier).dismissOne(report);
+  if (report.targetType == 'spot' && report.target.spotId != null) {
+    ref
+        .read(adminSpotsProvider.notifier)
+        .reportsDismissed(report.target.spotId!, 1, restore: false);
+  }
+}
+
+/// Dismisses all reports of the target; returns how many the server removed.
+Future<int> dismissAdminReportsOfTarget(
+  WidgetRef ref,
+  AdminReport report, {
+  required bool restore,
+}) async {
+  final removed = await ref
+      .read(adminRepositoryProvider)
+      .dismissReports(
+        targetType: report.targetType,
+        targetId: report.targetId,
+        restore: restore,
+      );
+  ref.read(adminReportsProvider.notifier).dismissTarget(report);
+  if (report.targetType == 'spot' && report.target.spotId != null) {
+    ref
+        .read(adminSpotsProvider.notifier)
+        .reportsDismissed(report.target.spotId!, removed, restore: restore);
+  }
+  return removed;
 }

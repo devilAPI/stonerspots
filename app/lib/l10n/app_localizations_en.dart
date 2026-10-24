@@ -351,4 +351,103 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminSpotRemoved => 'Spot removed';
+
+  @override
+  String get adminEdit => 'Edit';
+
+  @override
+  String get adminEditUser => 'Edit user';
+
+  @override
+  String get adminEditSpot => 'Edit spot';
+
+  @override
+  String get adminIsAdmin => 'Admin';
+
+  @override
+  String get adminSelfAdminHint => 'You can\'t change your own admin status.';
+
+  @override
+  String get adminStatus => 'Status';
+
+  @override
+  String get adminCoordinates => 'Coordinates (lat, lon)';
+
+  @override
+  String get adminCoordsInvalid =>
+      'Could not read these coordinates. Use e.g. 48.137, 11.575 or a map link.';
+
+  @override
+  String get adminUserSaved => 'User updated';
+
+  @override
+  String get adminSpotSaved => 'Spot updated';
+
+  @override
+  String get adminErrInvalidDisplayName => 'Invalid display name';
+
+  @override
+  String get adminErrInvalidEmail => 'Invalid email address';
+
+  @override
+  String get adminErrEmailTaken => 'This email is already in use';
+
+  @override
+  String get adminErrCannotDemoteSelf =>
+      'You can\'t remove your own admin rights';
+
+  @override
+  String get adminErrLastAdmin => 'There must be at least one admin';
+
+  @override
+  String get adminErrInvalidTitle => 'Invalid title';
+
+  @override
+  String get adminErrInvalidDescription => 'Invalid description';
+
+  @override
+  String get adminErrInvalidCategory => 'Invalid category';
+
+  @override
+  String get adminErrInvalidStatus => 'Invalid status';
+
+  @override
+  String get adminErrInvalidLocation => 'Invalid location';
+
+  @override
+  String get adminDismiss => 'Dismiss';
+
+  @override
+  String get adminMoreActions => 'More actions';
+
+  @override
+  String get adminDismissAllRestore => 'Dismiss all and restore';
+
+  @override
+  String get adminDismissAllKeep => 'Dismiss all (keep hidden)';
+
+  @override
+  String get adminDismissAllTitle => 'Dismiss all reports?';
+
+  @override
+  String get adminDismissAllRestoreBody =>
+      'Removes all reports about this item and makes it visible again.';
+
+  @override
+  String get adminDismissAllKeepBody =>
+      'Removes all reports about this item. Hidden content stays hidden.';
+
+  @override
+  String get adminReportDismissed => 'Report dismissed';
+
+  @override
+  String adminReportsDismissed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count reports dismissed',
+      one: '1 report dismissed',
+    );
+    return '$_temp0';
+  }
 }

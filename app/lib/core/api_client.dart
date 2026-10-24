@@ -54,6 +54,9 @@ class ApiClient {
   Future<T> put<T>(String path, {Object? data}) =>
       _send<T>('PUT', path, data: data);
 
+  Future<T> patch<T>(String path, {Object? data}) =>
+      _send<T>('PATCH', path, data: data);
+
   Future<T> delete<T>(String path, {Map<String, dynamic>? query}) =>
       _send<T>('DELETE', path, query: query);
 

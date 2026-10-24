@@ -685,6 +685,180 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Spot entfernt'**
   String get adminSpotRemoved;
+
+  /// No description provided for @adminEdit.
+  ///
+  /// In de, this message translates to:
+  /// **'Bearbeiten'**
+  String get adminEdit;
+
+  /// No description provided for @adminEditUser.
+  ///
+  /// In de, this message translates to:
+  /// **'Nutzer bearbeiten'**
+  String get adminEditUser;
+
+  /// No description provided for @adminEditSpot.
+  ///
+  /// In de, this message translates to:
+  /// **'Spot bearbeiten'**
+  String get adminEditSpot;
+
+  /// No description provided for @adminIsAdmin.
+  ///
+  /// In de, this message translates to:
+  /// **'Admin'**
+  String get adminIsAdmin;
+
+  /// No description provided for @adminSelfAdminHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Du kannst deinen eigenen Admin-Status nicht ändern.'**
+  String get adminSelfAdminHint;
+
+  /// No description provided for @adminStatus.
+  ///
+  /// In de, this message translates to:
+  /// **'Status'**
+  String get adminStatus;
+
+  /// No description provided for @adminCoordinates.
+  ///
+  /// In de, this message translates to:
+  /// **'Koordinaten (Breite, Länge)'**
+  String get adminCoordinates;
+
+  /// No description provided for @adminCoordsInvalid.
+  ///
+  /// In de, this message translates to:
+  /// **'Diese Koordinaten konnten nicht gelesen werden. Nutze z. B. 48.137, 11.575 oder einen Kartenlink.'**
+  String get adminCoordsInvalid;
+
+  /// No description provided for @adminUserSaved.
+  ///
+  /// In de, this message translates to:
+  /// **'Nutzer aktualisiert'**
+  String get adminUserSaved;
+
+  /// No description provided for @adminSpotSaved.
+  ///
+  /// In de, this message translates to:
+  /// **'Spot aktualisiert'**
+  String get adminSpotSaved;
+
+  /// No description provided for @adminErrInvalidDisplayName.
+  ///
+  /// In de, this message translates to:
+  /// **'Ungültiger Anzeigename'**
+  String get adminErrInvalidDisplayName;
+
+  /// No description provided for @adminErrInvalidEmail.
+  ///
+  /// In de, this message translates to:
+  /// **'Ungültige E-Mail-Adresse'**
+  String get adminErrInvalidEmail;
+
+  /// No description provided for @adminErrEmailTaken.
+  ///
+  /// In de, this message translates to:
+  /// **'Diese E-Mail-Adresse wird bereits verwendet'**
+  String get adminErrEmailTaken;
+
+  /// No description provided for @adminErrCannotDemoteSelf.
+  ///
+  /// In de, this message translates to:
+  /// **'Du kannst dir die Admin-Rechte nicht selbst entziehen'**
+  String get adminErrCannotDemoteSelf;
+
+  /// No description provided for @adminErrLastAdmin.
+  ///
+  /// In de, this message translates to:
+  /// **'Es muss mindestens einen Admin geben'**
+  String get adminErrLastAdmin;
+
+  /// No description provided for @adminErrInvalidTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Ungültiger Titel'**
+  String get adminErrInvalidTitle;
+
+  /// No description provided for @adminErrInvalidDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Ungültige Beschreibung'**
+  String get adminErrInvalidDescription;
+
+  /// No description provided for @adminErrInvalidCategory.
+  ///
+  /// In de, this message translates to:
+  /// **'Ungültige Kategorie'**
+  String get adminErrInvalidCategory;
+
+  /// No description provided for @adminErrInvalidStatus.
+  ///
+  /// In de, this message translates to:
+  /// **'Ungültiger Status'**
+  String get adminErrInvalidStatus;
+
+  /// No description provided for @adminErrInvalidLocation.
+  ///
+  /// In de, this message translates to:
+  /// **'Ungültiger Ort'**
+  String get adminErrInvalidLocation;
+
+  /// No description provided for @adminDismiss.
+  ///
+  /// In de, this message translates to:
+  /// **'Verwerfen'**
+  String get adminDismiss;
+
+  /// No description provided for @adminMoreActions.
+  ///
+  /// In de, this message translates to:
+  /// **'Weitere Aktionen'**
+  String get adminMoreActions;
+
+  /// No description provided for @adminDismissAllRestore.
+  ///
+  /// In de, this message translates to:
+  /// **'Alle verwerfen und wiederherstellen'**
+  String get adminDismissAllRestore;
+
+  /// No description provided for @adminDismissAllKeep.
+  ///
+  /// In de, this message translates to:
+  /// **'Alle verwerfen (versteckt lassen)'**
+  String get adminDismissAllKeep;
+
+  /// No description provided for @adminDismissAllTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Alle Meldungen verwerfen?'**
+  String get adminDismissAllTitle;
+
+  /// No description provided for @adminDismissAllRestoreBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Entfernt alle Meldungen zu diesem Inhalt und macht ihn wieder sichtbar.'**
+  String get adminDismissAllRestoreBody;
+
+  /// No description provided for @adminDismissAllKeepBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Entfernt alle Meldungen zu diesem Inhalt. Versteckte Inhalte bleiben versteckt.'**
+  String get adminDismissAllKeepBody;
+
+  /// No description provided for @adminReportDismissed.
+  ///
+  /// In de, this message translates to:
+  /// **'Meldung verworfen'**
+  String get adminReportDismissed;
+
+  /// No description provided for @adminReportsDismissed.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =1{1 Meldung verworfen} other{{count} Meldungen verworfen}}'**
+  String adminReportsDismissed(int count);
 }
 
 class _AppLocalizationsDelegate

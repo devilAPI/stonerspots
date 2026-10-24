@@ -351,4 +351,105 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get adminSpotRemoved => 'Spot entfernt';
+
+  @override
+  String get adminEdit => 'Bearbeiten';
+
+  @override
+  String get adminEditUser => 'Nutzer bearbeiten';
+
+  @override
+  String get adminEditSpot => 'Spot bearbeiten';
+
+  @override
+  String get adminIsAdmin => 'Admin';
+
+  @override
+  String get adminSelfAdminHint =>
+      'Du kannst deinen eigenen Admin-Status nicht ändern.';
+
+  @override
+  String get adminStatus => 'Status';
+
+  @override
+  String get adminCoordinates => 'Koordinaten (Breite, Länge)';
+
+  @override
+  String get adminCoordsInvalid =>
+      'Diese Koordinaten konnten nicht gelesen werden. Nutze z. B. 48.137, 11.575 oder einen Kartenlink.';
+
+  @override
+  String get adminUserSaved => 'Nutzer aktualisiert';
+
+  @override
+  String get adminSpotSaved => 'Spot aktualisiert';
+
+  @override
+  String get adminErrInvalidDisplayName => 'Ungültiger Anzeigename';
+
+  @override
+  String get adminErrInvalidEmail => 'Ungültige E-Mail-Adresse';
+
+  @override
+  String get adminErrEmailTaken =>
+      'Diese E-Mail-Adresse wird bereits verwendet';
+
+  @override
+  String get adminErrCannotDemoteSelf =>
+      'Du kannst dir die Admin-Rechte nicht selbst entziehen';
+
+  @override
+  String get adminErrLastAdmin => 'Es muss mindestens einen Admin geben';
+
+  @override
+  String get adminErrInvalidTitle => 'Ungültiger Titel';
+
+  @override
+  String get adminErrInvalidDescription => 'Ungültige Beschreibung';
+
+  @override
+  String get adminErrInvalidCategory => 'Ungültige Kategorie';
+
+  @override
+  String get adminErrInvalidStatus => 'Ungültiger Status';
+
+  @override
+  String get adminErrInvalidLocation => 'Ungültiger Ort';
+
+  @override
+  String get adminDismiss => 'Verwerfen';
+
+  @override
+  String get adminMoreActions => 'Weitere Aktionen';
+
+  @override
+  String get adminDismissAllRestore => 'Alle verwerfen und wiederherstellen';
+
+  @override
+  String get adminDismissAllKeep => 'Alle verwerfen (versteckt lassen)';
+
+  @override
+  String get adminDismissAllTitle => 'Alle Meldungen verwerfen?';
+
+  @override
+  String get adminDismissAllRestoreBody =>
+      'Entfernt alle Meldungen zu diesem Inhalt und macht ihn wieder sichtbar.';
+
+  @override
+  String get adminDismissAllKeepBody =>
+      'Entfernt alle Meldungen zu diesem Inhalt. Versteckte Inhalte bleiben versteckt.';
+
+  @override
+  String get adminReportDismissed => 'Meldung verworfen';
+
+  @override
+  String adminReportsDismissed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Meldungen verworfen',
+      one: '1 Meldung verworfen',
+    );
+    return '$_temp0';
+  }
 }
