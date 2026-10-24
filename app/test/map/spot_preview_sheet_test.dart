@@ -64,4 +64,23 @@ void main() {
     expect(t.takeException(), isNull);
     expect(find.text('Open'), findsOneWidget);
   });
+
+  testWidgets('shows the rating only when there are reviews', (t) async {
+    await pumpSheet(t, noPhoto);
+    expect(find.byIcon(Icons.star), findsNothing);
+    await pumpSheet(
+      t,
+      const Spot(
+        id: 1,
+        title: 'Lake bench',
+        category: 'bench',
+        lat: 48.1,
+        lon: 11.6,
+        ratingAvg: 4.25,
+        ratingCount: 8,
+      ),
+    );
+    expect(find.text('4.3 (8)'), findsOneWidget);
+    expect(find.byIcon(Icons.star), findsOneWidget);
+  });
 }

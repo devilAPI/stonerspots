@@ -65,4 +65,42 @@ void main() {
       expect(layer.maxNativeZoom, 18);
     },
   );
+
+  testWidgets('feed card shows the spot rating next to the likes', (t) async {
+    Future<void> pumpItem(Spot spot) => t.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: FeedCard(
+              item: FeedItem(
+                id: 1,
+                body: 'x',
+                photos: const [],
+                createdAt: DateTime(2026, 10, 24),
+                author: const Author(id: 1, displayName: 'A'),
+                spot: spot,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await pumpItem(itemWithoutPhoto().spot);
+    expect(find.byIcon(Icons.star), findsNothing);
+    await pumpItem(
+      const Spot(
+        id: 5,
+        title: 'Lake bench',
+        category: 'bench',
+        lat: 48.1,
+        lon: 11.5,
+        ratingAvg: 4.0,
+        ratingCount: 3,
+      ),
+    );
+    expect(find.text('4.0 (3)'), findsOneWidget);
+  });
 }

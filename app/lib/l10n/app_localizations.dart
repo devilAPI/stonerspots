@@ -685,6 +685,228 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Spot entfernt'**
   String get adminSpotRemoved;
+
+  /// No description provided for @reviewsTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Bewertungen'**
+  String get reviewsTitle;
+
+  /// No description provided for @reviewNone.
+  ///
+  /// In de, this message translates to:
+  /// **'Noch keine Bewertungen'**
+  String get reviewNone;
+
+  /// No description provided for @reviewCount.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =1{1 Bewertung} other{{count} Bewertungen}}'**
+  String reviewCount(int count);
+
+  /// No description provided for @reviewWrite.
+  ///
+  /// In de, this message translates to:
+  /// **'Bewertung schreiben'**
+  String get reviewWrite;
+
+  /// No description provided for @reviewEditMine.
+  ///
+  /// In de, this message translates to:
+  /// **'Deine Bewertung bearbeiten'**
+  String get reviewEditMine;
+
+  /// No description provided for @reviewYours.
+  ///
+  /// In de, this message translates to:
+  /// **'Deine Bewertung'**
+  String get reviewYours;
+
+  /// No description provided for @reviewStarLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =1{1 Stern} other{{count} Sterne}}'**
+  String reviewStarLabel(int count);
+
+  /// No description provided for @reviewBodyHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Deine Erfahrung (optional)'**
+  String get reviewBodyHint;
+
+  /// No description provided for @reviewDeleteTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Deine Bewertung löschen?'**
+  String get reviewDeleteTitle;
+
+  /// No description provided for @reviewDeleteConfirm.
+  ///
+  /// In de, this message translates to:
+  /// **'Löschen'**
+  String get reviewDeleteConfirm;
+
+  /// No description provided for @reviewEdited.
+  ///
+  /// In de, this message translates to:
+  /// **'bearbeitet'**
+  String get reviewEdited;
+
+  /// No description provided for @reviewLoadMore.
+  ///
+  /// In de, this message translates to:
+  /// **'Mehr laden'**
+  String get reviewLoadMore;
+
+  /// No description provided for @reviewActionEdit.
+  ///
+  /// In de, this message translates to:
+  /// **'Bewertung bearbeiten'**
+  String get reviewActionEdit;
+
+  /// No description provided for @reviewActionDelete.
+  ///
+  /// In de, this message translates to:
+  /// **'Bewertung löschen'**
+  String get reviewActionDelete;
+
+  /// No description provided for @reviewErrorInvalidRating.
+  ///
+  /// In de, this message translates to:
+  /// **'Bitte wähle 1 bis 5 Sterne'**
+  String get reviewErrorInvalidRating;
+
+  /// No description provided for @reviewErrorInvalidBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Der Text ist zu lang'**
+  String get reviewErrorInvalidBody;
+
+  /// No description provided for @reviewErrorOwnSpot.
+  ///
+  /// In de, this message translates to:
+  /// **'Du kannst deinen eigenen Spot nicht bewerten'**
+  String get reviewErrorOwnSpot;
+
+  /// No description provided for @updateTagLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Status'**
+  String get updateTagLabel;
+
+  /// No description provided for @updateTagNote.
+  ///
+  /// In de, this message translates to:
+  /// **'Notiz'**
+  String get updateTagNote;
+
+  /// No description provided for @updateTagStillGood.
+  ///
+  /// In de, this message translates to:
+  /// **'Weiterhin gut'**
+  String get updateTagStillGood;
+
+  /// No description provided for @updateTagCrowded.
+  ///
+  /// In de, this message translates to:
+  /// **'Voll'**
+  String get updateTagCrowded;
+
+  /// No description provided for @updateTagDirty.
+  ///
+  /// In de, this message translates to:
+  /// **'Dreckig'**
+  String get updateTagDirty;
+
+  /// No description provided for @updateTagClosed.
+  ///
+  /// In de, this message translates to:
+  /// **'Gesperrt'**
+  String get updateTagClosed;
+
+  /// No description provided for @updateEditTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Update bearbeiten'**
+  String get updateEditTitle;
+
+  /// No description provided for @updateEdited.
+  ///
+  /// In de, this message translates to:
+  /// **'bearbeitet'**
+  String get updateEdited;
+
+  /// No description provided for @updatePost.
+  ///
+  /// In de, this message translates to:
+  /// **'Posten'**
+  String get updatePost;
+
+  /// No description provided for @updateRemovePhoto.
+  ///
+  /// In de, this message translates to:
+  /// **'Foto entfernen'**
+  String get updateRemovePhoto;
+
+  /// No description provided for @updateActionEdit.
+  ///
+  /// In de, this message translates to:
+  /// **'Update bearbeiten'**
+  String get updateActionEdit;
+
+  /// No description provided for @updateActionDelete.
+  ///
+  /// In de, this message translates to:
+  /// **'Update löschen'**
+  String get updateActionDelete;
+
+  /// No description provided for @updateDeleteTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieses Update löschen?'**
+  String get updateDeleteTitle;
+
+  /// No description provided for @updateDeleteConfirm.
+  ///
+  /// In de, this message translates to:
+  /// **'Löschen'**
+  String get updateDeleteConfirm;
+
+  /// No description provided for @updatePhotosReadOnly.
+  ///
+  /// In de, this message translates to:
+  /// **'Fotos können nachträglich nicht geändert werden'**
+  String get updatePhotosReadOnly;
+
+  /// No description provided for @updateErrorInvalidPhoto.
+  ///
+  /// In de, this message translates to:
+  /// **'Eines der Fotos ist ungültig'**
+  String get updateErrorInvalidPhoto;
+
+  /// No description provided for @updateErrorInvalidBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Der Text ist ungültig oder zu lang'**
+  String get updateErrorInvalidBody;
+
+  /// No description provided for @updateErrorInvalidTag.
+  ///
+  /// In de, this message translates to:
+  /// **'Bitte wähle einen gültigen Status'**
+  String get updateErrorInvalidTag;
+
+  /// No description provided for @photoViewerClose.
+  ///
+  /// In de, this message translates to:
+  /// **'Schließen'**
+  String get photoViewerClose;
+
+  /// No description provided for @photoViewerPage.
+  ///
+  /// In de, this message translates to:
+  /// **'{current} / {total}'**
+  String photoViewerPage(int current, int total);
 }
 
 class _AppLocalizationsDelegate

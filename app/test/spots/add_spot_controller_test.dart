@@ -64,9 +64,16 @@ class FakeUpdates implements UpdatesRepository {
     int spotId, {
     required String body,
     List<int> photoIds = const [],
+    UpdateTag tag = UpdateTag.note,
   }) async {
     posted.add(photoIds);
   }
+
+  @override
+  Future<void> edit(int id, {String? body, UpdateTag? tag}) async {}
+
+  @override
+  Future<void> delete(int id) async {}
 }
 
 void main() {

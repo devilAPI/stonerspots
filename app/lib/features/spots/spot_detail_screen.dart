@@ -9,9 +9,13 @@ import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
 import '../feed/satellite_thumb.dart';
 import 'add_spot_screen.dart' show categoryLabel;
+import '../reviews/rating_widgets.dart';
+import '../reviews/reviews_section.dart';
 import 'maps_link.dart';
-import 'photo_uploader.dart';
+import 'photo_viewer.dart';
 import 'spot_api.dart';
+import 'update_composer.dart';
+import 'update_tile.dart';
 import 'updates_repository.dart';
 
 final spotDetailProvider = FutureProvider.autoDispose.family<Spot, int>(
@@ -114,75 +118,45 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
   }
 
   Future<void> _postUpdate() async {
+    final posted = await showUpdateComposer(context, spotId: widget.spotId);
+    if (posted == true) ref.invalidate(spotUpdatesProvider(widget.spotId));
+  }
+
+  Future<void> _editUpdate(FeedItem item) async {
+    final saved = await showUpdateComposer(
+      context,
+      spotId: widget.spotId,
+      editing: item,
+    );
+    if (saved == true) ref.invalidate(spotUpdatesProvider(widget.spotId));
+  }
+
+  Future<void> _deleteUpdate(FeedItem item) async {
     final l = AppLocalizations.of(context);
-    final controller = TextEditingController();
-    final picked = <dynamic>[];
-    final posted = await showDialog<bool>(
+    final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) => AlertDialog(
-          title: Text(l.postUpdate),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                key: const Key('updateBody'),
-                controller: controller,
-                maxLines: 4,
-                decoration: InputDecoration(labelText: l.description),
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  icon: const Icon(Icons.add_a_photo),
-                  label: Text('${l.addPhotos} (${picked.length}/4)'),
-                  onPressed: picked.length >= 4
-                      ? null
-                      : () async {
-                          final files = await ref
-                              .read(photoPickerProvider)
-                              .pickPhotos(4 - picked.length);
-                          setLocal(
-                            () => picked.addAll(files.take(4 - picked.length)),
-                          );
-                        },
-                ),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: Text(l.updateDeleteTitle),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.cancel),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(l.cancel),
-            ),
-            FilledButton(
-              onPressed: () async {
-                final body = controller.text.trim();
-                if (body.isEmpty && picked.isEmpty) return;
-                try {
-                  final ids = <int>[];
-                  for (final f in picked) {
-                    ids.add(
-                      (await ref.read(photoUploaderProvider).upload(f)).id,
-                    );
-                  }
-                  await ref
-                      .read(spotUpdatesRepositoryProvider)
-                      .post(widget.spotId, body: body, photoIds: ids);
-                  if (ctx.mounted) Navigator.pop(ctx, true);
-                } catch (_) {
-                  _snack(l.errorGeneric);
-                }
-              },
-              child: Text(l.save),
-            ),
-          ],
-        ),
+          FilledButton(
+            key: const Key('updateDeleteConfirm'),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.updateDeleteConfirm),
+          ),
+        ],
       ),
     );
-    controller.dispose();
-    if (posted == true) ref.invalidate(spotUpdatesProvider(widget.spotId));
+    if (ok != true) return;
+    try {
+      await ref.read(spotUpdatesRepositoryProvider).delete(item.id);
+      ref.invalidate(spotUpdatesProvider(widget.spotId));
+    } catch (_) {
+      _snack(l.errorGeneric);
+    }
   }
 
   @override
@@ -191,6 +165,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
     ref.watch(authControllerProvider); // keep the session loaded for gating
     final spotAsync = ref.watch(spotDetailProvider(widget.spotId));
     final updates = ref.watch(spotUpdatesProvider(widget.spotId));
+    final myId = ref.watch(authControllerProvider).value?.id;
 
     return Scaffold(
       appBar: AppBar(
@@ -239,9 +214,20 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
               padding: const EdgeInsets.all(8),
               itemCount: urls.length,
               separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder: (_, i) => ClipRRect(
+              itemBuilder: (_, i) => InkWell(
+                key: Key('galleryPhoto_$i'),
                 borderRadius: BorderRadius.circular(8),
-                child: CachedNetworkImage(imageUrl: urls[i], fit: BoxFit.cover),
+                onTap: () => showPhotoViewer(context, urls, i),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    width: 220 * 4 / 3,
+                    child: CachedNetworkImage(
+                      imageUrl: urls[i],
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
               ),
             ),
           );
@@ -255,7 +241,18 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 4),
-                Text(categoryLabel(l, spot.category)),
+                Wrap(
+                  spacing: 12,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(categoryLabel(l, spot.category)),
+                    RatingBadge(
+                      key: const Key('spotRating'),
+                      avg: spot.ratingAvg,
+                      count: spot.ratingCount,
+                    ),
+                  ],
+                ),
                 if (spot.description.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Text(spot.description),
@@ -304,19 +301,25 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
             data: (list) => Column(
               children: [
                 for (final u in list)
-                  ListTile(
-                    title: Text(u.body),
-                    subtitle: Text(
-                      '${u.author.displayName} · ${u.createdAt.toLocal().toString().substring(0, 16)}',
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.flag_outlined),
-                      tooltip: l.report,
-                      onPressed: () => _gated(() => _report('update', u.id)),
-                    ),
+                  UpdateTile(
+                    item: u,
+                    isMine: myId != null && u.author.id == myId,
+                    onEdit: () => _editUpdate(u),
+                    onDelete: () => _deleteUpdate(u),
+                    onReport: () => _gated(() => _report('update', u.id)),
+                    onPhotoTap: (i) => showPhotoViewer(context, [
+                      for (final p in u.photos) p.url,
+                    ], i),
                   ),
               ],
             ),
+          );
+
+          final reviewsSection = ReviewsSection(
+            spotId: widget.spotId,
+            gate: _gated,
+            onReport: (id) => _report('review', id),
+            onChanged: () => ref.invalidate(spotDetailProvider(widget.spotId)),
           );
 
           if (context.twoPane) {
@@ -336,16 +339,21 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                           child: SatelliteThumb(lat: spot.lat, lon: spot.lon),
                         )
                       else
-                        for (final u in urls)
+                        for (var i = 0; i < urls.length; i++)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
-                            child: ClipRRect(
+                            child: InkWell(
+                              key: Key('galleryPhoto_$i'),
                               borderRadius: BorderRadius.circular(8),
-                              child: AspectRatio(
-                                aspectRatio: 4 / 3,
-                                child: CachedNetworkImage(
-                                  imageUrl: u,
-                                  fit: BoxFit.cover,
+                              onTap: () => showPhotoViewer(context, urls, i),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: AspectRatio(
+                                  aspectRatio: 4 / 3,
+                                  child: CachedNetworkImage(
+                                    imageUrl: urls[i],
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                               ),
                             ),
@@ -358,7 +366,13 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   flex: 6,
                   child: ListView(
                     padding: const EdgeInsets.only(bottom: 24),
-                    children: [info, const Divider(), timeline],
+                    children: [
+                      info,
+                      const Divider(),
+                      reviewsSection,
+                      const Divider(),
+                      timeline,
+                    ],
                   ),
                 ),
               ],
@@ -378,6 +392,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   ),
                 ),
               info,
+              const Divider(),
+              reviewsSection,
               const Divider(),
               timeline,
             ],
