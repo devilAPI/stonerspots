@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-const String kTileUrl = String.fromEnvironment(
-  'TILE_URL',
-  defaultValue: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-);
+import '../map/map_tiles.dart';
+
 const LatLng kFallbackCenter = LatLng(49.5, 10.5);
 const double kFallbackZoom = 6;
 
@@ -33,10 +31,7 @@ class LocationPicker extends StatelessWidget {
         onTap: (_, latLng) => onChanged(latLng),
       ),
       children: [
-        TileLayer(
-          urlTemplate: kTileUrl,
-          userAgentPackageName: 'de.stonerspots.app',
-        ),
+        buildTileLayer(context),
         if (point != null)
           MarkerLayer(
             markers: [

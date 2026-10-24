@@ -5,6 +5,10 @@ import '../../core/api_client.dart';
 import '../../core/models.dart';
 import '../../core/providers.dart';
 
+/// How many spots one map request asks for (the API caps it at the same value).
+/// A result of exactly this size may have been cut off.
+const kMapSpotLimit = 200;
+
 abstract class SpotsRepository {
   Future<List<Spot>> inBounds(LatLngBounds bounds, {String? category});
 }
@@ -24,7 +28,7 @@ class ApiSpotsRepository implements SpotsRepository {
         'north': bounds.north,
         'east': bounds.east,
         'category': ?category,
-        'limit': 50,
+        'limit': kMapSpotLimit,
       },
     );
     return data

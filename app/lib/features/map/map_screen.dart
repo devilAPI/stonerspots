@@ -1,20 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/models.dart';
-import '../../core/theme.dart';
 import '../../l10n/app_localizations.dart';
+import 'map_tiles.dart';
+import 'spot_cluster_layer.dart';
 import 'spot_marker.dart';
 import 'spot_preview_sheet.dart';
 import 'spots_controller.dart';
-
-const String kTileUrl = String.fromEnvironment(
-  'TILE_URL',
-  defaultValue: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-);
 
 const _categories = [
   'bench',
@@ -138,31 +133,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               },
             ),
             children: [
-              TileLayer(
-                urlTemplate: kTileUrl,
-                userAgentPackageName: 'de.stonerspots.app',
-              ),
-              MarkerClusterLayerWidget(
-                options: MarkerClusterLayerOptions(
-                  maxClusterRadius: 60,
-                  size: const Size(40, 40),
-                  markers: _markers,
-                  builder: (context, markers) => Container(
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
-                      color: kAccent,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      '${markers.length}',
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              buildTileLayer(context),
+              SpotClusterLayer(markers: _markers),
+              buildMapAttribution(context),
             ],
           ),
           Positioned(

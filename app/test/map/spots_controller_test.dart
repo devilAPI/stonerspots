@@ -15,10 +15,12 @@ Spot spot(int id) =>
 class FakeRepo implements SpotsRepository {
   final calls = <Completer<List<Spot>>>[];
   final categories = <String?>[];
+  final boundsSeen = <LatLngBounds>[];
 
   @override
   Future<List<Spot>> inBounds(LatLngBounds bounds, {String? category}) {
     categories.add(category);
+    boundsSeen.add(bounds);
     final c = Completer<List<Spot>>();
     calls.add(c);
     return c.future;
@@ -38,6 +40,13 @@ class HangingLocation implements LocationService {
 }
 
 final bounds = LatLngBounds(const LatLng(49, 9), const LatLng(51, 11));
+// well outside the area padded around [bounds]
+final farBounds = LatLngBounds(const LatLng(60, 20), const LatLng(62, 22));
+// fully inside [bounds]
+final innerBounds = LatLngBounds(
+  const LatLng(49.5, 9.5),
+  const LatLng(50.5, 10.5),
+);
 const wait = Duration(milliseconds: 60);
 
 ProviderContainer make(FakeRepo repo, {LatLng? pos}) {
@@ -89,7 +98,7 @@ void main() {
     await Future<void>.delayed(wait);
     repo.calls[0].complete([spot(1)]);
     await Future<void>.delayed(Duration.zero);
-    ctrl.onCameraMoved(bounds);
+    ctrl.onCameraMoved(farBounds);
     await Future<void>.delayed(wait);
     final s = c.read(spotsControllerProvider);
     expect(s.loading, isTrue);
@@ -143,5 +152,80 @@ void main() {
         .resolveInitialView();
     expect(v.centre, const LatLng(48.1, 11.6));
     expect(v.located, isTrue);
+  });
+
+  group('loading strategy', () {
+    Future<(ProviderContainer, FakeRepo, SpotsController)> loaded(
+      List<Spot> first,
+    ) async {
+      final repo = FakeRepo();
+      final c = make(repo);
+      final ctrl = c.read(spotsControllerProvider.notifier);
+      ctrl.onCameraMoved(bounds);
+      await Future<void>.delayed(wait);
+      repo.calls[0].complete(first);
+      await Future<void>.delayed(Duration.zero);
+      return (c, repo, ctrl);
+    }
+
+    test('requests a padded area around the viewport', () async {
+      final (_, repo, _) = await loaded([spot(1)]);
+      final asked = repo.boundsSeen.single;
+      expect(asked.containsBounds(bounds), isTrue);
+      expect(asked.south, lessThan(bounds.south));
+      expect(asked.north, greaterThan(bounds.north));
+      expect(asked.west, lessThan(bounds.west));
+      expect(asked.east, greaterThan(bounds.east));
+    });
+
+    test('a move inside the loaded area does not refetch if the result was complete', () async {
+      final (_, repo, ctrl) = await loaded([spot(1)]);
+      ctrl.onCameraMoved(innerBounds);
+      await Future<void>.delayed(wait);
+      expect(repo.calls, hasLength(1));
+    });
+
+    test(
+      'a move inside the loaded area refetches if the result was cut off',
+      () async {
+        final (_, repo, ctrl) = await loaded([
+          for (var i = 0; i < kMapSpotLimit; i++) spot(i),
+        ]);
+        ctrl.onCameraMoved(innerBounds);
+        await Future<void>.delayed(wait);
+        expect(repo.calls, hasLength(2));
+      },
+    );
+
+    test('a move outside the loaded area refetches', () async {
+      final (_, repo, ctrl) = await loaded([spot(1)]);
+      ctrl.onCameraMoved(farBounds);
+      await Future<void>.delayed(wait);
+      expect(repo.calls, hasLength(2));
+    });
+
+    test(
+      'an identical result keeps the very same list (no marker rebuild)',
+      () async {
+        final (c, repo, ctrl) = await loaded([spot(1), spot(2)]);
+        final before = c.read(spotsControllerProvider).spots;
+        ctrl.onCameraMoved(farBounds);
+        await Future<void>.delayed(wait);
+        repo.calls[1].complete([spot(1), spot(2)]);
+        await Future<void>.delayed(Duration.zero);
+        expect(
+          identical(c.read(spotsControllerProvider).spots, before),
+          isTrue,
+        );
+      },
+    );
+
+    test('changing the category forgets the loaded area', () async {
+      final (_, repo, ctrl) = await loaded([spot(1)]);
+      ctrl.setCategory('bench');
+      await Future<void>.delayed(wait);
+      expect(repo.calls, hasLength(2));
+      expect(repo.categories.last, 'bench');
+    });
   });
 }

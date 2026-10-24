@@ -64,6 +64,12 @@ class SpotsController extends Notifier<SpotsState> {
   int _seq = 0;
   LatLngBounds? _bounds;
 
+  // The padded area the current `state.spots` were loaded for. While the
+  // viewport stays inside it (and the result was complete) nothing is
+  // refetched, so markers do not pop in/out or re-cluster while moving.
+  LatLngBounds? _loaded;
+  bool _loadedTruncated = false;
+
   @override
   SpotsState build() {
     ref.onDispose(() => _timer?.cancel());
@@ -85,6 +91,7 @@ class SpotsController extends Notifier<SpotsState> {
   void onCameraMoved(LatLngBounds bounds) {
     _bounds = bounds;
     _timer?.cancel();
+    if (_coveredByLoaded(bounds)) return;
     _timer = Timer(ref.read(mapDebounceProvider), _fetch);
   }
 
@@ -92,6 +99,7 @@ class SpotsController extends Notifier<SpotsState> {
     state = category == null
         ? state.copyWith(clearCategory: true)
         : state.copyWith(category: category);
+    _loaded = null;
     _timer?.cancel();
     if (_bounds != null) _fetch();
   }
@@ -104,17 +112,53 @@ class SpotsController extends Notifier<SpotsState> {
     final bounds = _bounds;
     if (bounds == null) return;
     final id = ++_seq;
+    final area = _padded(bounds);
     state = state.copyWith(loading: true, error: false);
     try {
       final spots = await ref
           .read(mapSpotsRepositoryProvider)
-          .inBounds(bounds, category: state.category);
+          .inBounds(area, category: state.category);
       if (id != _seq) return; // a newer request superseded this one
-      state = state.copyWith(spots: spots, loading: false);
+      _loaded = area;
+      _loadedTruncated = spots.length >= kMapSpotLimit;
+      // Same spots again: keep the very same list so the map does not
+      // rebuild and re-cluster its markers for nothing.
+      final same = _sameSpots(state.spots, spots);
+      state = state.copyWith(spots: same ? state.spots : spots, loading: false);
     } catch (_) {
       if (id != _seq) return;
       state = state.copyWith(loading: false, error: true);
     }
+  }
+
+  bool _coveredByLoaded(LatLngBounds view) {
+    final loaded = _loaded;
+    return loaded != null && !_loadedTruncated && loaded.containsBounds(view);
+  }
+
+  /// The viewport grown by half its size on every side, so small pans stay
+  /// inside already-loaded data.
+  static LatLngBounds _padded(LatLngBounds b) {
+    final dLat = (b.north - b.south) * 0.5;
+    final dLon = (b.east - b.west) * 0.5;
+    return LatLngBounds(
+      LatLng(
+        (b.south - dLat).clamp(-85.0, 85.0),
+        (b.west - dLon).clamp(-180.0, 180.0),
+      ),
+      LatLng(
+        (b.north + dLat).clamp(-85.0, 85.0),
+        (b.east + dLon).clamp(-180.0, 180.0),
+      ),
+    );
+  }
+
+  static bool _sameSpots(List<Spot> a, List<Spot> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].id != b[i].id || a[i].likeCount != b[i].likeCount) return false;
+    }
+    return true;
   }
 }
 

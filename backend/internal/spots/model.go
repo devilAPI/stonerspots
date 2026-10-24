@@ -38,5 +38,5 @@ const (
 	regionWest, regionEast   = 5.8, 17.2
 	duplicateMeters          = 25.0
 	maxNearbyRadius          = 50000
-	defaultLimit, maxLimit   = 20, 50
+	defaultLimit, maxLimit   = 20, 200
 )

@@ -34,7 +34,7 @@ My calls (change any of these in review):
 - Coordinates are always `lat`, `lon` (float64, degrees) in JSON. MariaDB `POINT(x, y)` is stored as **x = lon, y = lat** (no axis swap, SRID 0); build points with `POINT(lon, lat)`, read with `ST_X` (lon) / `ST_Y` (lat), and compute distances with `ST_Distance_Sphere(a, b)` (metres).
 - IDs are `BIGINT UNSIGNED` auto-increment, serialized as JSON numbers.
 - Photo limits: max 8 MB upload, JPEG/PNG/WebP only (sniffed from bytes, not the header), max 4 photos per update. Stored as JPEG, long edge max 1600 px, plus a 400 px thumbnail. EXIF stripped.
-- List endpoints cap `limit` at 50 (default 20) and use cursor pagination.
+- List endpoints cap `limit` at 50 (default 20) and use cursor pagination. Exception: `GET /spots` and `/spots/nearby` cap at 200 so the map can load a padded area at once.
 - Errors are JSON `{"error": {"code": "<snake_case>", "message": "<text>"}}` with the matching HTTP status.
 - No PHP anywhere.
 
