@@ -1,9 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/models.dart';
 import '../../l10n/app_localizations.dart';
-import '../feed/satellite_thumb.dart';
+import '../spots/spot_media.dart';
 import '../reviews/rating_widgets.dart';
 
 class SpotPreviewSheet extends StatelessWidget {
@@ -23,28 +22,15 @@ class SpotPreviewSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // User photos first; a spot nobody photographed yet is shown
-            // from above instead.
-            Center(
-              child: ConstrainedBox(
-                // landscape phones are short: keep the title and button visible
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.sizeOf(context).height * 0.4,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: cover != null
-                      ? AspectRatio(
-                          aspectRatio: 16 / 9,
-                          child: CachedNetworkImage(
-                            imageUrl: cover,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, _, _) =>
-                                const Center(child: Icon(Icons.broken_image)),
-                          ),
-                        )
-                      : SatelliteThumb(lat: spot.lat, lon: spot.lon),
-                ),
+            // User photos first, then the spot seen from above.
+            SpotMediaStrip(
+              photoUrls: [?cover],
+              lat: spot.lat,
+              lon: spot.lon,
+              // landscape phones are short: keep the title and button visible
+              height: (MediaQuery.sizeOf(context).height * 0.3).clamp(
+                110.0,
+                180.0,
               ),
             ),
             const SizedBox(height: 12),

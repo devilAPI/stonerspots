@@ -18,16 +18,19 @@ import '../reviews/review_helpers.dart';
 import 'update_helpers.dart';
 
 class _Api implements SpotApi {
+  _Api({this.cover});
+  final String? cover;
   int likes = 0;
 
   @override
-  Future<Spot> getSpot(int id) async => const Spot(
+  Future<Spot> getSpot(int id) async => Spot(
     id: 5,
     title: 'Lake bench',
     category: 'lake',
     lat: 1,
     lon: 2,
     likeCount: 3,
+    coverUrl: cover,
     ratingAvg: 4.5,
     ratingCount: 2,
   );
@@ -59,8 +62,9 @@ Future<_Api> _pump(
   User? user, {
   UrlLauncher? launcher,
   List<FeedItem>? items,
+  String? cover,
 }) async {
-  final api = _Api();
+  final api = _Api(cover: cover);
   updates = FakeUpdates(items: items);
   reviews = FakeReviews([
     ReviewsPage(
@@ -329,4 +333,43 @@ void main() {
       expect(find.byKey(const Key('writeReview')), findsOneWidget);
     });
   }
+
+  testWidgets('an empty cover_url from the API does not break the spot page', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await _pump(tester, null, cover: '');
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('satelliteTile')), findsOneWidget);
+    expect(find.byKey(const Key('galleryPhoto_0')), findsNothing);
+  });
+
+  testWidgets('single column: user photos first, then the top-down view', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await _pump(tester, null, cover: 'http://test/api/v1/media/a.jpg');
+    final photo = tester.getTopLeft(find.byKey(const Key('galleryPhoto_0')));
+    final sat = tester.getTopLeft(find.byKey(const Key('satelliteTile')));
+    expect(photo.dx, lessThan(sat.dx));
+    expect(find.byType(SatelliteThumb), findsOneWidget);
+  });
+
+  testWidgets('two panes: user photos first, then the top-down view', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1100, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await _pump(tester, null, cover: 'http://test/api/v1/media/a.jpg');
+    final photo = tester.getTopLeft(find.byKey(const Key('galleryPhoto_0')));
+    final sat = tester.getTopLeft(find.byKey(const Key('satelliteTile')));
+    expect(photo.dy, lessThan(sat.dy));
+    expect(find.byKey(const Key('detailTwoPane')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

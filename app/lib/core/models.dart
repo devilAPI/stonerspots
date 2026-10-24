@@ -71,7 +71,7 @@ class Spot {
     lat: _d(j['lat']),
     lon: _d(j['lon']),
     likeCount: (j['like_count'] ?? 0) as int,
-    coverUrl: j['cover_url'] as String?,
+    coverUrl: _nonEmpty(j['cover_url'] as String?),
     distanceM: j['distance_m'] == null ? null : _d(j['distance_m']),
     ratingAvg: j['rating_avg'] == null ? 0 : _d(j['rating_avg']),
     ratingCount: (j['rating_count'] ?? 0) as int,
@@ -158,3 +158,6 @@ class FeedItem {
         : DateTime.parse(j['edited_at'] as String),
   );
 }
+
+/// The API sends "" where there is no value; that must not look like a URL.
+String? _nonEmpty(String? v) => (v == null || v.trim().isEmpty) ? null : v;

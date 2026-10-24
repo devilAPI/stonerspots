@@ -43,7 +43,7 @@ void main() {
     expect(find.text('Lake bench'), findsOneWidget);
   });
 
-  testWidgets('a user photo is preferred over the top-down view', (t) async {
+  testWidgets('user photos come first, then the top-down view', (t) async {
     await pumpSheet(
       t,
       const Spot(
@@ -55,9 +55,34 @@ void main() {
         coverUrl: 'http://test/api/v1/media/a.jpg',
       ),
     );
+    // the photo comes first, the top-down view follows it
     expect(find.byType(CachedNetworkImage), findsOneWidget);
-    expect(find.byType(SatelliteThumb), findsNothing);
+    expect(find.byType(SatelliteThumb), findsOneWidget);
+    expect(
+      t.getTopLeft(find.byKey(const Key('galleryPhoto_0'))).dx,
+      lessThan(t.getTopLeft(find.byType(SatelliteThumb)).dx),
+    );
   });
+
+  testWidgets(
+    'an empty cover url (what the API sends without photos) does not crash',
+    (t) async {
+      await pumpSheet(
+        t,
+        const Spot(
+          id: 1,
+          title: 'Lake bench',
+          category: 'bench',
+          lat: 48.1,
+          lon: 11.6,
+          coverUrl: '',
+        ),
+      );
+      expect(t.takeException(), isNull);
+      expect(find.byType(CachedNetworkImage), findsNothing);
+      expect(find.byType(SatelliteThumb), findsOneWidget);
+    },
+  );
 
   testWidgets('fits a short landscape phone without overflow', (t) async {
     await pumpSheet(t, noPhoto, size: const Size(844, 390));

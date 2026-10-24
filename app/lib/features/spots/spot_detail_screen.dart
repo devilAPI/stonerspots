@@ -14,6 +14,7 @@ import '../reviews/reviews_section.dart';
 import 'maps_link.dart';
 import 'photo_viewer.dart';
 import 'spot_api.dart';
+import 'spot_media.dart';
 import 'update_composer.dart';
 import 'update_tile.dart';
 import 'updates_repository.dart';
@@ -201,35 +202,18 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
         ),
         data: (spot) {
           final items = updates.value ?? const <FeedItem>[];
-          final urls = <String>[
+          final urls = validPhotoUrls([
             if (spot.coverUrl != null) spot.coverUrl!,
             for (final i in items)
               for (final p in i.photos)
                 if (p.url != spot.coverUrl) p.url,
-          ];
-          final gallery = SizedBox(
-            height: 220,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.all(8),
-              itemCount: urls.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder: (_, i) => InkWell(
-                key: Key('galleryPhoto_$i'),
-                borderRadius: BorderRadius.circular(8),
-                onTap: () => showPhotoViewer(context, urls, i),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: SizedBox(
-                    width: 220 * 4 / 3,
-                    child: CachedNetworkImage(
-                      imageUrl: urls[i],
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          ]);
+          // user photos first, then the spot seen from above
+          final gallery = SpotMediaStrip(
+            photoUrls: urls,
+            lat: spot.lat,
+            lon: spot.lon,
+            onPhotoTap: (i) => showPhotoViewer(context, urls, i),
           );
           final info = Padding(
             padding: const EdgeInsets.all(16),
@@ -333,31 +317,30 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(8),
                     children: [
-                      if (urls.isEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: SatelliteThumb(lat: spot.lat, lon: spot.lon),
-                        )
-                      else
-                        for (var i = 0; i < urls.length; i++)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: InkWell(
-                              key: Key('galleryPhoto_$i'),
+                      for (var i = 0; i < urls.length; i++)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: InkWell(
+                            key: Key('galleryPhoto_$i'),
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: () => showPhotoViewer(context, urls, i),
+                            child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              onTap: () => showPhotoViewer(context, urls, i),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: AspectRatio(
-                                  aspectRatio: 4 / 3,
-                                  child: CachedNetworkImage(
-                                    imageUrl: urls[i],
-                                    fit: BoxFit.cover,
-                                  ),
+                              child: AspectRatio(
+                                aspectRatio: 4 / 3,
+                                child: CachedNetworkImage(
+                                  imageUrl: urls[i],
+                                  fit: BoxFit.cover,
                                 ),
                               ),
                             ),
                           ),
+                        ),
+                      ClipRRect(
+                        key: const Key('satelliteTile'),
+                        borderRadius: BorderRadius.circular(8),
+                        child: SatelliteThumb(lat: spot.lat, lon: spot.lon),
+                      ),
                     ],
                   ),
                 ),
@@ -381,16 +364,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
           return ListView(
             padding: const EdgeInsets.only(bottom: 24),
             children: [
-              if (urls.isNotEmpty)
-                gallery
-              else
-                Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SatelliteThumb(lat: spot.lat, lon: spot.lon),
-                  ),
-                ),
+              gallery,
               info,
               const Divider(),
               reviewsSection,
