@@ -409,6 +409,72 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'{count, plural, =0{Keine Likes} =1{1 Like} other{{count} Likes}}'**
   String likesCount(int count);
+
+  /// No description provided for @changePassword.
+  ///
+  /// In de, this message translates to:
+  /// **'Passwort ändern'**
+  String get changePassword;
+
+  /// No description provided for @currentPassword.
+  ///
+  /// In de, this message translates to:
+  /// **'Aktuelles Passwort'**
+  String get currentPassword;
+
+  /// No description provided for @newPassword.
+  ///
+  /// In de, this message translates to:
+  /// **'Neues Passwort'**
+  String get newPassword;
+
+  /// No description provided for @repeatNewPassword.
+  ///
+  /// In de, this message translates to:
+  /// **'Neues Passwort wiederholen'**
+  String get repeatNewPassword;
+
+  /// No description provided for @passwordsDontMatch.
+  ///
+  /// In de, this message translates to:
+  /// **'Passwörter stimmen nicht überein'**
+  String get passwordsDontMatch;
+
+  /// No description provided for @passwordTooLong.
+  ///
+  /// In de, this message translates to:
+  /// **'Höchstens 72 Zeichen'**
+  String get passwordTooLong;
+
+  /// No description provided for @passwordChanged.
+  ///
+  /// In de, this message translates to:
+  /// **'Passwort geändert'**
+  String get passwordChanged;
+
+  /// No description provided for @wrongPassword.
+  ///
+  /// In de, this message translates to:
+  /// **'Falsches Passwort'**
+  String get wrongPassword;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In de, this message translates to:
+  /// **'Konto löschen'**
+  String get deleteAccount;
+
+  /// No description provided for @deleteAccountWarning.
+  ///
+  /// In de, this message translates to:
+  /// **'Dein Konto sowie alle deine Spots, Updates und Fotos werden dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden. Gib zur Bestätigung dein Passwort ein.'**
+  String get deleteAccountWarning;
+
+  /// No description provided for @deleteAccountConfirm.
+  ///
+  /// In de, this message translates to:
+  /// **'Endgültig löschen'**
+  String get deleteAccountConfirm;
 }
 
 class _AppLocalizationsDelegate

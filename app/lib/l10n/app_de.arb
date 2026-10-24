@@ -58,5 +58,16 @@
         "type": "int"
       }
     }
-  }
+  },
+  "changePassword": "Passwort ändern",
+  "currentPassword": "Aktuelles Passwort",
+  "newPassword": "Neues Passwort",
+  "repeatNewPassword": "Neues Passwort wiederholen",
+  "passwordsDontMatch": "Passwörter stimmen nicht überein",
+  "passwordTooLong": "Höchstens 72 Zeichen",
+  "passwordChanged": "Passwort geändert",
+  "wrongPassword": "Falsches Passwort",
+  "deleteAccount": "Konto löschen",
+  "deleteAccountWarning": "Dein Konto sowie alle deine Spots, Updates und Fotos werden dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden. Gib zur Bestätigung dein Passwort ein.",
+  "deleteAccountConfirm": "Endgültig löschen"
 }
