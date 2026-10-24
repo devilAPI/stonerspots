@@ -174,4 +174,38 @@ class AppLocalizationsDe extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get changePassword => 'Passwort ändern';
+
+  @override
+  String get currentPassword => 'Aktuelles Passwort';
+
+  @override
+  String get newPassword => 'Neues Passwort';
+
+  @override
+  String get repeatNewPassword => 'Neues Passwort wiederholen';
+
+  @override
+  String get passwordsDontMatch => 'Passwörter stimmen nicht überein';
+
+  @override
+  String get passwordTooLong => 'Höchstens 72 Zeichen';
+
+  @override
+  String get passwordChanged => 'Passwort geändert';
+
+  @override
+  String get wrongPassword => 'Falsches Passwort';
+
+  @override
+  String get deleteAccount => 'Konto löschen';
+
+  @override
+  String get deleteAccountWarning =>
+      'Dein Konto sowie alle deine Spots, Updates und Fotos werden dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden. Gib zur Bestätigung dein Passwort ein.';
+
+  @override
+  String get deleteAccountConfirm => 'Endgültig löschen';
 }

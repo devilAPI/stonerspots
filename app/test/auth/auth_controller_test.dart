@@ -34,6 +34,30 @@ class FakeAuthRepository implements AuthRepository {
 
   @override
   Future<User?> me() async => user;
+
+  String? changedCurrent;
+  String? changedNext;
+  String? deletedWith;
+
+  @override
+  Future<AuthSession> changePassword({
+    required String current,
+    required String next,
+  }) async {
+    if (failWith != null) throw failWith!;
+    changedCurrent = current;
+    changedNext = next;
+    return AuthSession(
+      user: user,
+      tokens: const Tokens(accessToken: 'acc2', refreshToken: 'ref2'),
+    );
+  }
+
+  @override
+  Future<void> deleteAccount({required String password}) async {
+    if (failWith != null) throw failWith!;
+    deletedWith = password;
+  }
 }
 
 void main() {
@@ -107,5 +131,63 @@ void main() {
     await c.logout();
     expect(container.read(authControllerProvider).value, isNull);
     expect(await store.read(), isNull);
+  });
+
+  test('changePassword stores the new tokens and keeps the user', () async {
+    await container.read(authControllerProvider.future);
+    final c = container.read(authControllerProvider.notifier);
+    await c.login('a@b.ch', 'pw');
+    await c.changePassword(current: 'old', next: 'newpassword1');
+
+    expect(repo.changedCurrent, 'old');
+    expect(repo.changedNext, 'newpassword1');
+    expect(container.read(authControllerProvider).value, repo.user);
+    final t = await store.read();
+    expect(t?.accessToken, 'acc2');
+    expect(t?.refreshToken, 'ref2');
+  });
+
+  test(
+    'changePassword with wrong password throws and stays signed in',
+    () async {
+      await container.read(authControllerProvider.future);
+      final c = container.read(authControllerProvider.notifier);
+      await c.login('a@b.ch', 'pw');
+      repo.failWith = ApiException(403, 'wrong_password', 'nope');
+
+      await expectLater(
+        c.changePassword(current: 'bad', next: 'newpassword1'),
+        throwsA(
+          isA<ApiException>().having((e) => e.code, 'code', 'wrong_password'),
+        ),
+      );
+      expect(container.read(authControllerProvider).value, repo.user);
+      expect((await store.read())?.accessToken, 'acc');
+    },
+  );
+
+  test('deleteAccount clears tokens and user', () async {
+    await container.read(authControllerProvider.future);
+    final c = container.read(authControllerProvider.notifier);
+    await c.login('a@b.ch', 'pw');
+    await c.deleteAccount(password: 'pw');
+
+    expect(repo.deletedWith, 'pw');
+    expect(container.read(authControllerProvider).value, isNull);
+    expect(await store.read(), isNull);
+  });
+
+  test('deleteAccount with wrong password throws and keeps session', () async {
+    await container.read(authControllerProvider.future);
+    final c = container.read(authControllerProvider.notifier);
+    await c.login('a@b.ch', 'pw');
+    repo.failWith = ApiException(403, 'wrong_password', 'nope');
+
+    await expectLater(
+      c.deleteAccount(password: 'bad'),
+      throwsA(isA<ApiException>()),
+    );
+    expect(container.read(authControllerProvider).value, repo.user);
+    expect(await store.read(), isNotNull);
   });
 }

@@ -54,6 +54,28 @@ class AuthController extends AsyncNotifier<User?> {
     );
   }
 
+  /// Changes the password and keeps the user signed in with the new tokens.
+  /// Errors (e.g. 403 `wrong_password`) are thrown to the caller and leave the
+  /// current session untouched, so a dialog can show them inline.
+  Future<void> changePassword({
+    required String current,
+    required String next,
+  }) async {
+    final session = await ref
+        .read(authRepositoryProvider)
+        .changePassword(current: current, next: next);
+    await ref.read(tokenStoreProvider).write(session.tokens);
+    state = AsyncData(session.user);
+  }
+
+  /// Deletes the account, then clears tokens and returns to logged-out.
+  /// Errors are thrown to the caller and leave the session untouched.
+  Future<void> deleteAccount({required String password}) async {
+    await ref.read(authRepositoryProvider).deleteAccount(password: password);
+    await ref.read(tokenStoreProvider).clear();
+    state = const AsyncData(null);
+  }
+
   Future<void> logout() async {
     await ref.read(tokenStoreProvider).clear();
     state = const AsyncData(null);

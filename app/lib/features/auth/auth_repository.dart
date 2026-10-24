@@ -21,6 +21,18 @@ abstract class AuthRepository {
 
   /// The current user, or null when not logged in.
   Future<User?> me();
+
+  /// Changes the password; the server revokes other sessions and returns a
+  /// fresh session for this device. Wrong current password: 403
+  /// `wrong_password`.
+  Future<AuthSession> changePassword({
+    required String current,
+    required String next,
+  });
+
+  /// Permanently deletes the account and its content. Wrong password: 403
+  /// `wrong_password`.
+  Future<void> deleteAccount({required String password});
 }
 
 class ApiAuthRepository implements AuthRepository {
@@ -70,5 +82,21 @@ class ApiAuthRepository implements AuthRepository {
       if (e.status == 401) return null;
       rethrow;
     }
+  }
+
+  @override
+  Future<AuthSession> changePassword({
+    required String current,
+    required String next,
+  }) async => _session(
+    await _api.put<Map<String, dynamic>>(
+      '/me/password',
+      data: {'current_password': current, 'new_password': next},
+    ),
+  );
+
+  @override
+  Future<void> deleteAccount({required String password}) async {
+    await _api.post<dynamic>('/me/delete', data: {'password': password});
   }
 }

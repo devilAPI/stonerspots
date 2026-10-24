@@ -174,4 +174,38 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get changePassword => 'Change password';
+
+  @override
+  String get currentPassword => 'Current password';
+
+  @override
+  String get newPassword => 'New password';
+
+  @override
+  String get repeatNewPassword => 'Repeat new password';
+
+  @override
+  String get passwordsDontMatch => 'Passwords do not match';
+
+  @override
+  String get passwordTooLong => 'At most 72 characters';
+
+  @override
+  String get passwordChanged => 'Password changed';
+
+  @override
+  String get wrongPassword => 'Wrong password';
+
+  @override
+  String get deleteAccount => 'Delete account';
+
+  @override
+  String get deleteAccountWarning =>
+      'Your account and all your spots, updates and photos will be permanently deleted. This cannot be undone. Enter your password to confirm.';
+
+  @override
+  String get deleteAccountConfirm => 'Delete permanently';
 }
