@@ -69,5 +69,15 @@
   "wrongPassword": "Wrong password",
   "deleteAccount": "Delete account",
   "deleteAccountWarning": "Your account and all your spots, updates and photos will be permanently deleted. This cannot be undone. Enter your password to confirm.",
-  "deleteAccountConfirm": "Delete permanently"
+  "deleteAccountConfirm": "Delete permanently",
+  "placeSearchHint": "Address or coordinates",
+  "placeSearchClear": "Clear",
+  "placeSearchGo": "Search",
+  "placeSearchTooShort": "Please enter at least 3 characters",
+  "placeSearchNoResult": "No place found",
+  "placeSearchOutside": "These coordinates are outside the supported region (Germany, Austria, Switzerland, Liechtenstein)",
+  "placeSearchRateLimited": "Too many searches, please try again in a moment",
+  "placeSearchUnavailable": "Address search is currently unavailable, please try again later",
+  "placeSearchError": "Search failed, please try again",
+  "placeSearchShortLink": "Short links cannot be resolved. Please paste the full link or the coordinates instead."
 }

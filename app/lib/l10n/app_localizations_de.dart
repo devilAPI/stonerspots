@@ -208,4 +208,38 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get deleteAccountConfirm => 'Endgültig löschen';
+
+  @override
+  String get placeSearchHint => 'Adresse oder Koordinaten';
+
+  @override
+  String get placeSearchClear => 'Leeren';
+
+  @override
+  String get placeSearchGo => 'Suchen';
+
+  @override
+  String get placeSearchTooShort => 'Bitte mindestens 3 Zeichen eingeben';
+
+  @override
+  String get placeSearchNoResult => 'Kein Ort gefunden';
+
+  @override
+  String get placeSearchOutside =>
+      'Diese Koordinaten liegen außerhalb des unterstützten Gebiets (Deutschland, Österreich, Schweiz, Liechtenstein)';
+
+  @override
+  String get placeSearchRateLimited =>
+      'Zu viele Suchanfragen, bitte gleich noch einmal versuchen';
+
+  @override
+  String get placeSearchUnavailable =>
+      'Die Adresssuche ist gerade nicht verfügbar, bitte später erneut versuchen';
+
+  @override
+  String get placeSearchError => 'Suche fehlgeschlagen, bitte erneut versuchen';
+
+  @override
+  String get placeSearchShortLink =>
+      'Kurzlinks können nicht aufgelöst werden. Bitte den vollständigen Link oder die Koordinaten einfügen.';
 }

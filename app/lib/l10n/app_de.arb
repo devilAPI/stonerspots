@@ -69,5 +69,15 @@
   "wrongPassword": "Falsches Passwort",
   "deleteAccount": "Konto löschen",
   "deleteAccountWarning": "Dein Konto sowie alle deine Spots, Updates und Fotos werden dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden. Gib zur Bestätigung dein Passwort ein.",
-  "deleteAccountConfirm": "Endgültig löschen"
+  "deleteAccountConfirm": "Endgültig löschen",
+  "placeSearchHint": "Adresse oder Koordinaten",
+  "placeSearchClear": "Leeren",
+  "placeSearchGo": "Suchen",
+  "placeSearchTooShort": "Bitte mindestens 3 Zeichen eingeben",
+  "placeSearchNoResult": "Kein Ort gefunden",
+  "placeSearchOutside": "Diese Koordinaten liegen außerhalb des unterstützten Gebiets (Deutschland, Österreich, Schweiz, Liechtenstein)",
+  "placeSearchRateLimited": "Zu viele Suchanfragen, bitte gleich noch einmal versuchen",
+  "placeSearchUnavailable": "Die Adresssuche ist gerade nicht verfügbar, bitte später erneut versuchen",
+  "placeSearchError": "Suche fehlgeschlagen, bitte erneut versuchen",
+  "placeSearchShortLink": "Kurzlinks können nicht aufgelöst werden. Bitte den vollständigen Link oder die Koordinaten einfügen."
 }
