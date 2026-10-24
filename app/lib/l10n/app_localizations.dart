@@ -326,6 +326,12 @@ abstract class AppLocalizations {
   /// **'Öffnen'**
   String get openSpot;
 
+  /// No description provided for @openInGoogleMaps.
+  ///
+  /// In de, this message translates to:
+  /// **'In Google Maps öffnen'**
+  String get openInGoogleMaps;
+
   /// No description provided for @title.
   ///
   /// In de, this message translates to:

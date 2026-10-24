@@ -7,6 +7,7 @@ import '../../core/models.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
 import 'add_spot_screen.dart' show categoryLabel;
+import 'maps_link.dart';
 import 'photo_uploader.dart';
 import 'spot_api.dart';
 import 'updates_repository.dart';
@@ -32,6 +33,17 @@ class SpotDetailScreen extends ConsumerStatefulWidget {
 class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
   bool _liked = false;
   int? _likeCount;
+
+  Future<void> _openInMaps(Spot spot) async {
+    final errorText = AppLocalizations.of(context).errorGeneric;
+    var opened = false;
+    try {
+      opened = await ref.read(urlLauncherProvider)(
+        googleMapsUri(spot.lat, spot.lon),
+      );
+    } catch (_) {}
+    if (!opened) _snack(errorText);
+  }
 
   /// Runs [action] if logged in, otherwise sends the user to the login page.
   void _gated(VoidCallback action) {
@@ -274,6 +286,13 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                       onPressed: () => _gated(_postUpdate),
                       icon: const Icon(Icons.edit),
                       label: Text(l.postUpdate),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      key: const Key('openInMaps'),
+                      onPressed: () => _openInMaps(spot),
+                      icon: const Icon(Icons.map_outlined),
+                      label: Text(l.openInGoogleMaps),
                     ),
                   ],
                 ),

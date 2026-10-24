@@ -1,5 +1,6 @@
 import 'package:app/core/models.dart';
 import 'package:app/features/auth/auth_controller.dart';
+import 'package:app/features/spots/maps_link.dart';
 import 'package:app/features/spots/spot_api.dart';
 import 'package:app/features/spots/spot_detail_screen.dart';
 import 'package:app/features/spots/updates_repository.dart';
@@ -52,7 +53,11 @@ class _Auth extends AuthController {
   Future<User?> build() async => user;
 }
 
-Future<_Api> _pump(WidgetTester tester, User? user) async {
+Future<_Api> _pump(
+  WidgetTester tester,
+  User? user, {
+  UrlLauncher? launcher,
+}) async {
   final api = _Api();
   final router = GoRouter(
     initialLocation: '/spot/5',
@@ -74,6 +79,7 @@ Future<_Api> _pump(WidgetTester tester, User? user) async {
         spotApiProvider.overrideWithValue(api),
         spotUpdatesRepositoryProvider.overrideWithValue(_Updates()),
         authControllerProvider.overrideWith(() => _Auth(user)),
+        if (launcher != null) urlLauncherProvider.overrideWithValue(launcher),
       ],
       child: MaterialApp.router(
         routerConfig: router,
@@ -106,5 +112,38 @@ void main() {
     await tester.pumpAndSettle();
     expect(api.likes, 1);
     expect(find.text('4 likes'), findsOneWidget);
+  });
+
+  testWidgets('open in google maps launches the spot coordinates', (
+    tester,
+  ) async {
+    final launched = <Uri>[];
+    await _pump(
+      tester,
+      null,
+      launcher: (u) async {
+        launched.add(u);
+        return true;
+      },
+    );
+    final button = find.byKey(const Key('openInMaps'));
+    expect(find.text('Open in Google Maps'), findsOneWidget);
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    expect(launched.single, googleMapsUri(1, 2));
+    // no login needed for this one
+    expect(find.textContaining('login from'), findsNothing);
+  });
+
+  testWidgets('a failing launch shows an error instead of crashing', (
+    tester,
+  ) async {
+    await _pump(tester, null, launcher: (_) async => false);
+    final button = find.byKey(const Key('openInMaps'));
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pump();
+    expect(find.text('Something went wrong'), findsOneWidget);
   });
 }

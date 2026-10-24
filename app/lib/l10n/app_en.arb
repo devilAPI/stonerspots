@@ -38,6 +38,7 @@
   "reportReason": "Reason",
   "postUpdate": "Post update",
   "openSpot": "Open",
+  "openInGoogleMaps": "Open in Google Maps",
   "title": "Title",
   "description": "Description",
   "addPhotos": "Add photos",

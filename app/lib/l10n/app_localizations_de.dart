@@ -124,6 +124,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get openSpot => 'Öffnen';
 
   @override
+  String get openInGoogleMaps => 'In Google Maps öffnen';
+
+  @override
   String get title => 'Titel';
 
   @override
