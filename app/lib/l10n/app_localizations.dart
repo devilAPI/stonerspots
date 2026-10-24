@@ -1147,6 +1147,30 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'{current} / {total}'**
   String photoViewerPage(int current, int total);
+
+  /// No description provided for @addSpotPhotoUnsupported.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieses Bildformat wird nicht unterstützt. Bitte JPEG, PNG, WebP oder AVIF verwenden.'**
+  String get addSpotPhotoUnsupported;
+
+  /// No description provided for @addSpotPhotoTooLarge.
+  ///
+  /// In de, this message translates to:
+  /// **'Das Foto ist zu groß (maximal 8 MB).'**
+  String get addSpotPhotoTooLarge;
+
+  /// No description provided for @errorNetwork.
+  ///
+  /// In de, this message translates to:
+  /// **'Der Server ist nicht erreichbar. Bitte Verbindung prüfen und erneut versuchen.'**
+  String get errorNetwork;
+
+  /// No description provided for @errorWithDetail.
+  ///
+  /// In de, this message translates to:
+  /// **'Etwas ist schiefgelaufen: {message}'**
+  String errorWithDetail(String message);
 }
 
 class _AppLocalizationsDelegate

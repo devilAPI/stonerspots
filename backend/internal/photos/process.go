@@ -9,7 +9,8 @@ import (
 	"io"
 
 	"github.com/disintegration/imaging"
-	_ "golang.org/x/image/webp" // registers WebP decoding
+	_ "github.com/gen2brain/avif" // registers AVIF decoding (pure Go, no cgo)
+	_ "golang.org/x/image/webp"   // registers WebP decoding
 )
 
 const (
@@ -25,7 +26,7 @@ var (
 	ErrUnsupported = errors.New("unsupported image type")
 )
 
-// Normalize reads at most maxBytes from r, verifies it is a JPEG/PNG/WebP by
+// Normalize reads at most maxBytes from r, verifies it is a JPEG/PNG/WebP/AVIF by
 // content (not by any client-supplied type), applies EXIF orientation and
 // re-encodes it as metadata-free JPEG: full (long edge <= 1600) and thumb
 // (long edge <= 400). w and h are the dimensions of full.
@@ -38,7 +39,7 @@ func Normalize(r io.Reader, maxBytes int64) (full, thumb []byte, w, h int, err e
 		return nil, nil, 0, 0, ErrTooLarge
 	}
 	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
-	if err != nil || (format != "jpeg" && format != "png" && format != "webp") {
+	if err != nil || (format != "jpeg" && format != "png" && format != "webp" && format != "avif") {
 		return nil, nil, 0, 0, ErrUnsupported
 	}
 	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width*cfg.Height > maxPixels {

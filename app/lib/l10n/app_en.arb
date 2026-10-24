@@ -278,5 +278,16 @@
         "type": "int"
       }
     }
+  },
+  "addSpotPhotoUnsupported": "This image format is not supported. Please use JPEG, PNG, WebP or AVIF.",
+  "addSpotPhotoTooLarge": "The photo is too large (maximum 8 MB).",
+  "errorNetwork": "The server cannot be reached. Check your connection and try again.",
+  "errorWithDetail": "Something went wrong: {message}",
+  "@errorWithDetail": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
   }
 }

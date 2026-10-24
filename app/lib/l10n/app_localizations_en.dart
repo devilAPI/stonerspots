@@ -620,4 +620,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String photoViewerPage(int current, int total) {
     return '$current / $total';
   }
+
+  @override
+  String get addSpotPhotoUnsupported =>
+      'This image format is not supported. Please use JPEG, PNG, WebP or AVIF.';
+
+  @override
+  String get addSpotPhotoTooLarge => 'The photo is too large (maximum 8 MB).';
+
+  @override
+  String get errorNetwork =>
+      'The server cannot be reached. Check your connection and try again.';
+
+  @override
+  String errorWithDetail(String message) {
+    return 'Something went wrong: $message';
+  }
 }

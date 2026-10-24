@@ -7,6 +7,7 @@ import '../../core/location_service.dart';
 import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import 'add_spot_controller.dart';
+import 'add_spot_errors.dart';
 import 'location_picker.dart';
 import 'photo_uploader.dart';
 import 'place_search.dart';
@@ -177,7 +178,7 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(
-            l.errorGeneric,
+            addSpotErrorText(l, s.error!),
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
         ),

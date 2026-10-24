@@ -68,7 +68,7 @@ func (h *handler) upload(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusRequestEntityTooLarge, "too_large", "photo must be at most 8 MB")
 		return
 	case errors.Is(err, ErrUnsupported):
-		httpx.Error(w, http.StatusUnsupportedMediaType, "unsupported_type", "only JPEG, PNG and WebP images are accepted")
+		httpx.Error(w, http.StatusUnsupportedMediaType, "unsupported_type", "only JPEG, PNG, WebP and AVIF images are accepted")
 		return
 	case err != nil:
 		log.Printf("photos: normalize: %v", err)
