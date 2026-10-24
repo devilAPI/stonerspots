@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"net/mail"
 	"strings"
 	"time"
 
@@ -53,6 +54,16 @@ type service struct {
 var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password"), bcryptCost)
 
 func normalizeEmail(e string) string { return strings.ToLower(strings.TrimSpace(e)) }
+
+// NormalizeEmail trims and lower-cases an email address.
+func NormalizeEmail(e string) string { return normalizeEmail(e) }
+
+// ValidEmail reports whether an already normalized email is acceptable
+// (the registration rule).
+func ValidEmail(email string) bool {
+	a, err := mail.ParseAddress(email)
+	return err == nil && a.Address == email && len(email) <= 255
+}
 
 func hashToken(tok string) string {
 	sum := sha256.Sum256([]byte(tok))

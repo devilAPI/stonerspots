@@ -15,6 +15,8 @@ import (
 	"stonerspots/backend/internal/admin"
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/config"
+	"stonerspots/backend/internal/engagement"
+	"stonerspots/backend/internal/spots"
 	"stonerspots/backend/internal/testutil"
 )
 
@@ -32,8 +34,11 @@ func setup(t *testing.T) *env {
 	up := t.TempDir()
 	r := chi.NewRouter()
 	r.Route("/api/v1", func(r chi.Router) {
-		admin.Mount(r, app.Deps{DB: db, Cfg: config.Config{
-			JWTSecret: []byte(testutil.JWTSecret), UploadDir: up, PublicBaseURL: "http://test"}})
+		deps := app.Deps{DB: db, Cfg: config.Config{
+			JWTSecret: []byte(testutil.JWTSecret), UploadDir: up, PublicBaseURL: "http://test"}}
+		admin.Mount(r, deps)
+		engagement.Mount(r, deps)
+		spots.Mount(r, deps)
 	})
 	a := testutil.NewUser(t, db)
 	if _, err := db.Exec(`UPDATE users SET is_admin=1 WHERE id=?`, a); err != nil {

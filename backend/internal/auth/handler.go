@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"net/mail"
 	"unicode/utf8"
 
 	"stonerspots/backend/internal/httpx"
@@ -40,7 +39,7 @@ func (h *handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	email := normalizeEmail(in.Email)
-	if a, err := mail.ParseAddress(email); err != nil || a.Address != email || len(email) > 255 {
+	if !ValidEmail(email) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_email", "email address is invalid")
 		return
 	}
