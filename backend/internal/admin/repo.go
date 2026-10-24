@@ -106,12 +106,21 @@ type userItem struct {
 	ReportsReceived int       `json:"reports_received"`
 }
 
-func (r repo) users(ctx context.Context, search string, limit int, after uint64) ([]userItem, error) {
-	q := `SELECT u.id, u.email, u.display_name, u.is_admin, u.created_at,
+const userSelect = `SELECT u.id, u.email, u.display_name, u.is_admin, u.created_at,
 		(SELECT COUNT(*) FROM spots s WHERE s.user_id = u.id),
 		(SELECT COUNT(*) FROM reports r JOIN spots s ON r.target_type = 'spot' AND r.target_id = s.id WHERE s.user_id = u.id)
 		+ (SELECT COUNT(*) FROM reports r JOIN spot_updates su ON r.target_type = 'update' AND r.target_id = su.id WHERE su.user_id = u.id)
-	FROM users u
+	FROM users u `
+
+func scanUser(row interface{ Scan(...any) error }) (userItem, error) {
+	var it userItem
+	err := row.Scan(&it.ID, &it.Email, &it.DisplayName, &it.IsAdmin, &it.CreatedAt, &it.SpotCount, &it.ReportsReceived)
+	it.CreatedAt = it.CreatedAt.UTC()
+	return it, err
+}
+
+func (r repo) users(ctx context.Context, search string, limit int, after uint64) ([]userItem, error) {
+	q := userSelect + `
 	WHERE (? = 0 OR u.id < ?)
 	  AND (? = '' OR u.email LIKE ? ESCAPE '\\' OR u.display_name LIKE ? ESCAPE '\\')
 	ORDER BY u.id DESC LIMIT ?`
@@ -123,11 +132,10 @@ func (r repo) users(ctx context.Context, search string, limit int, after uint64)
 	defer rows.Close()
 	var out []userItem
 	for rows.Next() {
-		var it userItem
-		if err := rows.Scan(&it.ID, &it.Email, &it.DisplayName, &it.IsAdmin, &it.CreatedAt, &it.SpotCount, &it.ReportsReceived); err != nil {
+		it, err := scanUser(rows)
+		if err != nil {
 			return nil, err
 		}
-		it.CreatedAt = it.CreatedAt.UTC()
 		out = append(out, it)
 	}
 	return out, rows.Err()
@@ -136,6 +144,7 @@ func (r repo) users(ctx context.Context, search string, limit int, after uint64)
 type spotItem struct {
 	ID          uint64    `json:"id"`
 	Title       string    `json:"title"`
+	Description string    `json:"description"`
 	Category    string    `json:"category"`
 	Lat         float64   `json:"lat"`
 	Lon         float64   `json:"lon"`
@@ -146,11 +155,21 @@ type spotItem struct {
 	ReportCount int       `json:"report_count"`
 }
 
-func (r repo) spots(ctx context.Context, search, status string, limit int, after uint64) ([]spotItem, error) {
-	q := `SELECT s.id, s.title, s.category, ST_Y(s.location), ST_X(s.location), s.status, s.like_count, s.created_at,
+const spotSelect = `SELECT s.id, s.title, s.description, s.category, ST_Y(s.location), ST_X(s.location), s.status, s.like_count, s.created_at,
 		u.id, u.display_name,
 		(SELECT COUNT(DISTINCT r.user_id) FROM reports r WHERE r.target_type = 'spot' AND r.target_id = s.id)
-	FROM spots s JOIN users u ON u.id = s.user_id
+	FROM spots s JOIN users u ON u.id = s.user_id `
+
+func scanSpot(row interface{ Scan(...any) error }) (spotItem, error) {
+	var it spotItem
+	err := row.Scan(&it.ID, &it.Title, &it.Description, &it.Category, &it.Lat, &it.Lon, &it.Status, &it.LikeCount, &it.CreatedAt,
+		&it.Author.ID, &it.Author.DisplayName, &it.ReportCount)
+	it.CreatedAt = it.CreatedAt.UTC()
+	return it, err
+}
+
+func (r repo) spots(ctx context.Context, search, status string, limit int, after uint64) ([]spotItem, error) {
+	q := spotSelect + `
 	WHERE (? = 0 OR s.id < ?)
 	  AND (? = '' OR s.title LIKE ? ESCAPE '\\')
 	  AND (? = '' OR s.status = ?)
@@ -163,12 +182,10 @@ func (r repo) spots(ctx context.Context, search, status string, limit int, after
 	defer rows.Close()
 	var out []spotItem
 	for rows.Next() {
-		var it spotItem
-		if err := rows.Scan(&it.ID, &it.Title, &it.Category, &it.Lat, &it.Lon, &it.Status, &it.LikeCount, &it.CreatedAt,
-			&it.Author.ID, &it.Author.DisplayName, &it.ReportCount); err != nil {
+		it, err := scanSpot(rows)
+		if err != nil {
 			return nil, err
 		}
-		it.CreatedAt = it.CreatedAt.UTC()
 		out = append(out, it)
 	}
 	return out, rows.Err()

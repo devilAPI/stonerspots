@@ -38,6 +38,12 @@ type createReq struct {
 	PhotoIDs    []uint64 `json:"photo_ids"`
 }
 
+// ValidCoord reports whether lat/lon are valid degrees.
+func ValidCoord(lat, lon float64) bool { return validCoord(lat, lon) }
+
+// InRegion reports whether lat/lon lie inside the supported DACH box.
+func InRegion(lat, lon float64) bool { return inRegion(lat, lon) }
+
 func validCoord(lat, lon float64) bool {
 	return lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
 }
