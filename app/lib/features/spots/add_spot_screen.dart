@@ -1,13 +1,189 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../l10n/app_localizations.dart';
+import 'add_spot_controller.dart';
+import 'location_picker.dart';
+import 'photo_uploader.dart';
 
-/// Placeholder, replaced by Task 9.
-class AddSpotScreen extends StatelessWidget {
+String categoryLabel(AppLocalizations l, String c) => switch (c) {
+      'bench' => l.categoryBench,
+      'river' => l.categoryRiver,
+      'lake' => l.categoryLake,
+      'viewpoint' => l.categoryViewpoint,
+      'forest' => l.categoryForest,
+      'park' => l.categoryPark,
+      _ => l.categoryOther,
+    };
+
+class AddSpotScreen extends ConsumerStatefulWidget {
   const AddSpotScreen({super.key});
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(AppLocalizations.of(context).addSpotTitle)),
-      );
+  ConsumerState<AddSpotScreen> createState() => _AddSpotScreenState();
+}
+
+class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
+  late final Future<LatLng?> _location;
+  bool _locationDenied = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _location = ref.read(locationServiceProvider).currentPosition().then((p) {
+      if (!mounted) return p;
+      if (p == null) {
+        setState(() => _locationDenied = true);
+      } else if (ref.read(addSpotControllerProvider).point == null) {
+        ref.read(addSpotControllerProvider.notifier).setPoint(p);
+      }
+      return p;
+    });
+  }
+
+  Future<void> _pickPhotos() async {
+    final ctrl = ref.read(addSpotControllerProvider.notifier);
+    final room = kMaxPhotos - ref.read(addSpotControllerProvider).photos.length;
+    if (room <= 0) return;
+    final files = await ref.read(photoPickerProvider).pickPhotos(room);
+    ctrl.addPhotos(files);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final s = ref.watch(addSpotControllerProvider);
+    final ctrl = ref.read(addSpotControllerProvider.notifier);
+
+    ref.listen(addSpotControllerProvider, (prev, next) {
+      if (next.createdSpotId != null && prev?.createdSpotId == null) {
+        context.go('/spot/${next.createdSpotId}');
+      }
+    });
+
+    return Scaffold(
+      appBar: AppBar(title: Text(l.addSpotTitle)),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          SizedBox(
+            height: 240,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: FutureBuilder<LatLng?>(
+                future: _location,
+                builder: (context, snap) {
+                  if (snap.connectionState != ConnectionState.done) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  return LocationPicker(
+                    point: s.point,
+                    initialCenter: snap.data,
+                    onChanged: ctrl.setPoint,
+                  );
+                },
+              ),
+            ),
+          ),
+          if (_locationDenied)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(l.locationDenied,
+                  style: Theme.of(context).textTheme.bodySmall),
+            ),
+          const SizedBox(height: 16),
+          TextField(
+            key: const Key('title'),
+            decoration: InputDecoration(labelText: l.title),
+            onChanged: ctrl.setTitle,
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            key: const Key('category'),
+            initialValue: s.category,
+            decoration: InputDecoration(labelText: l.category),
+            items: [
+              for (final c in kCategories)
+                DropdownMenuItem(value: c, child: Text(categoryLabel(l, c))),
+            ],
+            onChanged: (v) => v == null ? null : ctrl.setCategory(v),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            key: const Key('description'),
+            decoration: InputDecoration(labelText: l.description),
+            maxLines: 4,
+            onChanged: ctrl.setDescription,
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final p in s.photos)
+                InputChip(
+                  label: Text(p.name.isEmpty ? 'photo' : p.name,
+                      overflow: TextOverflow.ellipsis),
+                  avatar: const Icon(Icons.photo),
+                  onDeleted: () => ctrl.removePhoto(p),
+                ),
+              if (s.photos.length < kMaxPhotos)
+                ActionChip(
+                  key: const Key('addPhotos'),
+                  avatar: const Icon(Icons.add_a_photo),
+                  label: Text(l.addPhotos),
+                  onPressed: _pickPhotos,
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (s.duplicate)
+            Card(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l.duplicateSpot),
+                    const SizedBox(height: 8),
+                    Wrap(spacing: 8, children: [
+                      if (s.duplicateSpotId != null)
+                        OutlinedButton(
+                          onPressed: () =>
+                              context.push('/spot/${s.duplicateSpotId}'),
+                          child: Text(l.openSpot),
+                        ),
+                      FilledButton(
+                        key: const Key('addAnyway'),
+                        onPressed: () => ctrl.submit(force: true),
+                        child: Text(l.addAnyway),
+                      ),
+                    ]),
+                  ],
+                ),
+              ),
+            ),
+          if (s.error != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(l.errorGeneric,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            ),
+          FilledButton(
+            key: const Key('save'),
+            onPressed: s.canSubmit ? () => ctrl.submit() : null,
+            child: s.submitting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : Text(l.save),
+          ),
+        ],
+      ),
+    );
+  }
 }
