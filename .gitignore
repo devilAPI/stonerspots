@@ -1,2 +1,15 @@
 .env
 uploads/
+# Go
+*.test
+*.out
+/backend/bin/
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.iml
