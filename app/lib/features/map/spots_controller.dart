@@ -38,6 +38,7 @@ class SpotsState {
     this.loading = false,
     this.error = false,
     this.category,
+    this.tags = const [],
   });
 
   final List<Spot> spots;
@@ -45,17 +46,22 @@ class SpotsState {
   final bool error;
   final String? category;
 
+  /// Selected tag filters (all must match), canonical order.
+  final List<SpotTag> tags;
+
   SpotsState copyWith({
     List<Spot>? spots,
     bool? loading,
     bool? error,
     String? category,
     bool clearCategory = false,
+    List<SpotTag>? tags,
   }) => SpotsState(
     spots: spots ?? this.spots,
     loading: loading ?? this.loading,
     error: error ?? this.error,
     category: clearCategory ? null : (category ?? this.category),
+    tags: tags ?? this.tags,
   );
 }
 
@@ -104,6 +110,23 @@ class SpotsController extends Notifier<SpotsState> {
     if (_bounds != null) _fetch();
   }
 
+  void toggleTag(SpotTag tag) {
+    final next = state.tags.contains(tag)
+        ? state.tags.where((t) => t != tag)
+        : [...state.tags, tag];
+    _setTags(SpotTag.sorted(next));
+  }
+
+  void clearTags() => _setTags(const []);
+
+  /// Like a category change: forget the loaded area and refetch right away.
+  void _setTags(List<SpotTag> tags) {
+    state = state.copyWith(tags: tags);
+    _loaded = null;
+    _timer?.cancel();
+    if (_bounds != null) _fetch();
+  }
+
   void retry() {
     if (_bounds != null) _fetch();
   }
@@ -117,7 +140,7 @@ class SpotsController extends Notifier<SpotsState> {
     try {
       final spots = await ref
           .read(mapSpotsRepositoryProvider)
-          .inBounds(area, category: state.category);
+          .inBounds(area, category: state.category, tags: state.tags);
       if (id != _seq) return; // a newer request superseded this one
       _loaded = area;
       _loadedTruncated = spots.length >= kMapSpotLimit;

@@ -32,20 +32,25 @@ AdminReport _report(
   ),
 );
 
-AdminSpot _spot(int id, {String status = 'active', int reports = 2}) =>
-    AdminSpot(
-      id: id,
-      title: 'Spot$id',
-      description: 'Desc$id',
-      category: 'bench',
-      lat: 48.5,
-      lon: 11.25,
-      status: status,
-      likeCount: 2,
-      createdAt: DateTime.utc(2026, 9, 1),
-      author: Author(id: 1, displayName: 'Author$id'),
-      reportCount: reports,
-    );
+AdminSpot _spot(
+  int id, {
+  String status = 'active',
+  int reports = 2,
+  List<SpotTag> tags = const [],
+}) => AdminSpot(
+  id: id,
+  title: 'Spot$id',
+  description: 'Desc$id',
+  category: 'bench',
+  lat: 48.5,
+  lon: 11.25,
+  status: status,
+  likeCount: 2,
+  createdAt: DateTime.utc(2026, 9, 1),
+  author: Author(id: 1, displayName: 'Author$id'),
+  reportCount: reports,
+  tags: tags,
+);
 
 AdminUser _user(int id) => AdminUser(
   id: id,
@@ -128,6 +133,7 @@ class _Fake implements AdminRepository {
       lat: patch.lat ?? s.lat,
       lon: patch.lon ?? s.lon,
       status: patch.status ?? s.status,
+      tags: patch.tags ?? s.tags,
       likeCount: s.likeCount,
       createdAt: s.createdAt,
       author: s.author,
@@ -356,6 +362,46 @@ void main() {
           expect(find.text('Better'), findsOneWidget);
           expect(find.text('Update on Better'), findsOneWidget);
           expect(find.text('Spot100'), findsNothing);
+        });
+
+        testWidgets('tags are sent only when changed', (tester) async {
+          final repo = base()
+            ..spotItems = [
+              _spot(100, tags: const [SpotTag.roof]),
+            ];
+          await _pump(tester, repo, e.value);
+          await _tab(tester, 'Spots');
+          await _tap(tester, 'spot-edit-100');
+          expect(
+            tester
+                .widget<FilterChip>(find.byKey(const Key('edit-spot-tag-roof')))
+                .selected,
+            isTrue,
+          );
+          // untouched tags: title-only patch carries no tags
+          await _type(tester, 'edit-spot-title', 'Better');
+          await _tap(tester, 'edit-spot-save');
+          expect(repo.spotPatches, [
+            {'title': 'Better'},
+          ]);
+        });
+
+        testWidgets('changed tags are sent as a list', (tester) async {
+          final repo = base()
+            ..spotItems = [
+              _spot(100, tags: const [SpotTag.roof]),
+            ];
+          await _pump(tester, repo, e.value);
+          await _tab(tester, 'Spots');
+          await _tap(tester, 'spot-edit-100');
+          await _tap(tester, 'edit-spot-tag-lit');
+          await _tap(tester, 'edit-spot-tag-view');
+          await _tap(tester, 'edit-spot-save');
+          expect(repo.spotPatches, [
+            {
+              'tags': ['roof', 'view', 'lit'],
+            },
+          ]);
         });
 
         testWidgets('description, category and status are sent', (

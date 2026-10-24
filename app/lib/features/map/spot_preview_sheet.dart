@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/models.dart';
+import '../../core/spot_tag_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../spots/spot_media.dart';
 import '../reviews/rating_widgets.dart';
@@ -45,6 +46,14 @@ class SpotPreviewSheet extends StatelessWidget {
                 RatingBadge(avg: spot.ratingAvg, count: spot.ratingCount),
               ],
             ),
+            if (spot.tags.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              SpotTagChips(
+                tags: spot.tags,
+                keyPrefix: 'previewTag-',
+                compact: true,
+              ),
+            ],
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,

@@ -5,32 +5,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/models.dart';
 import '../../l10n/app_localizations.dart';
+import 'map_filter_bar.dart';
 import 'map_tiles.dart';
 import 'spot_cluster_layer.dart';
 import 'spot_marker.dart';
 import 'spot_preview_sheet.dart';
 import 'spots_controller.dart';
-
-const _categories = [
-  'bench',
-  'river',
-  'lake',
-  'viewpoint',
-  'forest',
-  'park',
-  'other',
-];
-
-String _categoryLabel(AppLocalizations l, String? c) => switch (c) {
-  'bench' => l.categoryBench,
-  'river' => l.categoryRiver,
-  'lake' => l.categoryLake,
-  'viewpoint' => l.categoryViewpoint,
-  'forest' => l.categoryForest,
-  'park' => l.categoryPark,
-  'other' => l.categoryOther,
-  _ => l.categoryAll,
-};
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -143,31 +123,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               buildMapAttribution(context),
             ],
           ),
-          Positioned(
-            top: 8,
-            left: 0,
-            right: 0,
-            child: SizedBox(
-              height: 44,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                children: [
-                  for (final c in <String?>[null, ..._categories])
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text(_categoryLabel(l10n, c)),
-                        selected: state.category == c,
-                        onSelected: (_) => ref
-                            .read(spotsControllerProvider.notifier)
-                            .setCategory(c),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
+          Positioned(top: 8, left: 0, right: 0, child: const MapFilterBar()),
           if (state.loading)
             const Positioned(
               top: 0,

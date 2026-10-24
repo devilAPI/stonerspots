@@ -27,6 +27,7 @@ abstract class FeedRepository {
     double? lon,
     String? cursor,
     int limit = 20,
+    List<SpotTag> tags = const [],
   });
 }
 
@@ -42,12 +43,14 @@ class ApiFeedRepository implements FeedRepository {
     double? lon,
     String? cursor,
     int limit = 20,
+    List<SpotTag> tags = const [],
   }) async {
     final json = await _api.get<Map<String, dynamic>>(
       '/feed',
       query: {
         'sort': sort.apiValue,
         'category': ?category,
+        if (tags.isNotEmpty) 'tags': SpotTag.encode(tags),
         'lat': ?lat,
         'lon': ?lon,
         'cursor': ?cursor,

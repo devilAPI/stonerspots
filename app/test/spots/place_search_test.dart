@@ -20,6 +20,9 @@ class _NoLocation implements LocationService {
 
 class _Api implements SpotApi {
   @override
+  Future<Spot> setTags(int id, List<SpotTag> tags) =>
+      throw UnimplementedError();
+  @override
   Future<Spot> getSpot(int id) => throw UnimplementedError();
   @override
   Future<Spot> createSpot(SpotDraft d, {bool force = false}) =>

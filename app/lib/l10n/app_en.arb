@@ -289,5 +289,17 @@
         "type": "String"
       }
     }
-  }
+  },
+  "tagRoof": "Roof",
+  "tagSeating": "Seating",
+  "tagView": "View",
+  "tagQuiet": "Quiet",
+  "tagShade": "Shade",
+  "tagWater": "Water nearby",
+  "tagLit": "Lit",
+  "tagsTitle": "Tags",
+  "tagsClear": "Clear tags",
+  "editTags": "Edit tags",
+  "tagsErrForbidden": "Only the author or an admin can change tags",
+  "tagsErrInvalid": "One of the tags is invalid"
 }

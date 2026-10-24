@@ -108,4 +108,45 @@ void main() {
     expect(find.text('4.3 (8)'), findsOneWidget);
     expect(find.byIcon(Icons.star), findsOneWidget);
   });
+
+  testWidgets('tags show as small chips', (t) async {
+    await pumpSheet(
+      t,
+      const Spot(
+        id: 1,
+        title: 'T',
+        category: 'bench',
+        lat: 1,
+        lon: 2,
+        tags: [SpotTag.roof, SpotTag.water],
+      ),
+    );
+    expect(find.byKey(const Key('previewTag-roof')), findsOneWidget);
+    expect(find.byKey(const Key('previewTag-water')), findsOneWidget);
+    expect(find.byKey(const Key('previewTag-lit')), findsNothing);
+    expect(find.text('Roof'), findsOneWidget);
+  });
+
+  testWidgets('no tags: no chip row', (t) async {
+    await pumpSheet(t, noPhoto);
+    expect(find.byType(Chip), findsNothing);
+  });
+
+  for (final size in const [Size(400, 800), Size(844, 390), Size(1100, 700)]) {
+    testWidgets('all tags fit at $size', (t) async {
+      await pumpSheet(
+        t,
+        Spot(
+          id: 1,
+          title: 'T',
+          category: 'bench',
+          lat: 1,
+          lon: 2,
+          tags: SpotTag.values,
+        ),
+        size: size,
+      );
+      expect(t.takeException(), isNull);
+    });
+  }
 }

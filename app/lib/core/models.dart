@@ -32,6 +32,52 @@ class User {
   int get hashCode => Object.hash(id, email, displayName, isAdmin);
 }
 
+/// Features a spot can have. The declaration order is canonical: lists sent to
+/// the API and shown in the UI always follow it.
+enum SpotTag {
+  roof('roof'),
+  seating('seating'),
+  view('view'),
+  quiet('quiet'),
+  shade('shade'),
+  water('water'),
+  lit('lit');
+
+  const SpotTag(this.wire);
+
+  /// Name used by the API.
+  final String wire;
+
+  /// Null for unknown or absent values.
+  static SpotTag? fromWire(String? w) {
+    for (final t in values) {
+      if (t.wire == w) return t;
+    }
+    return null;
+  }
+
+  /// Parses a JSON array of strings; unknown entries are dropped.
+  static List<SpotTag> parse(Object? json) => json is List
+      ? [
+          for (final e in json)
+            if (e is String) ?fromWire(e),
+        ]
+      : const [];
+
+  /// [tags] without duplicates, in canonical order.
+  static List<SpotTag> sorted(Iterable<SpotTag> tags) {
+    final set = tags.toSet();
+    return [
+      for (final t in values)
+        if (set.contains(t)) t,
+    ];
+  }
+
+  /// Comma separated canonical list for query parameters.
+  static String encode(Iterable<SpotTag> tags) =>
+      sorted(tags).map((t) => t.wire).join(',');
+}
+
 class Spot {
   const Spot({
     required this.id,
@@ -45,6 +91,8 @@ class Spot {
     this.distanceM,
     this.ratingAvg = 0,
     this.ratingCount = 0,
+    this.tags = const [],
+    this.author,
   });
 
   final int id;
@@ -60,6 +108,10 @@ class Spot {
   /// Average review rating (1-5); 0 when [ratingCount] is 0.
   final double ratingAvg;
   final int ratingCount;
+  final List<SpotTag> tags;
+
+  /// Only sent by `GET /spots/{id}`.
+  final Author? author;
 
   /// Works for the full spot shape and for the reduced shape embedded in feed
   /// items (no description / cover / distance).
@@ -75,6 +127,10 @@ class Spot {
     distanceM: j['distance_m'] == null ? null : _d(j['distance_m']),
     ratingAvg: j['rating_avg'] == null ? 0 : _d(j['rating_avg']),
     ratingCount: (j['rating_count'] ?? 0) as int,
+    tags: SpotTag.parse(j['tags']),
+    author: j['author'] == null
+        ? null
+        : Author.fromJson(j['author'] as Map<String, dynamic>),
   );
 }
 

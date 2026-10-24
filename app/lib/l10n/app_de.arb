@@ -289,5 +289,17 @@
         "type": "String"
       }
     }
-  }
+  },
+  "tagRoof": "Überdacht",
+  "tagSeating": "Sitzgelegenheit",
+  "tagView": "Aussicht",
+  "tagQuiet": "Ruhig",
+  "tagShade": "Schatten",
+  "tagWater": "Wasser in der Nähe",
+  "tagLit": "Beleuchtet",
+  "tagsTitle": "Tags",
+  "tagsClear": "Tags zurücksetzen",
+  "editTags": "Tags bearbeiten",
+  "tagsErrForbidden": "Nur der Autor oder ein Admin darf Tags ändern",
+  "tagsErrInvalid": "Einer der Tags ist ungültig"
 }

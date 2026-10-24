@@ -15,11 +15,17 @@ Spot spot(int id) =>
 class FakeRepo implements SpotsRepository {
   final calls = <Completer<List<Spot>>>[];
   final categories = <String?>[];
+  final tagsSeen = <List<SpotTag>>[];
   final boundsSeen = <LatLngBounds>[];
 
   @override
-  Future<List<Spot>> inBounds(LatLngBounds bounds, {String? category}) {
+  Future<List<Spot>> inBounds(
+    LatLngBounds bounds, {
+    String? category,
+    List<SpotTag> tags = const [],
+  }) {
     categories.add(category);
+    tagsSeen.add(tags);
     boundsSeen.add(bounds);
     final c = Completer<List<Spot>>();
     calls.add(c);
@@ -226,6 +232,87 @@ void main() {
       await Future<void>.delayed(wait);
       expect(repo.calls, hasLength(2));
       expect(repo.categories.last, 'bench');
+    });
+  });
+
+  group('tags', () {
+    Future<(ProviderContainer, FakeRepo, SpotsController)> loaded() async {
+      final repo = FakeRepo();
+      final c = make(repo);
+      final ctrl = c.read(spotsControllerProvider.notifier);
+      ctrl.onCameraMoved(bounds);
+      await Future<void>.delayed(wait);
+      repo.calls.single.complete([spot(1)]);
+      await Future<void>.delayed(Duration.zero);
+      return (c, repo, ctrl);
+    }
+
+    test('first request has no tags', () async {
+      final (_, repo, _) = await loaded();
+      expect(repo.tagsSeen.single, isEmpty);
+    });
+
+    test('toggling a tag refetches immediately with canonical order', () async {
+      final (c, repo, ctrl) = await loaded();
+      ctrl.toggleTag(SpotTag.quiet);
+      expect(repo.calls, hasLength(2)); // immediate, no debounce
+      expect(repo.tagsSeen.last, [SpotTag.quiet]);
+      ctrl.toggleTag(SpotTag.roof);
+      expect(repo.tagsSeen.last, [SpotTag.roof, SpotTag.quiet]);
+      expect(c.read(spotsControllerProvider).tags, [
+        SpotTag.roof,
+        SpotTag.quiet,
+      ]);
+      ctrl.toggleTag(SpotTag.quiet);
+      expect(repo.tagsSeen.last, [SpotTag.roof]);
+    });
+
+    test('tags and category travel together', () async {
+      final (_, repo, ctrl) = await loaded();
+      ctrl.setCategory('bench');
+      ctrl.toggleTag(SpotTag.roof);
+      expect(repo.categories.last, 'bench');
+      expect(repo.tagsSeen.last, [SpotTag.roof]);
+    });
+
+    test('a tag change forgets the loaded area', () async {
+      final (_, repo, ctrl) = await loaded();
+      // inside the loaded area: nothing to fetch
+      ctrl.onCameraMoved(innerBounds);
+      await Future<void>.delayed(wait);
+      expect(repo.calls, hasLength(1));
+
+      ctrl.toggleTag(SpotTag.roof);
+      expect(repo.calls, hasLength(2));
+      repo.calls.last.complete([spot(2)]);
+      await Future<void>.delayed(Duration.zero);
+
+      // the new result is complete for its area: moving inside is quiet again
+      ctrl.onCameraMoved(innerBounds);
+      await Future<void>.delayed(wait);
+      expect(repo.calls, hasLength(2));
+      // far away still refetches, with the tags
+      ctrl.onCameraMoved(farBounds);
+      await Future<void>.delayed(wait);
+      expect(repo.calls, hasLength(3));
+      expect(repo.tagsSeen.last, [SpotTag.roof]);
+    });
+
+    test('a pending debounce does not fire after a tag change', () async {
+      final (_, repo, ctrl) = await loaded();
+      ctrl.onCameraMoved(farBounds);
+      ctrl.toggleTag(SpotTag.roof);
+      await Future<void>.delayed(wait);
+      expect(repo.calls, hasLength(2));
+    });
+
+    test('clearTags resets to all spots and refetches', () async {
+      final (c, repo, ctrl) = await loaded();
+      ctrl.toggleTag(SpotTag.roof);
+      ctrl.toggleTag(SpotTag.view);
+      ctrl.clearTags();
+      expect(repo.tagsSeen.last, isEmpty);
+      expect(c.read(spotsControllerProvider).tags, isEmpty);
     });
   });
 }
