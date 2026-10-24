@@ -37,11 +37,13 @@ class SpotPreviewSheet extends StatelessWidget {
             const SizedBox(height: 12),
             Text(spot.title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 4),
-            Row(children: [
-              const Icon(Icons.favorite, size: 16),
-              const SizedBox(width: 4),
-              Text(l10n.likesCount(spot.likeCount)),
-            ]),
+            Row(
+              children: [
+                const Icon(Icons.favorite, size: 16),
+                const SizedBox(width: 4),
+                Text(l10n.likesCount(spot.likeCount)),
+              ],
+            ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,

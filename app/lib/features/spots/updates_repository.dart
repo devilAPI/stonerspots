@@ -19,22 +19,30 @@ class ApiUpdatesRepository implements UpdatesRepository {
 
   @override
   Future<List<FeedItem>> listForSpot(int spotId) async {
-    final json = await _api.get<Map<String, dynamic>>('/feed',
-        query: {'sort': 'new', 'spot_id': spotId, 'limit': 50});
+    final json = await _api.get<Map<String, dynamic>>(
+      '/feed',
+      query: {'sort': 'new', 'spot_id': spotId, 'limit': 50},
+    );
     return ((json['items'] ?? const []) as List)
         .map((e) => FeedItem.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
   @override
-  Future<void> post(int spotId,
-      {required String body, List<int> photoIds = const []}) async {
-    await _api.post<dynamic>('/spots/$spotId/updates',
-        data: {'body': body, 'photo_ids': photoIds});
+  Future<void> post(
+    int spotId, {
+    required String body,
+    List<int> photoIds = const [],
+  }) async {
+    await _api.post<dynamic>(
+      '/spots/$spotId/updates',
+      data: {'body': body, 'photo_ids': photoIds},
+    );
   }
 }
 
 /// Named differently from the placeholder `updatesRepositoryProvider` in
 /// core/providers.dart so both can coexist until integration removes it.
 final spotUpdatesRepositoryProvider = Provider<UpdatesRepository>(
-    (ref) => ApiUpdatesRepository(ref.watch(apiClientProvider)));
+  (ref) => ApiUpdatesRepository(ref.watch(apiClientProvider)),
+);

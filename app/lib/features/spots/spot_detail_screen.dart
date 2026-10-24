@@ -12,11 +12,13 @@ import 'spot_api.dart';
 import 'updates_repository.dart';
 
 final spotDetailProvider = FutureProvider.autoDispose.family<Spot, int>(
-    (ref, id) => ref.watch(spotApiProvider).getSpot(id));
+  (ref, id) => ref.watch(spotApiProvider).getSpot(id),
+);
 
 final spotUpdatesProvider = FutureProvider.autoDispose
-    .family<List<FeedItem>, int>((ref, id) =>
-        ref.watch(spotUpdatesRepositoryProvider).listForSpot(id));
+    .family<List<FeedItem>, int>(
+      (ref, id) => ref.watch(spotUpdatesRepositoryProvider).listForSpot(id),
+    );
 
 class SpotDetailScreen extends ConsumerStatefulWidget {
   const SpotDetailScreen({super.key, required this.spotId});
@@ -78,10 +80,13 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: Text(l.cancel)),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l.cancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-              child: Text(l.report)),
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: Text(l.report),
+          ),
         ],
       ),
     );
@@ -124,8 +129,9 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                           final files = await ref
                               .read(photoPickerProvider)
                               .pickPhotos(4 - picked.length);
-                          setLocal(() =>
-                              picked.addAll(files.take(4 - picked.length)));
+                          setLocal(
+                            () => picked.addAll(files.take(4 - picked.length)),
+                          );
                         },
                 ),
               ),
@@ -133,7 +139,9 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx), child: Text(l.cancel)),
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l.cancel),
+            ),
             FilledButton(
               onPressed: () async {
                 final body = controller.text.trim();
@@ -141,7 +149,9 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                 try {
                   final ids = <int>[];
                   for (final f in picked) {
-                    ids.add((await ref.read(photoUploaderProvider).upload(f)).id);
+                    ids.add(
+                      (await ref.read(photoUploaderProvider).upload(f)).id,
+                    );
                   }
                   await ref
                       .read(spotUpdatesRepositoryProvider)
@@ -188,13 +198,17 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
       body: spotAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) => Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(l.errorGeneric),
-            TextButton(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(l.errorGeneric),
+              TextButton(
                 onPressed: () =>
                     ref.invalidate(spotDetailProvider(widget.spotId)),
-                child: Text(l.retry)),
-          ]),
+                child: Text(l.retry),
+              ),
+            ],
+          ),
         ),
         data: (spot) {
           final items = updates.value ?? const <FeedItem>[];
@@ -218,7 +232,9 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                     itemBuilder: (_, i) => ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: CachedNetworkImage(
-                          imageUrl: urls[i], fit: BoxFit.cover),
+                        imageUrl: urls[i],
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                 ),
@@ -227,8 +243,10 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(spot.title,
-                        style: Theme.of(context).textTheme.headlineSmall),
+                    Text(
+                      spot.title,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
                     const SizedBox(height: 4),
                     Text(categoryLabel(l, spot.category)),
                     if (spot.description.isNotEmpty) ...[
@@ -236,18 +254,20 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                       Text(spot.description),
                     ],
                     const SizedBox(height: 12),
-                    Row(children: [
-                      FilledButton.tonalIcon(
-                        key: const Key('like'),
-                        onPressed: () => _gated(_toggleLike),
-                        icon: Icon(_liked
-                            ? Icons.favorite
-                            : Icons.favorite_border),
-                        label: Text(l.like),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(l.likesCount(_likeCount ?? spot.likeCount)),
-                    ]),
+                    Row(
+                      children: [
+                        FilledButton.tonalIcon(
+                          key: const Key('like'),
+                          onPressed: () => _gated(_toggleLike),
+                          icon: Icon(
+                            _liked ? Icons.favorite : Icons.favorite_border,
+                          ),
+                          label: Text(l.like),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(l.likesCount(_likeCount ?? spot.likeCount)),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     OutlinedButton.icon(
                       key: const Key('postUpdate'),
@@ -261,8 +281,9 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
               const Divider(),
               updates.when(
                 loading: () => const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator())),
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
                 error: (_, _) => Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(l.errorGeneric),
@@ -273,7 +294,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                       ListTile(
                         title: Text(u.body),
                         subtitle: Text(
-                            '${u.author.displayName} · ${u.createdAt.toLocal().toString().substring(0, 16)}'),
+                          '${u.author.displayName} · ${u.createdAt.toLocal().toString().substring(0, 16)}',
+                        ),
                         trailing: IconButton(
                           icon: const Icon(Icons.flag_outlined),
                           tooltip: l.report,

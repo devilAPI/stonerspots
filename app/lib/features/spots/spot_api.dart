@@ -11,6 +11,7 @@ class SpotDraft {
     required this.category,
     required this.lat,
     required this.lon,
+    this.photoIds = const [],
   });
 
   final String title;
@@ -18,6 +19,10 @@ class SpotDraft {
   final String category;
   final double lat;
   final double lon;
+
+  /// Already-uploaded photos; the backend turns description + photos into the
+  /// spot's first update.
+  final List<int> photoIds;
 }
 
 class LikeResult {
@@ -51,14 +56,18 @@ class ApiSpotApi implements SpotApi {
 
   @override
   Future<Spot> createSpot(SpotDraft d, {bool force = false}) async {
-    final json = await _api.post<Map<String, dynamic>>('/spots', data: {
-      'title': d.title,
-      'description': d.description,
-      'category': d.category,
-      'lat': d.lat,
-      'lon': d.lon,
-      if (force) 'force': true,
-    });
+    final json = await _api.post<Map<String, dynamic>>(
+      '/spots',
+      data: {
+        'title': d.title,
+        'description': d.description,
+        'category': d.category,
+        'lat': d.lat,
+        'lon': d.lon,
+        if (d.photoIds.isNotEmpty) 'photo_ids': d.photoIds,
+        if (force) 'force': true,
+      },
+    );
     return Spot.fromJson(json);
   }
 
@@ -69,18 +78,24 @@ class ApiSpotApi implements SpotApi {
         ? await _api.put<Map<String, dynamic>>(path)
         : await _api.delete<Map<String, dynamic>>(path);
     return LikeResult(
-        liked: json['liked'] as bool, likeCount: json['like_count'] as int);
+      liked: json['liked'] as bool,
+      likeCount: json['like_count'] as int,
+    );
   }
 
   @override
   Future<void> report(String targetType, int targetId, String reason) async {
-    await _api.post<dynamic>('/reports', data: {
-      'target_type': targetType,
-      'target_id': targetId,
-      'reason': reason,
-    });
+    await _api.post<dynamic>(
+      '/reports',
+      data: {
+        'target_type': targetType,
+        'target_id': targetId,
+        'reason': reason,
+      },
+    );
   }
 }
 
-final spotApiProvider =
-    Provider<SpotApi>((ref) => ApiSpotApi(ref.watch(apiClientProvider)));
+final spotApiProvider = Provider<SpotApi>(
+  (ref) => ApiSpotApi(ref.watch(apiClientProvider)),
+);

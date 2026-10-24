@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:latlong2/latlong.dart';
+
+import '../../core/location_service.dart';
 import '../../core/models.dart';
 import 'feed_repository.dart';
 
@@ -38,29 +41,29 @@ class FeedState {
     Object? error = _keep,
     bool? locationDenied,
     bool? loadedOnce,
-  }) =>
-      FeedState(
-        items: items ?? this.items,
-        nextCursor:
-            identical(nextCursor, _keep) ? this.nextCursor : nextCursor as String?,
-        sort: sort ?? this.sort,
-        category:
-            identical(category, _keep) ? this.category : category as String?,
-        loading: loading ?? this.loading,
-        loadingMore: loadingMore ?? this.loadingMore,
-        error: identical(error, _keep) ? this.error : error,
-        locationDenied: locationDenied ?? this.locationDenied,
-        loadedOnce: loadedOnce ?? this.loadedOnce,
-      );
+  }) => FeedState(
+    items: items ?? this.items,
+    nextCursor: identical(nextCursor, _keep)
+        ? this.nextCursor
+        : nextCursor as String?,
+    sort: sort ?? this.sort,
+    category: identical(category, _keep) ? this.category : category as String?,
+    loading: loading ?? this.loading,
+    loadingMore: loadingMore ?? this.loadingMore,
+    error: identical(error, _keep) ? this.error : error,
+    locationDenied: locationDenied ?? this.locationDenied,
+    loadedOnce: loadedOnce ?? this.loadedOnce,
+  );
 }
 
 const _keep = Object();
 
-final feedControllerProvider =
-    NotifierProvider<FeedController, FeedState>(FeedController.new);
+final feedControllerProvider = NotifierProvider<FeedController, FeedState>(
+  FeedController.new,
+);
 
 class FeedController extends Notifier<FeedState> {
-  ({double lat, double lon})? _pos;
+  LatLng? _pos;
   int _gen = 0; // invalidates in-flight requests when the query changes
 
   @override
@@ -78,7 +81,7 @@ class FeedController extends Notifier<FeedState> {
     var effective = sort;
     var denied = false;
     if (sort == FeedSort.nearby) {
-      _pos = await ref.read(locationServiceProvider).current();
+      _pos = await ref.read(locationServiceProvider).currentPosition();
       if (_pos == null) {
         effective = FeedSort.newest;
         denied = true;
@@ -127,10 +130,7 @@ class FeedController extends Notifier<FeedState> {
       if (gen != _gen) return;
       final seen = state.items.map((i) => i.id).toSet();
       state = state.copyWith(
-        items: [
-          ...state.items,
-          ...page.items.where((i) => seen.add(i.id)),
-        ],
+        items: [...state.items, ...page.items.where((i) => seen.add(i.id))],
         nextCursor: page.nextCursor,
         loadingMore: false,
       );
@@ -141,12 +141,12 @@ class FeedController extends Notifier<FeedState> {
   }
 
   Future<FeedPage> _fetch(String? cursor) => _repo.fetch(
-        sort: state.sort,
-        category: state.category,
-        lat: state.sort == FeedSort.nearby ? _pos?.lat : null,
-        lon: state.sort == FeedSort.nearby ? _pos?.lon : null,
-        cursor: cursor,
-      );
+    sort: state.sort,
+    category: state.category,
+    lat: state.sort == FeedSort.nearby ? _pos?.latitude : null,
+    lon: state.sort == FeedSort.nearby ? _pos?.longitude : null,
+    cursor: cursor,
+  );
 
   List<FeedItem> _dedupe(List<FeedItem> items) {
     final seen = <int>{};

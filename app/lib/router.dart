@@ -38,19 +38,24 @@ class _ScaffoldWithNav extends StatelessWidget {
             shell.goBranch(i, initialLocation: i == shell.currentIndex),
         destinations: [
           NavigationDestination(
-              icon: const Icon(Icons.map_outlined), label: l10n.navMap),
+            icon: const Icon(Icons.map_outlined),
+            label: l10n.navMap,
+          ),
           NavigationDestination(
-              icon: const Icon(Icons.dynamic_feed_outlined),
-              label: l10n.navFeed),
+            icon: const Icon(Icons.dynamic_feed_outlined),
+            label: l10n.navFeed,
+          ),
           NavigationDestination(
-              icon: const Icon(Icons.person_outline), label: l10n.navProfile),
+            icon: const Icon(Icons.person_outline),
+            label: l10n.navProfile,
+          ),
         ],
       ),
     );
   }
 }
 
-final routerProvider =Provider<GoRouter>((ref) {
+final routerProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
   ref.listen(authControllerProvider, (_, _) => refresh.value++);
   ref.onDispose(refresh.dispose);
@@ -62,21 +67,30 @@ final routerProvider =Provider<GoRouter>((ref) {
       // While the stored session is being restored, do not bounce to login.
       if (auth.isLoading && !auth.hasValue) return null;
       return authRedirect(
-          loggedIn: auth.value != null, location: state.uri.path);
+        loggedIn: auth.value != null,
+        location: state.uri.path,
+      );
     },
     routes: [
       StatefulShellRoute.indexedStack(
         builder: (_, _, shell) => _ScaffoldWithNav(shell: shell),
         branches: [
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/', builder: (_, _) => const MapScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/feed', builder: (_, _) => const FeedScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/profile', builder: (_, _) => const ProfileScreen()),
-          ]),
+          StatefulShellBranch(
+            routes: [GoRoute(path: '/', builder: (_, _) => const MapScreen())],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/feed', builder: (_, _) => const FeedScreen()),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/profile',
+                builder: (_, _) => const ProfileScreen(),
+              ),
+            ],
+          ),
         ],
       ),
       // '/spot/new' must come before '/spot/:id'.

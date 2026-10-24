@@ -44,10 +44,12 @@ void main() {
   setUp(() {
     repo = FakeAuthRepository();
     store = TokenStore.memory();
-    container = ProviderContainer(overrides: [
-      authRepositoryProvider.overrideWithValue(repo),
-      tokenStoreProvider.overrideWithValue(store),
-    ]);
+    container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(repo),
+        tokenStoreProvider.overrideWithValue(store),
+      ],
+    );
     addTearDown(container.dispose);
   });
 
@@ -76,20 +78,24 @@ void main() {
     await container.read(authControllerProvider.future);
     final c = container.read(authControllerProvider.notifier);
     await c.register(
-        email: 'a@b.ch',
-        password: 'longenough1',
-        displayName: 'A',
-        adult: false);
+      email: 'a@b.ch',
+      password: 'longenough1',
+      displayName: 'A',
+      adult: false,
+    );
 
     expect(repo.registerCalls, 0);
-    expect((container.read(authControllerProvider).error as ApiException).code,
-        'adult_required');
+    expect(
+      (container.read(authControllerProvider).error as ApiException).code,
+      'adult_required',
+    );
 
     await c.register(
-        email: 'a@b.ch',
-        password: 'longenough1',
-        displayName: 'A',
-        adult: true);
+      email: 'a@b.ch',
+      password: 'longenough1',
+      displayName: 'A',
+      adult: true,
+    );
     expect(repo.registerCalls, 1);
     expect(container.read(authControllerProvider).value, repo.user);
   });

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:app/core/models.dart';
+import 'package:app/core/location_service.dart';
 import 'package:app/features/map/spots_controller.dart';
 import 'package:app/features/spots/spots_repository.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -35,11 +36,13 @@ final bounds = LatLngBounds(const LatLng(49, 9), const LatLng(51, 11));
 const wait = Duration(milliseconds: 60);
 
 ProviderContainer make(FakeRepo repo, {LatLng? pos}) {
-  final c = ProviderContainer(overrides: [
-    mapSpotsRepositoryProvider.overrideWithValue(repo),
-    locationServiceProvider.overrideWithValue(FakeLocation(pos)),
-    mapDebounceProvider.overrideWithValue(const Duration(milliseconds: 20)),
-  ]);
+  final c = ProviderContainer(
+    overrides: [
+      mapSpotsRepositoryProvider.overrideWithValue(repo),
+      locationServiceProvider.overrideWithValue(FakeLocation(pos)),
+      mapDebounceProvider.overrideWithValue(const Duration(milliseconds: 20)),
+    ],
+  );
   addTearDown(c.dispose);
   c.listen(spotsControllerProvider, (_, _) {});
   return c;
@@ -100,16 +103,18 @@ void main() {
 
   test('permission denied falls back to region centre', () async {
     final c = make(FakeRepo());
-    final v =
-        await c.read(spotsControllerProvider.notifier).resolveInitialView();
+    final v = await c
+        .read(spotsControllerProvider.notifier)
+        .resolveInitialView();
     expect(v.centre, const LatLng(49.5, 10.5));
     expect(v.zoom, 6);
   });
 
   test('granted location is used as the start', () async {
     final c = make(FakeRepo(), pos: const LatLng(48.1, 11.6));
-    final v =
-        await c.read(spotsControllerProvider.notifier).resolveInitialView();
+    final v = await c
+        .read(spotsControllerProvider.notifier)
+        .resolveInitialView();
     expect(v.centre, const LatLng(48.1, 11.6));
     expect(v.located, isTrue);
   });

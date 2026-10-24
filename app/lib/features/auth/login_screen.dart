@@ -30,7 +30,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
-    await ref.read(authControllerProvider.notifier).login(_email.text, _password.text);
+    await ref
+        .read(authControllerProvider.notifier)
+        .login(_email.text, _password.text);
     if (!mounted) return;
     if (ref.read(authControllerProvider).value != null) {
       context.go(widget.redirectTo ?? '/');
@@ -57,8 +59,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   controller: _email,
                   decoration: InputDecoration(labelText: l10n.email),
                   keyboardType: TextInputType.emailAddress,
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? l10n.fieldRequired
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -72,7 +75,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 12),
                   Text(
                     error is ApiException ? error.message : l10n.errorGeneric,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
                 ],
                 const SizedBox(height: 16),

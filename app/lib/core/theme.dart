@@ -7,8 +7,12 @@ ThemeData _build(Brightness b) {
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-    scaffoldBackgroundColor: b == Brightness.dark ? const Color(0xFF101410) : null,
-    inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),
+    scaffoldBackgroundColor: b == Brightness.dark
+        ? const Color(0xFF101410)
+        : null,
+    inputDecorationTheme: const InputDecorationTheme(
+      border: OutlineInputBorder(),
+    ),
   );
 }
 

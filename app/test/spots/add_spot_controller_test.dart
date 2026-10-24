@@ -11,19 +11,22 @@ import 'package:latlong2/latlong.dart';
 
 class FakeSpotApi implements SpotApi {
   final List<bool> forces = [];
+  final List<List<int>> draftPhotoIds = [];
   Object? createError;
 
   @override
   Future<Spot> createSpot(SpotDraft draft, {bool force = false}) async {
     forces.add(force);
+    draftPhotoIds.add(draft.photoIds);
     final e = createError;
     if (e != null && !force) throw e;
     return Spot(
-        id: 7,
-        title: draft.title,
-        category: draft.category,
-        lat: draft.lat,
-        lon: draft.lon);
+      id: 7,
+      title: draft.title,
+      category: draft.category,
+      lat: draft.lat,
+      lon: draft.lon,
+    );
   }
 
   @override
@@ -40,8 +43,10 @@ class FakeUploader implements PhotoUploader {
   bool fail = false;
 
   @override
-  Future<UploadedPhoto> upload(XFile file,
-      {void Function(double)? onProgress}) async {
+  Future<UploadedPhoto> upload(
+    XFile file, {
+    void Function(double)? onProgress,
+  }) async {
     calls++;
     if (fail) throw ApiException(500, 'internal', 'boom');
     return UploadedPhoto(id: calls, url: 'u', thumbUrl: 't');
@@ -55,8 +60,11 @@ class FakeUpdates implements UpdatesRepository {
   Future<List<FeedItem>> listForSpot(int spotId) async => [];
 
   @override
-  Future<void> post(int spotId,
-      {required String body, List<int> photoIds = const []}) async {
+  Future<void> post(
+    int spotId, {
+    required String body,
+    List<int> photoIds = const [],
+  }) async {
     posted.add(photoIds);
   }
 }
@@ -71,11 +79,13 @@ void main() {
     api = FakeSpotApi();
     uploader = FakeUploader();
     updates = FakeUpdates();
-    c = ProviderContainer(overrides: [
-      spotApiProvider.overrideWithValue(api),
-      photoUploaderProvider.overrideWithValue(uploader),
-      spotUpdatesRepositoryProvider.overrideWithValue(updates),
-    ]);
+    c = ProviderContainer(
+      overrides: [
+        spotApiProvider.overrideWithValue(api),
+        photoUploaderProvider.overrideWithValue(uploader),
+        spotUpdatesRepositoryProvider.overrideWithValue(updates),
+      ],
+    );
     addTearDown(c.dispose);
     c.listen(addSpotControllerProvider, (_, _) {});
   });
@@ -102,8 +112,12 @@ void main() {
   });
 
   test('409 duplicate surfaces the existing spot and allows force', () async {
-    api.createError =
-        ApiException(409, 'possible_duplicate', 'spot nearby id=42');
+    api.createError = ApiException(
+      409,
+      'possible_duplicate',
+      'spot nearby',
+      details: {'existing_id': 42},
+    );
     fillRequired();
     await ctrl().submit();
     expect(st().duplicate, isTrue);
@@ -141,8 +155,8 @@ void main() {
     uploader.fail = false;
     await ctrl().submit();
     expect(st().createdSpotId, 7);
-    expect(updates.posted, [
-      [2]
-    ]);
+    // Photos travel with POST /spots; the backend creates the first update.
+    expect(api.draftPhotoIds.last, [2]);
+    expect(updates.posted, isEmpty);
   });
 }

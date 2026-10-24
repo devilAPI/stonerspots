@@ -3,20 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../core/location_service.dart';
 import '../../l10n/app_localizations.dart';
 import 'add_spot_controller.dart';
 import 'location_picker.dart';
 import 'photo_uploader.dart';
 
 String categoryLabel(AppLocalizations l, String c) => switch (c) {
-      'bench' => l.categoryBench,
-      'river' => l.categoryRiver,
-      'lake' => l.categoryLake,
-      'viewpoint' => l.categoryViewpoint,
-      'forest' => l.categoryForest,
-      'park' => l.categoryPark,
-      _ => l.categoryOther,
-    };
+  'bench' => l.categoryBench,
+  'river' => l.categoryRiver,
+  'lake' => l.categoryLake,
+  'viewpoint' => l.categoryViewpoint,
+  'forest' => l.categoryForest,
+  'park' => l.categoryPark,
+  _ => l.categoryOther,
+};
 
 class AddSpotScreen extends ConsumerStatefulWidget {
   const AddSpotScreen({super.key});
@@ -90,8 +91,10 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
           if (_locationDenied)
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text(l.locationDenied,
-                  style: Theme.of(context).textTheme.bodySmall),
+              child: Text(
+                l.locationDenied,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
           const SizedBox(height: 16),
           TextField(
@@ -124,8 +127,10 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
             children: [
               for (final p in s.photos)
                 InputChip(
-                  label: Text(p.name.isEmpty ? 'photo' : p.name,
-                      overflow: TextOverflow.ellipsis),
+                  label: Text(
+                    p.name.isEmpty ? 'photo' : p.name,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   avatar: const Icon(Icons.photo),
                   onDeleted: () => ctrl.removePhoto(p),
                 ),
@@ -149,19 +154,22 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
                   children: [
                     Text(l.duplicateSpot),
                     const SizedBox(height: 8),
-                    Wrap(spacing: 8, children: [
-                      if (s.duplicateSpotId != null)
-                        OutlinedButton(
-                          onPressed: () =>
-                              context.push('/spot/${s.duplicateSpotId}'),
-                          child: Text(l.openSpot),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        if (s.duplicateSpotId != null)
+                          OutlinedButton(
+                            onPressed: () =>
+                                context.push('/spot/${s.duplicateSpotId}'),
+                            child: Text(l.openSpot),
+                          ),
+                        FilledButton(
+                          key: const Key('addAnyway'),
+                          onPressed: () => ctrl.submit(force: true),
+                          child: Text(l.addAnyway),
                         ),
-                      FilledButton(
-                        key: const Key('addAnyway'),
-                        onPressed: () => ctrl.submit(force: true),
-                        child: Text(l.addAnyway),
-                      ),
-                    ]),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -169,8 +177,10 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
           if (s.error != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text(l.errorGeneric,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              child: Text(
+                l.errorGeneric,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             ),
           FilledButton(
             key: const Key('save'),
@@ -179,7 +189,8 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : Text(l.save),
           ),
         ],

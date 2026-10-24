@@ -11,7 +11,7 @@ class Tokens {
 /// keeps them in memory (tests, or when no secure storage is available).
 class TokenStore {
   TokenStore([FlutterSecureStorage? storage])
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   TokenStore.memory() : _storage = null;
 

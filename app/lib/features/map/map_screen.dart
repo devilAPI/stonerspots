@@ -11,8 +11,10 @@ import 'spot_marker.dart';
 import 'spot_preview_sheet.dart';
 import 'spots_controller.dart';
 
-const String kTileUrl = String.fromEnvironment('TILE_URL',
-    defaultValue: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png');
+const String kTileUrl = String.fromEnvironment(
+  'TILE_URL',
+  defaultValue: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+);
 
 const _categories = [
   'bench',
@@ -25,15 +27,15 @@ const _categories = [
 ];
 
 String _categoryLabel(AppLocalizations l, String? c) => switch (c) {
-      'bench' => l.categoryBench,
-      'river' => l.categoryRiver,
-      'lake' => l.categoryLake,
-      'viewpoint' => l.categoryViewpoint,
-      'forest' => l.categoryForest,
-      'park' => l.categoryPark,
-      'other' => l.categoryOther,
-      _ => l.categoryAll,
-    };
+  'bench' => l.categoryBench,
+  'river' => l.categoryRiver,
+  'lake' => l.categoryLake,
+  'viewpoint' => l.categoryViewpoint,
+  'forest' => l.categoryForest,
+  'park' => l.categoryPark,
+  'other' => l.categoryOther,
+  _ => l.categoryAll,
+};
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -53,14 +55,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   Future<void> _locate() async {
-    final view =
-        await ref.read(spotsControllerProvider.notifier).resolveInitialView();
+    final view = await ref
+        .read(spotsControllerProvider.notifier)
+        .resolveInitialView();
     if (!mounted) return;
     _mapController.move(view.centre, view.zoom);
     if (!view.located && !_deniedShown) {
       _deniedShown = true;
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).locationDenied)));
+        SnackBar(content: Text(AppLocalizations.of(context).locationDenied)),
+      );
     }
     _notifyBounds();
   }
@@ -91,8 +95,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final top = state.spots.take(kTopSpots).map((s) => s.id).toSet();
     final markers = [
       for (final s in state.spots)
-        buildSpotMarker(s,
-            large: top.contains(s.id), onTap: () => _showPreview(s)),
+        buildSpotMarker(
+          s,
+          large: top.contains(s.id),
+          onTap: () => _showPreview(s),
+        ),
     ];
 
     return Scaffold(
@@ -102,88 +109,97 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         icon: const Icon(Icons.add),
         label: Text(l10n.addSpot),
       ),
-      body: Stack(children: [
-        FlutterMap(
-          mapController: _mapController,
-          options: MapOptions(
-            initialCenter: kRegionCentre,
-            initialZoom: kRegionZoom,
-            onMapReady: _notifyBounds,
-            onPositionChanged: (camera, hasGesture) => ref
-                .read(spotsControllerProvider.notifier)
-                .onCameraMoved(camera.visibleBounds),
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: kTileUrl,
-              userAgentPackageName: 'de.stonerspots.app',
+      body: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: kRegionCentre,
+              initialZoom: kRegionZoom,
+              onMapReady: _notifyBounds,
+              onPositionChanged: (camera, hasGesture) => ref
+                  .read(spotsControllerProvider.notifier)
+                  .onCameraMoved(camera.visibleBounds),
             ),
-            MarkerClusterLayerWidget(
-              options: MarkerClusterLayerOptions(
-                maxClusterRadius: 60,
-                size: const Size(40, 40),
-                markers: markers,
-                builder: (context, markers) => Container(
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                      color: kAccent, shape: BoxShape.circle),
-                  child: Text('${markers.length}',
-                      style: const TextStyle(
-                          color: Colors.black, fontWeight: FontWeight.bold)),
-                ),
+            children: [
+              TileLayer(
+                urlTemplate: kTileUrl,
+                userAgentPackageName: 'de.stonerspots.app',
               ),
-            ),
-          ],
-        ),
-        Positioned(
-          top: 8,
-          left: 0,
-          right: 0,
-          child: SizedBox(
-            height: 44,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: [
-                for (final c in <String?>[null, ..._categories])
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(_categoryLabel(l10n, c)),
-                      selected: state.category == c,
-                      onSelected: (_) => ref
-                          .read(spotsControllerProvider.notifier)
-                          .setCategory(c),
+              MarkerClusterLayerWidget(
+                options: MarkerClusterLayerOptions(
+                  maxClusterRadius: 60,
+                  size: const Size(40, 40),
+                  markers: markers,
+                  builder: (context, markers) => Container(
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: kAccent,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '${markers.length}',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-              ],
+                ),
+              ),
+            ],
+          ),
+          Positioned(
+            top: 8,
+            left: 0,
+            right: 0,
+            child: SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  for (final c in <String?>[null, ..._categories])
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(_categoryLabel(l10n, c)),
+                        selected: state.category == c,
+                        onSelected: (_) => ref
+                            .read(spotsControllerProvider.notifier)
+                            .setCategory(c),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
-        if (state.loading)
-          const Positioned(
+          if (state.loading)
+            const Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: LinearProgressIndicator(minHeight: 2)),
-        if (state.error)
-          Positioned(
-            bottom: 88,
-            left: 16,
-            right: 16,
-            child: Material(
-              borderRadius: BorderRadius.circular(8),
-              color: Theme.of(context).colorScheme.errorContainer,
-              child: ListTile(
-                title: Text(l10n.errorGeneric),
-                trailing: TextButton(
-                  onPressed: ref.read(spotsControllerProvider.notifier).retry,
-                  child: Text(l10n.retry),
+              child: LinearProgressIndicator(minHeight: 2),
+            ),
+          if (state.error)
+            Positioned(
+              bottom: 88,
+              left: 16,
+              right: 16,
+              child: Material(
+                borderRadius: BorderRadius.circular(8),
+                color: Theme.of(context).colorScheme.errorContainer,
+                child: ListTile(
+                  title: Text(l10n.errorGeneric),
+                  trailing: TextButton(
+                    onPressed: ref.read(spotsControllerProvider.notifier).retry,
+                    child: Text(l10n.retry),
+                  ),
                 ),
               ),
             ),
-          ),
-      ]),
+        ],
+      ),
     );
   }
 }

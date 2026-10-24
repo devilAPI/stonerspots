@@ -29,17 +29,20 @@ class ApiAuthRepository implements AuthRepository {
   final ApiClient _api;
 
   AuthSession _session(Map<String, dynamic> j) => AuthSession(
-        user: User.fromJson(j['user'] as Map<String, dynamic>),
-        tokens: Tokens(
-          accessToken: j['access_token'] as String,
-          refreshToken: j['refresh_token'] as String,
-        ),
-      );
+    user: User.fromJson(j['user'] as Map<String, dynamic>),
+    tokens: Tokens(
+      accessToken: j['access_token'] as String,
+      refreshToken: j['refresh_token'] as String,
+    ),
+  );
 
   @override
   Future<AuthSession> login(String email, String password) async => _session(
-      await _api.post<Map<String, dynamic>>('/auth/login',
-          data: {'email': email, 'password': password}));
+    await _api.post<Map<String, dynamic>>(
+      '/auth/login',
+      data: {'email': email, 'password': password},
+    ),
+  );
 
   @override
   Future<AuthSession> register({
@@ -47,13 +50,17 @@ class ApiAuthRepository implements AuthRepository {
     required String password,
     required String displayName,
     required bool adult,
-  }) async =>
-      _session(await _api.post<Map<String, dynamic>>('/auth/register', data: {
+  }) async => _session(
+    await _api.post<Map<String, dynamic>>(
+      '/auth/register',
+      data: {
         'email': email,
         'password': password,
         'display_name': displayName,
         'adult': adult,
-      }));
+      },
+    ),
+  );
 
   @override
   Future<User?> me() async {

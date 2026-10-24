@@ -6,10 +6,12 @@ import '../../core/providers.dart';
 import 'auth_repository.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>(
-    (ref) => ApiAuthRepository(ref.watch(apiClientProvider)));
+  (ref) => ApiAuthRepository(ref.watch(apiClientProvider)),
+);
 
-final authControllerProvider =
-    AsyncNotifierProvider<AuthController, User?>(AuthController.new);
+final authControllerProvider = AsyncNotifierProvider<AuthController, User?>(
+  AuthController.new,
+);
 
 class AuthController extends AsyncNotifier<User?> {
   @override
@@ -24,7 +26,8 @@ class AuthController extends AsyncNotifier<User?> {
   }
 
   Future<void> login(String email, String password) => _authenticate(
-      () => ref.read(authRepositoryProvider).login(email.trim(), password));
+    () => ref.read(authRepositoryProvider).login(email.trim(), password),
+  );
 
   Future<void> register({
     required String email,
@@ -34,16 +37,21 @@ class AuthController extends AsyncNotifier<User?> {
   }) {
     if (!adult) {
       state = AsyncError(
-          ApiException(400, 'adult_required', '18+ confirmation required'),
-          StackTrace.current);
+        ApiException(400, 'adult_required', '18+ confirmation required'),
+        StackTrace.current,
+      );
       return Future.value();
     }
-    return _authenticate(() => ref.read(authRepositoryProvider).register(
-          email: email.trim(),
-          password: password,
-          displayName: displayName.trim(),
-          adult: adult,
-        ));
+    return _authenticate(
+      () => ref
+          .read(authRepositoryProvider)
+          .register(
+            email: email.trim(),
+            password: password,
+            displayName: displayName.trim(),
+            adult: adult,
+          ),
+    );
   }
 
   Future<void> logout() async {

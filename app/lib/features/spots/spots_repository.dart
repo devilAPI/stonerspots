@@ -16,14 +16,17 @@ class ApiSpotsRepository implements SpotsRepository {
 
   @override
   Future<List<Spot>> inBounds(LatLngBounds bounds, {String? category}) async {
-    final data = await _api.get<List<dynamic>>('/spots', query: {
-      'south': bounds.south,
-      'west': bounds.west,
-      'north': bounds.north,
-      'east': bounds.east,
-      'category': ?category,
-      'limit': 50,
-    });
+    final data = await _api.get<List<dynamic>>(
+      '/spots',
+      query: {
+        'south': bounds.south,
+        'west': bounds.west,
+        'north': bounds.north,
+        'east': bounds.east,
+        'category': ?category,
+        'limit': 50,
+      },
+    );
     return data
         .map((e) => Spot.fromJson(e as Map<String, dynamic>))
         .toList(growable: false);
@@ -33,4 +36,5 @@ class ApiSpotsRepository implements SpotsRepository {
 /// Typed provider for the map feature (the placeholder in core/providers.dart
 /// is untyped).
 final mapSpotsRepositoryProvider = Provider<SpotsRepository>(
-    (ref) => ApiSpotsRepository(ref.watch(apiClientProvider)));
+  (ref) => ApiSpotsRepository(ref.watch(apiClientProvider)),
+);

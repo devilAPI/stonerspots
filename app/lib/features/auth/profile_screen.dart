@@ -20,16 +20,21 @@ class ProfileScreen extends ConsumerWidget {
                 onPressed: () => context.push('/login'),
                 child: Text(l10n.login),
               )
-            : Column(mainAxisSize: MainAxisSize.min, children: [
-                Text(user.displayName,
-                    style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: 16),
-                OutlinedButton(
-                  onPressed: () =>
-                      ref.read(authControllerProvider.notifier).logout(),
-                  child: Text(l10n.logout),
-                ),
-              ]),
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    user.displayName,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton(
+                    onPressed: () =>
+                        ref.read(authControllerProvider.notifier).logout(),
+                    child: Text(l10n.logout),
+                  ),
+                ],
+              ),
       ),
     );
   }

@@ -1,17 +1,21 @@
 double _d(Object? v) => (v as num).toDouble();
 
 class User {
-  const User({required this.id, required this.email, required this.displayName});
+  const User({
+    required this.id,
+    required this.email,
+    required this.displayName,
+  });
 
   final int id;
   final String email;
   final String displayName;
 
   factory User.fromJson(Map<String, dynamic> j) => User(
-        id: j['id'] as int,
-        email: (j['email'] ?? '') as String,
-        displayName: (j['display_name'] ?? '') as String,
-      );
+    id: j['id'] as int,
+    email: (j['email'] ?? '') as String,
+    displayName: (j['display_name'] ?? '') as String,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -50,16 +54,16 @@ class Spot {
   /// Works for the full spot shape and for the reduced shape embedded in feed
   /// items (no description / cover / distance).
   factory Spot.fromJson(Map<String, dynamic> j) => Spot(
-        id: j['id'] as int,
-        title: (j['title'] ?? '') as String,
-        description: (j['description'] ?? '') as String,
-        category: (j['category'] ?? 'other') as String,
-        lat: _d(j['lat']),
-        lon: _d(j['lon']),
-        likeCount: (j['like_count'] ?? 0) as int,
-        coverUrl: j['cover_url'] as String?,
-        distanceM: j['distance_m'] == null ? null : _d(j['distance_m']),
-      );
+    id: j['id'] as int,
+    title: (j['title'] ?? '') as String,
+    description: (j['description'] ?? '') as String,
+    category: (j['category'] ?? 'other') as String,
+    lat: _d(j['lat']),
+    lon: _d(j['lon']),
+    likeCount: (j['like_count'] ?? 0) as int,
+    coverUrl: j['cover_url'] as String?,
+    distanceM: j['distance_m'] == null ? null : _d(j['distance_m']),
+  );
 }
 
 class PhotoRef {
@@ -70,10 +74,10 @@ class PhotoRef {
   final String thumbUrl;
 
   factory PhotoRef.fromJson(Map<String, dynamic> j) => PhotoRef(
-        id: j['id'] as int,
-        url: j['url'] as String,
-        thumbUrl: (j['thumb_url'] ?? j['url']) as String,
-      );
+    id: j['id'] as int,
+    url: j['url'] as String,
+    thumbUrl: (j['thumb_url'] ?? j['url']) as String,
+  );
 }
 
 class Author {
@@ -83,9 +87,9 @@ class Author {
   final String displayName;
 
   factory Author.fromJson(Map<String, dynamic> j) => Author(
-        id: j['id'] as int,
-        displayName: (j['display_name'] ?? '') as String,
-      );
+    id: j['id'] as int,
+    displayName: (j['display_name'] ?? '') as String,
+  );
 }
 
 class FeedItem {
@@ -106,13 +110,13 @@ class FeedItem {
   final Spot spot;
 
   factory FeedItem.fromJson(Map<String, dynamic> j) => FeedItem(
-        id: j['id'] as int,
-        body: (j['body'] ?? '') as String,
-        photos: ((j['photos'] ?? const []) as List)
-            .map((p) => PhotoRef.fromJson(p as Map<String, dynamic>))
-            .toList(),
-        createdAt: DateTime.parse(j['created_at'] as String),
-        author: Author.fromJson(j['author'] as Map<String, dynamic>),
-        spot: Spot.fromJson(j['spot'] as Map<String, dynamic>),
-      );
+    id: j['id'] as int,
+    body: (j['body'] ?? '') as String,
+    photos: ((j['photos'] ?? const []) as List)
+        .map((p) => PhotoRef.fromJson(p as Map<String, dynamic>))
+        .toList(),
+    createdAt: DateTime.parse(j['created_at'] as String),
+    author: Author.fromJson(j['author'] as Map<String, dynamic>),
+    spot: Spot.fromJson(j['spot'] as Map<String, dynamic>),
+  );
 }

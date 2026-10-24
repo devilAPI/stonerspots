@@ -13,8 +13,14 @@ class _Api implements SpotApi {
   int likes = 0;
 
   @override
-  Future<Spot> getSpot(int id) async =>
-      const Spot(id: 5, title: 'Lake bench', category: 'lake', lat: 1, lon: 2, likeCount: 3);
+  Future<Spot> getSpot(int id) async => const Spot(
+    id: 5,
+    title: 'Lake bench',
+    category: 'lake',
+    lat: 1,
+    lon: 2,
+    likeCount: 3,
+  );
   @override
   Future<LikeResult> setLike(int spotId, {required bool liked}) async {
     likes++;
@@ -32,8 +38,11 @@ class _Updates implements UpdatesRepository {
   @override
   Future<List<FeedItem>> listForSpot(int spotId) async => [];
   @override
-  Future<void> post(int spotId,
-      {required String body, List<int> photoIds = const []}) async {}
+  Future<void> post(
+    int spotId, {
+    required String body,
+    List<int> photoIds = const [],
+  }) async {}
 }
 
 class _Auth extends AuthController {
@@ -45,28 +54,35 @@ class _Auth extends AuthController {
 
 Future<_Api> _pump(WidgetTester tester, User? user) async {
   final api = _Api();
-  final router = GoRouter(initialLocation: '/spot/5', routes: [
-    GoRoute(
+  final router = GoRouter(
+    initialLocation: '/spot/5',
+    routes: [
+      GoRoute(
         path: '/spot/:id',
-        builder: (_, _) => const SpotDetailScreen(spotId: 5)),
-    GoRoute(
+        builder: (_, _) => const SpotDetailScreen(spotId: 5),
+      ),
+      GoRoute(
         path: '/login',
         builder: (_, s) =>
-            Scaffold(body: Text('login from ${s.uri.queryParameters['from']}'))),
-  ]);
-  await tester.pumpWidget(ProviderScope(
-    overrides: [
-      spotApiProvider.overrideWithValue(api),
-      spotUpdatesRepositoryProvider.overrideWithValue(_Updates()),
-      authControllerProvider.overrideWith(() => _Auth(user)),
+            Scaffold(body: Text('login from ${s.uri.queryParameters['from']}')),
+      ),
     ],
-    child: MaterialApp.router(
-      routerConfig: router,
-      locale: const Locale('en'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
+  );
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        spotApiProvider.overrideWithValue(api),
+        spotUpdatesRepositoryProvider.overrideWithValue(_Updates()),
+        authControllerProvider.overrideWith(() => _Auth(user)),
+      ],
+      child: MaterialApp.router(
+        routerConfig: router,
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+      ),
     ),
-  ));
+  );
   await tester.pumpAndSettle();
   return api;
 }
@@ -83,7 +99,9 @@ void main() {
 
   testWidgets('logged-in like updates the count', (tester) async {
     final api = await _pump(
-        tester, const User(id: 1, email: 'a@b.de', displayName: 'A'));
+      tester,
+      const User(id: 1, email: 'a@b.de', displayName: 'A'),
+    );
     await tester.tap(find.byKey(const Key('like')));
     await tester.pumpAndSettle();
     expect(api.likes, 1);

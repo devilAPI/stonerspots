@@ -6,8 +6,11 @@ import '../../core/api_client.dart';
 import '../../core/providers.dart' show apiClientProvider;
 
 class UploadedPhoto {
-  const UploadedPhoto(
-      {required this.id, required this.url, required this.thumbUrl});
+  const UploadedPhoto({
+    required this.id,
+    required this.url,
+    required this.thumbUrl,
+  });
 
   final int id;
   final String url;
@@ -25,17 +28,24 @@ class ApiPhotoUploader implements PhotoUploader {
   final ApiClient _api;
 
   @override
-  Future<UploadedPhoto> upload(XFile file,
-      {void Function(double)? onProgress}) async {
+  Future<UploadedPhoto> upload(
+    XFile file, {
+    void Function(double)? onProgress,
+  }) async {
     final bytes = await file.readAsBytes();
     final form = FormData.fromMap({
-      'file': MultipartFile.fromBytes(bytes,
-          filename: file.name.isEmpty ? 'photo.jpg' : file.name),
+      'file': MultipartFile.fromBytes(
+        bytes,
+        filename: file.name.isEmpty ? 'photo.jpg' : file.name,
+      ),
     });
-    final json = await _api.post<Map<String, dynamic>>('/photos',
-        data: form, onSendProgress: (sent, total) {
-      if (total > 0) onProgress?.call(sent / total);
-    });
+    final json = await _api.post<Map<String, dynamic>>(
+      '/photos',
+      data: form,
+      onSendProgress: (sent, total) {
+        if (total > 0) onProgress?.call(sent / total);
+      },
+    );
     return UploadedPhoto(
       id: json['id'] as int,
       url: json['url'] as String,
@@ -45,7 +55,8 @@ class ApiPhotoUploader implements PhotoUploader {
 }
 
 final photoUploaderProvider = Provider<PhotoUploader>(
-    (ref) => ApiPhotoUploader(ref.watch(apiClientProvider)));
+  (ref) => ApiPhotoUploader(ref.watch(apiClientProvider)),
+);
 
 /// Injectable wrapper around image_picker.
 abstract class PhotoPicker {
@@ -58,5 +69,6 @@ class ImagePickerPhotoPicker implements PhotoPicker {
       ImagePicker().pickMultiImage(limit: maxCount < 2 ? 2 : maxCount);
 }
 
-final photoPickerProvider =
-    Provider<PhotoPicker>((ref) => ImagePickerPhotoPicker());
+final photoPickerProvider = Provider<PhotoPicker>(
+  (ref) => ImagePickerPhotoPicker(),
+);

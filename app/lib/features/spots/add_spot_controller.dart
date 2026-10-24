@@ -5,7 +5,6 @@ import 'package:latlong2/latlong.dart';
 import '../../core/api_client.dart';
 import 'photo_uploader.dart';
 import 'spot_api.dart';
-import 'updates_repository.dart';
 
 const int kMaxPhotos = 4;
 const List<String> kCategories = [
@@ -66,25 +65,26 @@ class AddSpotState {
     Object? error,
     bool clearError = false,
     bool clearDuplicate = false,
-  }) =>
-      AddSpotState(
-        title: title ?? this.title,
-        description: description ?? this.description,
-        category: category ?? this.category,
-        point: point ?? this.point,
-        photos: photos ?? this.photos,
-        submitting: submitting ?? this.submitting,
-        duplicate: clearDuplicate ? false : (duplicate ?? this.duplicate),
-        duplicateSpotId:
-            clearDuplicate ? null : (duplicateSpotId ?? this.duplicateSpotId),
-        createdSpotId: createdSpotId ?? this.createdSpotId,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => AddSpotState(
+    title: title ?? this.title,
+    description: description ?? this.description,
+    category: category ?? this.category,
+    point: point ?? this.point,
+    photos: photos ?? this.photos,
+    submitting: submitting ?? this.submitting,
+    duplicate: clearDuplicate ? false : (duplicate ?? this.duplicate),
+    duplicateSpotId: clearDuplicate
+        ? null
+        : (duplicateSpotId ?? this.duplicateSpotId),
+    createdSpotId: createdSpotId ?? this.createdSpotId,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 final addSpotControllerProvider =
     NotifierProvider.autoDispose<AddSpotController, AddSpotState>(
-        AddSpotController.new);
+      AddSpotController.new,
+    );
 
 class AddSpotController extends Notifier<AddSpotState> {
   // Photos already uploaded, keyed by the picked file, so a retry (after a
@@ -114,7 +114,9 @@ class AddSpotController extends Notifier<AddSpotState> {
 
   void removePhoto(XFile file) {
     _uploaded.remove(file);
-    state = state.copyWith(photos: state.photos.where((p) => p != file).toList());
+    state = state.copyWith(
+      photos: state.photos.where((p) => p != file).toList(),
+    );
   }
 
   /// Creates the spot. On 409 `possible_duplicate` the state exposes the
@@ -122,43 +124,38 @@ class AddSpotController extends Notifier<AddSpotState> {
   /// kept on any failure.
   Future<void> submit({bool force = false}) async {
     if (!state.canSubmit) return;
-    state =
-        state.copyWith(submitting: true, clearError: true, clearDuplicate: true);
+    state = state.copyWith(
+      submitting: true,
+      clearError: true,
+      clearDuplicate: true,
+    );
     try {
       final photoIds = <int>[];
       for (final f in state.photos) {
         _uploaded[f] ??= (await ref.read(photoUploaderProvider).upload(f)).id;
         photoIds.add(_uploaded[f]!);
       }
-      final spot = await ref.read(spotApiProvider).createSpot(
+      final spot = await ref
+          .read(spotApiProvider)
+          .createSpot(
             SpotDraft(
               title: state.title.trim(),
               description: state.description.trim(),
               category: state.category!,
               lat: state.point!.latitude,
               lon: state.point!.longitude,
+              photoIds: photoIds,
             ),
             force: force,
           );
-      if (photoIds.isNotEmpty) {
-        // POST /spots takes no photos; they go in an update on the new spot.
-        try {
-          await ref.read(spotUpdatesRepositoryProvider).post(spot.id,
-              body: state.description.trim().isEmpty
-                  ? state.title.trim()
-                  : state.description.trim(),
-              photoIds: photoIds);
-        } catch (_) {
-          // The spot exists; do not fail the whole flow over the photo update.
-        }
-      }
       state = state.copyWith(submitting: false, createdSpotId: spot.id);
     } on ApiException catch (e) {
       if (e.status == 409 && e.code == 'possible_duplicate') {
         state = state.copyWith(
-            submitting: false,
-            duplicate: true,
-            duplicateSpotId: parseDuplicateId(e.message));
+          submitting: false,
+          duplicate: true,
+          duplicateSpotId: parseDuplicateId(e),
+        );
       } else {
         state = state.copyWith(submitting: false, error: e);
       }
@@ -168,9 +165,6 @@ class AddSpotController extends Notifier<AddSpotState> {
   }
 }
 
-/// The backend is assumed to put the existing spot's id into the error
-/// message as `id=123`.
-int? parseDuplicateId(String message) {
-  final m = RegExp(r'id=(\d+)').firstMatch(message);
-  return m == null ? null : int.parse(m.group(1)!);
-}
+/// The backend sends the existing spot's id as top-level `existing_id`.
+int? parseDuplicateId(ApiException e) =>
+    (e.details?['existing_id'] as num?)?.toInt();

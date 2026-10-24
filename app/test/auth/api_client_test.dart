@@ -12,8 +12,11 @@ class ScriptedAdapter implements HttpClientAdapter {
   ScriptedAdapter(this.handler);
 
   @override
-  Future<ResponseBody> fetch(RequestOptions o, Stream<Uint8List>? s,
-      Future<void>? c) async {
+  Future<ResponseBody> fetch(
+    RequestOptions o,
+    Stream<Uint8List>? s,
+    Future<void>? c,
+  ) async {
     seen.add(o);
     return handler(o);
   }
@@ -26,15 +29,15 @@ class ScriptedAdapter implements HttpClientAdapter {
 }
 
 ResponseBody jsonBody(int status, Object body) => ResponseBody.fromString(
-      jsonEncode(body),
-      status,
-      headers: {
-        Headers.contentTypeHeader: ['application/json'],
-      },
-    );
+  jsonEncode(body),
+  status,
+  headers: {
+    Headers.contentTypeHeader: ['application/json'],
+  },
+);
 
 const unauthorized = {
-  'error': {'code': 'unauthorized', 'message': 'x'}
+  'error': {'code': 'unauthorized', 'message': 'x'},
 };
 
 void main() {
@@ -51,7 +54,10 @@ void main() {
       return jsonBody(401, unauthorized);
     });
     final client = ApiClient(
-        tokenStore: store, baseUrl: 'http://x/api/v1', adapter: adapter);
+      tokenStore: store,
+      baseUrl: 'http://x/api/v1',
+      adapter: adapter,
+    );
 
     final res = await client.get<Map<String, dynamic>>('/me');
 
@@ -66,30 +72,39 @@ void main() {
     await store.write(const Tokens(accessToken: 'old', refreshToken: 'r1'));
     final adapter = ScriptedAdapter((o) => jsonBody(401, unauthorized));
     final client = ApiClient(
-        tokenStore: store, baseUrl: 'http://x/api/v1', adapter: adapter);
+      tokenStore: store,
+      baseUrl: 'http://x/api/v1',
+      adapter: adapter,
+    );
 
     await expectLater(
       client.get<Map<String, dynamic>>('/me'),
       throwsA(
-          isA<ApiException>().having((e) => e.code, 'code', 'unauthorized')),
+        isA<ApiException>().having((e) => e.code, 'code', 'unauthorized'),
+      ),
     );
     expect(await store.read(), isNull);
     expect(adapter.refreshCalls, 1);
   });
 
   test('error body is mapped to ApiException', () async {
-    final adapter = ScriptedAdapter((o) => jsonBody(409, {
-          'error': {'code': 'possible_duplicate', 'message': 'dup'}
-        }));
+    final adapter = ScriptedAdapter(
+      (o) => jsonBody(409, {
+        'error': {'code': 'possible_duplicate', 'message': 'dup'},
+      }),
+    );
     final client = ApiClient(
-        tokenStore: TokenStore.memory(),
-        baseUrl: 'http://x/api/v1',
-        adapter: adapter);
+      tokenStore: TokenStore.memory(),
+      baseUrl: 'http://x/api/v1',
+      adapter: adapter,
+    );
     await expectLater(
       client.post<Map<String, dynamic>>('/spots', data: {}),
-      throwsA(isA<ApiException>()
-          .having((e) => e.status, 'status', 409)
-          .having((e) => e.code, 'code', 'possible_duplicate')),
+      throwsA(
+        isA<ApiException>()
+            .having((e) => e.status, 'status', 409)
+            .having((e) => e.code, 'code', 'possible_duplicate'),
+      ),
     );
   });
 }

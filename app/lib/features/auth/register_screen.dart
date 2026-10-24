@@ -30,7 +30,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
-    await ref.read(authControllerProvider.notifier).register(
+    await ref
+        .read(authControllerProvider.notifier)
+        .register(
           email: _email.text,
           password: _password.text,
           displayName: _name.text,
@@ -75,8 +77,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   controller: _password,
                   decoration: InputDecoration(labelText: l10n.password),
                   obscureText: true,
-                  validator: (v) =>
-                      (v == null || v.length < 10) ? l10n.passwordTooShort : null,
+                  validator: (v) => (v == null || v.length < 10)
+                      ? l10n.passwordTooShort
+                      : null,
                 ),
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
@@ -88,7 +91,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 if (error != null)
                   Text(
                     error is ApiException ? error.message : l10n.errorGeneric,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
                 const SizedBox(height: 16),
                 FilledButton(

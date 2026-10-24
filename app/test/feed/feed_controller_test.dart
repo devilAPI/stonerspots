@@ -1,17 +1,19 @@
 import 'package:app/core/models.dart';
 import 'package:app/features/feed/feed_controller.dart';
+import 'package:app/core/location_service.dart';
 import 'package:app/features/feed/feed_repository.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 FeedItem item(int id) => FeedItem(
-      id: id,
-      body: 'b$id',
-      photos: const [],
-      createdAt: DateTime(2026, 1, 1),
-      author: const Author(id: 1, displayName: 'a'),
-      spot: const Spot(id: 1, title: 's', category: 'park', lat: 0, lon: 0),
-    );
+  id: id,
+  body: 'b$id',
+  photos: const [],
+  createdAt: DateTime(2026, 1, 1),
+  author: const Author(id: 1, displayName: 'a'),
+  spot: const Spot(id: 1, title: 's', category: 'park', lat: 0, lon: 0),
+);
 
 class Call {
   Call(this.sort, this.category, this.lat, this.lon, this.cursor);
@@ -42,16 +44,18 @@ class FakeRepo implements FeedRepository {
 
 class FakeLocation implements LocationService {
   FakeLocation(this.result);
-  final ({double lat, double lon})? result;
+  final LatLng? result;
   @override
-  Future<({double lat, double lon})?> current() async => result;
+  Future<LatLng?> currentPosition() async => result;
 }
 
-ProviderContainer make(FakeRepo repo, {({double lat, double lon})? loc}) {
-  final c = ProviderContainer(overrides: [
-    feedRepositoryProvider.overrideWithValue(repo),
-    locationServiceProvider.overrideWithValue(FakeLocation(loc)),
-  ]);
+ProviderContainer make(FakeRepo repo, {LatLng? loc}) {
+  final c = ProviderContainer(
+    overrides: [
+      feedRepositoryProvider.overrideWithValue(repo),
+      locationServiceProvider.overrideWithValue(FakeLocation(loc)),
+    ],
+  );
   addTearDown(c.dispose);
   return c;
 }
@@ -85,10 +89,10 @@ void main() {
   test('loads next page when near end and stops at null cursor', () async {
     final repo = FakeRepo()
       ..handler = (c) => switch (c.cursor) {
-            null => FeedPage([item(1)], 'c1'),
-            'c1' => FeedPage([item(2)], null),
-            _ => throw StateError('unexpected'),
-          };
+        null => FeedPage([item(1)], 'c1'),
+        'c1' => FeedPage([item(2)], null),
+        _ => throw StateError('unexpected'),
+      };
     final c = make(repo);
     final n = c.read(feedControllerProvider.notifier);
     await n.load();
@@ -114,7 +118,7 @@ void main() {
 
   test('nearby passes coordinates when location granted', () async {
     final repo = FakeRepo();
-    final c = make(repo, loc: (lat: 1.5, lon: 2.5));
+    final c = make(repo, loc: const LatLng(1.5, 2.5));
     await c.read(feedControllerProvider.notifier).setSort(FeedSort.nearby);
     expect(c.read(feedControllerProvider).sort, FeedSort.nearby);
     expect(repo.calls.last.lat, 1.5);

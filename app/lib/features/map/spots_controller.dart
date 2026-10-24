@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../core/location_service.dart';
 import '../../core/models.dart';
 import '../spots/spots_repository.dart';
 
@@ -15,37 +15,9 @@ const kUserZoom = 13.0;
 /// Number of nicest spots (the API returns best first) drawn larger.
 const kTopSpots = 5;
 
-abstract class LocationService {
-  /// Current position, or null if permission is denied / unavailable.
-  Future<LatLng?> currentPosition();
-}
-
-class GeolocatorLocationService implements LocationService {
-  @override
-  Future<LatLng?> currentPosition() async {
-    try {
-      if (!await Geolocator.isLocationServiceEnabled()) return null;
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
-      }
-      if (perm == LocationPermission.denied ||
-          perm == LocationPermission.deniedForever) {
-        return null;
-      }
-      final p = await Geolocator.getCurrentPosition();
-      return LatLng(p.latitude, p.longitude);
-    } catch (_) {
-      return null;
-    }
-  }
-}
-
-final locationServiceProvider =
-    Provider<LocationService>((ref) => GeolocatorLocationService());
-
-final mapDebounceProvider =
-    Provider<Duration>((ref) => const Duration(milliseconds: 400));
+final mapDebounceProvider = Provider<Duration>(
+  (ref) => const Duration(milliseconds: 400),
+);
 
 class MapView {
   const MapView(this.centre, this.zoom, {this.located = false});
@@ -73,13 +45,12 @@ class SpotsState {
     bool? error,
     String? category,
     bool clearCategory = false,
-  }) =>
-      SpotsState(
-        spots: spots ?? this.spots,
-        loading: loading ?? this.loading,
-        error: error ?? this.error,
-        category: clearCategory ? null : (category ?? this.category),
-      );
+  }) => SpotsState(
+    spots: spots ?? this.spots,
+    loading: loading ?? this.loading,
+    error: error ?? this.error,
+    category: clearCategory ? null : (category ?? this.category),
+  );
 }
 
 class SpotsController extends Notifier<SpotsState> {
@@ -138,5 +109,6 @@ class SpotsController extends Notifier<SpotsState> {
   }
 }
 
-final spotsControllerProvider =
-    NotifierProvider<SpotsController, SpotsState>(SpotsController.new);
+final spotsControllerProvider = NotifierProvider<SpotsController, SpotsState>(
+  SpotsController.new,
+);

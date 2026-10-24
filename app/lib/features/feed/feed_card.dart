@@ -49,22 +49,28 @@ class FeedCard extends StatelessWidget {
               children: [
                 InkWell(
                   onTap: () => context.push('/spot/${item.spot.id}'),
-                  child: Text(item.spot.title,
-                      style: theme.textTheme.titleMedium),
+                  child: Text(
+                    item.spot.title,
+                    style: theme.textTheme.titleMedium,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text('${item.author.displayName} · '
-                    '${relativeTime(item.createdAt)}'),
+                Text(
+                  '${item.author.displayName} · '
+                  '${relativeTime(item.createdAt)}',
+                ),
                 if (item.body.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(item.body, maxLines: 3, overflow: TextOverflow.ellipsis),
                 ],
                 const SizedBox(height: 8),
-                Row(children: [
-                  const Icon(Icons.favorite_border, size: 18),
-                  const SizedBox(width: 4),
-                  Text(l10n.likesCount(item.spot.likeCount)),
-                ]),
+                Row(
+                  children: [
+                    const Icon(Icons.favorite_border, size: 18),
+                    const SizedBox(width: 4),
+                    Text(l10n.likesCount(item.spot.likeCount)),
+                  ],
+                ),
               ],
             ),
           ),
