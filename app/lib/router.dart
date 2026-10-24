@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'features/admin/admin_screen.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/profile_screen.dart';
@@ -17,10 +18,16 @@ import 'l10n/app_localizations.dart';
 const _protectedPaths = {'/spot/new'};
 
 /// Returns the redirect target for [location], or null to stay.
-String? authRedirect({required bool loggedIn, required String location}) {
-  if (!loggedIn && _protectedPaths.contains(location)) {
+String? authRedirect({
+  required bool loggedIn,
+  required String location,
+  bool isAdmin = false,
+}) {
+  if (!loggedIn &&
+      (_protectedPaths.contains(location) || location == '/admin')) {
     return '/login?from=${Uri.encodeComponent(location)}';
   }
+  if (loggedIn && !isAdmin && location == '/admin') return '/';
   return null;
 }
 
@@ -59,6 +66,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       return authRedirect(
         loggedIn: auth.value != null,
         location: state.uri.path,
+        isAdmin: auth.value?.isAdmin ?? false,
       );
     },
     routes: [
@@ -95,6 +103,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) =>
             LoginScreen(redirectTo: state.uri.queryParameters['from']),
       ),
+      GoRoute(path: '/admin', builder: (_, _) => const AdminScreen()),
       GoRoute(path: '/register', builder: (_, _) => const RegisterScreen()),
     ],
   );

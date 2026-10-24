@@ -79,5 +79,89 @@
   "placeSearchRateLimited": "Zu viele Suchanfragen, bitte gleich noch einmal versuchen",
   "placeSearchUnavailable": "Die Adresssuche ist gerade nicht verfügbar, bitte später erneut versuchen",
   "placeSearchError": "Suche fehlgeschlagen, bitte erneut versuchen",
-  "placeSearchShortLink": "Kurzlinks können nicht aufgelöst werden. Bitte den vollständigen Link oder die Koordinaten einfügen."
+  "placeSearchShortLink": "Kurzlinks können nicht aufgelöst werden. Bitte den vollständigen Link oder die Koordinaten einfügen.",
+  "adminOpen": "Admin",
+  "adminTitle": "Admin",
+  "adminReports": "Meldungen",
+  "adminUsers": "Nutzer",
+  "adminSpots": "Spots",
+  "adminReportCount": "{count, plural, =1{1 Meldung} other{{count} Meldungen}}",
+  "@adminReportCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminReportedBy": "Gemeldet von {name} ({email})",
+  "@adminReportedBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "adminTargetDeleted": "Gelöscht",
+  "adminUpdateOn": "Update zu {title}",
+  "@adminUpdateOn": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "statusActive": "Aktiv",
+  "statusHidden": "Versteckt",
+  "statusAll": "Alle",
+  "adminOpenSpot": "Spot öffnen",
+  "adminRemoveSpot": "Spot entfernen",
+  "adminRemove": "Entfernen",
+  "adminSearchUsers": "Name oder E-Mail suchen",
+  "adminSearchSpots": "Titel suchen",
+  "adminBadge": "admin",
+  "adminUserSpots": "{count, plural, =1{1 Spot} other{{count} Spots}}",
+  "@adminUserSpots": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminUserReports": "{count, plural, =1{1 Meldung erhalten} other{{count} Meldungen erhalten}}",
+  "@adminUserReports": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminJoined": "Beigetreten {date}",
+  "@adminJoined": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "adminSpotAuthor": "von {name}",
+  "@adminSpotAuthor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "adminRemoveTitle": "Spot entfernen?",
+  "adminRemoveBody": "„{title}“ wird mit allen Updates, Likes und Fotos endgültig gelöscht.",
+  "@adminRemoveBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "adminSpotRemoved": "Spot entfernt"
 }

@@ -535,6 +535,156 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Kurzlinks können nicht aufgelöst werden. Bitte den vollständigen Link oder die Koordinaten einfügen.'**
   String get placeSearchShortLink;
+
+  /// No description provided for @adminOpen.
+  ///
+  /// In de, this message translates to:
+  /// **'Admin'**
+  String get adminOpen;
+
+  /// No description provided for @adminTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Admin'**
+  String get adminTitle;
+
+  /// No description provided for @adminReports.
+  ///
+  /// In de, this message translates to:
+  /// **'Meldungen'**
+  String get adminReports;
+
+  /// No description provided for @adminUsers.
+  ///
+  /// In de, this message translates to:
+  /// **'Nutzer'**
+  String get adminUsers;
+
+  /// No description provided for @adminSpots.
+  ///
+  /// In de, this message translates to:
+  /// **'Spots'**
+  String get adminSpots;
+
+  /// No description provided for @adminReportCount.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =1{1 Meldung} other{{count} Meldungen}}'**
+  String adminReportCount(int count);
+
+  /// No description provided for @adminReportedBy.
+  ///
+  /// In de, this message translates to:
+  /// **'Gemeldet von {name} ({email})'**
+  String adminReportedBy(String name, String email);
+
+  /// No description provided for @adminTargetDeleted.
+  ///
+  /// In de, this message translates to:
+  /// **'Gelöscht'**
+  String get adminTargetDeleted;
+
+  /// No description provided for @adminUpdateOn.
+  ///
+  /// In de, this message translates to:
+  /// **'Update zu {title}'**
+  String adminUpdateOn(String title);
+
+  /// No description provided for @statusActive.
+  ///
+  /// In de, this message translates to:
+  /// **'Aktiv'**
+  String get statusActive;
+
+  /// No description provided for @statusHidden.
+  ///
+  /// In de, this message translates to:
+  /// **'Versteckt'**
+  String get statusHidden;
+
+  /// No description provided for @statusAll.
+  ///
+  /// In de, this message translates to:
+  /// **'Alle'**
+  String get statusAll;
+
+  /// No description provided for @adminOpenSpot.
+  ///
+  /// In de, this message translates to:
+  /// **'Spot öffnen'**
+  String get adminOpenSpot;
+
+  /// No description provided for @adminRemoveSpot.
+  ///
+  /// In de, this message translates to:
+  /// **'Spot entfernen'**
+  String get adminRemoveSpot;
+
+  /// No description provided for @adminRemove.
+  ///
+  /// In de, this message translates to:
+  /// **'Entfernen'**
+  String get adminRemove;
+
+  /// No description provided for @adminSearchUsers.
+  ///
+  /// In de, this message translates to:
+  /// **'Name oder E-Mail suchen'**
+  String get adminSearchUsers;
+
+  /// No description provided for @adminSearchSpots.
+  ///
+  /// In de, this message translates to:
+  /// **'Titel suchen'**
+  String get adminSearchSpots;
+
+  /// No description provided for @adminBadge.
+  ///
+  /// In de, this message translates to:
+  /// **'admin'**
+  String get adminBadge;
+
+  /// No description provided for @adminUserSpots.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =1{1 Spot} other{{count} Spots}}'**
+  String adminUserSpots(int count);
+
+  /// No description provided for @adminUserReports.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =1{1 Meldung erhalten} other{{count} Meldungen erhalten}}'**
+  String adminUserReports(int count);
+
+  /// No description provided for @adminJoined.
+  ///
+  /// In de, this message translates to:
+  /// **'Beigetreten {date}'**
+  String adminJoined(String date);
+
+  /// No description provided for @adminSpotAuthor.
+  ///
+  /// In de, this message translates to:
+  /// **'von {name}'**
+  String adminSpotAuthor(String name);
+
+  /// No description provided for @adminRemoveTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Spot entfernen?'**
+  String get adminRemoveTitle;
+
+  /// No description provided for @adminRemoveBody.
+  ///
+  /// In de, this message translates to:
+  /// **'„{title}“ wird mit allen Updates, Likes und Fotos endgültig gelöscht.'**
+  String adminRemoveBody(String title);
+
+  /// No description provided for @adminSpotRemoved.
+  ///
+  /// In de, this message translates to:
+  /// **'Spot entfernt'**
+  String get adminSpotRemoved;
 }
 
 class _AppLocalizationsDelegate

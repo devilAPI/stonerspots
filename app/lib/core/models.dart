@@ -5,16 +5,19 @@ class User {
     required this.id,
     required this.email,
     required this.displayName,
+    this.isAdmin = false,
   });
 
   final int id;
   final String email;
   final String displayName;
+  final bool isAdmin;
 
   factory User.fromJson(Map<String, dynamic> j) => User(
     id: j['id'] as int,
     email: (j['email'] ?? '') as String,
     displayName: (j['display_name'] ?? '') as String,
+    isAdmin: (j['is_admin'] ?? false) as bool,
   );
 
   @override
@@ -22,10 +25,11 @@ class User {
       other is User &&
       other.id == id &&
       other.email == email &&
-      other.displayName == displayName;
+      other.displayName == displayName &&
+      other.isAdmin == isAdmin;
 
   @override
-  int get hashCode => Object.hash(id, email, displayName);
+  int get hashCode => Object.hash(id, email, displayName, isAdmin);
 }
 
 class Spot {

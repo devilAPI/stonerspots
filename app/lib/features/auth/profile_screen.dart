@@ -42,6 +42,15 @@ class ProfileScreen extends ConsumerWidget {
                         style: theme.textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 24),
+                      if (user.isAdmin) ...[
+                        FilledButton.tonalIcon(
+                          key: const Key('open-admin'),
+                          icon: const Icon(Icons.admin_panel_settings_outlined),
+                          onPressed: () => context.push('/admin'),
+                          label: Text(l10n.adminOpen),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       OutlinedButton(
                         key: const Key('change-password'),
                         onPressed: () async {
