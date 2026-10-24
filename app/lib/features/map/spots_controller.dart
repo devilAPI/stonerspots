@@ -19,6 +19,12 @@ final mapDebounceProvider = Provider<Duration>(
   (ref) => const Duration(milliseconds: 400),
 );
 
+/// Upper bound for the first location lookup; a slow or missing location
+/// service must not leave the map waiting (or jumping later).
+final mapLocationTimeoutProvider = Provider<Duration>(
+  (ref) => const Duration(seconds: 4),
+);
+
 class MapView {
   const MapView(this.centre, this.zoom, {this.located = false});
   final LatLng centre;
@@ -66,7 +72,10 @@ class SpotsController extends Notifier<SpotsState> {
 
   /// Location if granted, else the DACH region centre.
   Future<MapView> resolveInitialView() async {
-    final pos = await ref.read(locationServiceProvider).currentPosition();
+    final pos = await ref
+        .read(locationServiceProvider)
+        .currentPosition()
+        .timeout(ref.read(mapLocationTimeoutProvider), onTimeout: () => null);
     return pos == null
         ? const MapView(kRegionCentre, kRegionZoom)
         : MapView(pos, kUserZoom, located: true);

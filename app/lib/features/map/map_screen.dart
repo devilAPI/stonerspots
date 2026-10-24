@@ -48,6 +48,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final _mapController = MapController();
   bool _deniedShown = false;
 
+  /// Set once the user drags/zooms; the late location result must then not
+  /// yank the camera away from where they are looking.
+  bool _userMoved = false;
+
+  // The cluster layer re-clusters whenever the *identity* of the marker list
+  // changes, so only rebuild it when the spots themselves change (not when
+  // e.g. `loading` toggles).
+  List<Spot>? _markerSource;
+  List<Marker> _markers = const [];
+
   @override
   void initState() {
     super.initState();
@@ -59,7 +69,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         .read(spotsControllerProvider.notifier)
         .resolveInitialView();
     if (!mounted) return;
-    _mapController.move(view.centre, view.zoom);
+    if (!_userMoved) _mapController.move(view.centre, view.zoom);
     if (!view.located && !_deniedShown) {
       _deniedShown = true;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -92,15 +102,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final state = ref.watch(spotsControllerProvider);
-    final top = state.spots.take(kTopSpots).map((s) => s.id).toSet();
-    final markers = [
-      for (final s in state.spots)
-        buildSpotMarker(
-          s,
-          large: top.contains(s.id),
-          onTap: () => _showPreview(s),
-        ),
-    ];
+    if (!identical(_markerSource, state.spots)) {
+      _markerSource = state.spots;
+      final top = state.spots.take(kTopSpots).map((s) => s.id).toSet();
+      _markers = [
+        for (final s in state.spots)
+          buildSpotMarker(
+            s,
+            large: top.contains(s.id),
+            onTap: () => _showPreview(s),
+          ),
+      ];
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.mapTitle)),
@@ -117,9 +130,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               initialCenter: kRegionCentre,
               initialZoom: kRegionZoom,
               onMapReady: _notifyBounds,
-              onPositionChanged: (camera, hasGesture) => ref
-                  .read(spotsControllerProvider.notifier)
-                  .onCameraMoved(camera.visibleBounds),
+              onPositionChanged: (camera, hasGesture) {
+                if (hasGesture) _userMoved = true;
+                ref
+                    .read(spotsControllerProvider.notifier)
+                    .onCameraMoved(camera.visibleBounds);
+              },
             ),
             children: [
               TileLayer(
@@ -130,7 +146,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 options: MarkerClusterLayerOptions(
                   maxClusterRadius: 60,
                   size: const Size(40, 40),
-                  markers: markers,
+                  markers: _markers,
                   builder: (context, markers) => Container(
                     alignment: Alignment.center,
                     decoration: const BoxDecoration(

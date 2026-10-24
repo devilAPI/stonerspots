@@ -32,6 +32,11 @@ class FakeLocation implements LocationService {
   Future<LatLng?> currentPosition() async => pos;
 }
 
+class HangingLocation implements LocationService {
+  @override
+  Future<LatLng?> currentPosition() => Completer<LatLng?>().future;
+}
+
 final bounds = LatLngBounds(const LatLng(49, 9), const LatLng(51, 11));
 const wait = Duration(milliseconds: 60);
 
@@ -109,6 +114,27 @@ void main() {
     expect(v.centre, const LatLng(49.5, 10.5));
     expect(v.zoom, 6);
   });
+
+  test(
+    'a location lookup that never answers falls back after the timeout',
+    () async {
+      final c = ProviderContainer(
+        overrides: [
+          mapSpotsRepositoryProvider.overrideWithValue(FakeRepo()),
+          locationServiceProvider.overrideWithValue(HangingLocation()),
+          mapLocationTimeoutProvider.overrideWithValue(
+            const Duration(milliseconds: 30),
+          ),
+        ],
+      );
+      addTearDown(c.dispose);
+      final v = await c
+          .read(spotsControllerProvider.notifier)
+          .resolveInitialView();
+      expect(v.located, isFalse);
+      expect(v.centre, const LatLng(49.5, 10.5));
+    },
+  );
 
   test('granted location is used as the start', () async {
     final c = make(FakeRepo(), pos: const LatLng(48.1, 11.6));
