@@ -111,4 +111,11 @@ void main() {
     }, (j) => j['id'] as int);
     expect(last.nextCursor, isNull);
   });
+
+  test('patches serialize only set fields', () {
+    expect(const AdminUserPatch().toJson(), isEmpty);
+    expect(const AdminUserPatch(isAdmin: false).toJson(), {'is_admin': false});
+    expect(const AdminSpotPatch(title: 'x', lat: 1).toJson(), {'title': 'x'});
+    expect(const AdminSpotPatch(lat: 1, lon: 2).toJson(), {'lat': 1, 'lon': 2});
+  });
 }

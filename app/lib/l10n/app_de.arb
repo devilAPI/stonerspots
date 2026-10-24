@@ -163,5 +163,41 @@
       }
     }
   },
-  "adminSpotRemoved": "Spot entfernt"
+  "adminSpotRemoved": "Spot entfernt",
+  "adminEdit": "Bearbeiten",
+  "adminEditUser": "Nutzer bearbeiten",
+  "adminEditSpot": "Spot bearbeiten",
+  "adminIsAdmin": "Admin",
+  "adminSelfAdminHint": "Du kannst deinen eigenen Admin-Status nicht ändern.",
+  "adminStatus": "Status",
+  "adminCoordinates": "Koordinaten (Breite, Länge)",
+  "adminCoordsInvalid": "Diese Koordinaten konnten nicht gelesen werden. Nutze z. B. 48.137, 11.575 oder einen Kartenlink.",
+  "adminUserSaved": "Nutzer aktualisiert",
+  "adminSpotSaved": "Spot aktualisiert",
+  "adminErrInvalidDisplayName": "Ungültiger Anzeigename",
+  "adminErrInvalidEmail": "Ungültige E-Mail-Adresse",
+  "adminErrEmailTaken": "Diese E-Mail-Adresse wird bereits verwendet",
+  "adminErrCannotDemoteSelf": "Du kannst dir die Admin-Rechte nicht selbst entziehen",
+  "adminErrLastAdmin": "Es muss mindestens einen Admin geben",
+  "adminErrInvalidTitle": "Ungültiger Titel",
+  "adminErrInvalidDescription": "Ungültige Beschreibung",
+  "adminErrInvalidCategory": "Ungültige Kategorie",
+  "adminErrInvalidStatus": "Ungültiger Status",
+  "adminErrInvalidLocation": "Ungültiger Ort",
+  "adminDismiss": "Verwerfen",
+  "adminMoreActions": "Weitere Aktionen",
+  "adminDismissAllRestore": "Alle verwerfen und wiederherstellen",
+  "adminDismissAllKeep": "Alle verwerfen (versteckt lassen)",
+  "adminDismissAllTitle": "Alle Meldungen verwerfen?",
+  "adminDismissAllRestoreBody": "Entfernt alle Meldungen zu diesem Inhalt und macht ihn wieder sichtbar.",
+  "adminDismissAllKeepBody": "Entfernt alle Meldungen zu diesem Inhalt. Versteckte Inhalte bleiben versteckt.",
+  "adminReportDismissed": "Meldung verworfen",
+  "adminReportsDismissed": "{count, plural, =1{1 Meldung verworfen} other{{count} Meldungen verworfen}}",
+  "@adminReportsDismissed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

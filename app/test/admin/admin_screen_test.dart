@@ -57,6 +57,10 @@ AdminUser _user(int id) => AdminUser(
 );
 
 class _Fake implements AdminRepository {
+  // New repository methods are not used by these tests.
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
   _Fake({this.pageSize = 3});
   final int pageSize;
   List<AdminReport> reportItems = [];

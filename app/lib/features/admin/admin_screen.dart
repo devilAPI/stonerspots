@@ -4,8 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
+import '../auth/auth_controller.dart';
 import 'admin_controller.dart';
+import 'admin_edit_dialogs.dart';
 import 'admin_models.dart';
+import 'admin_repository.dart';
 
 String _categoryLabel(AppLocalizations l, String c) => switch (c) {
   'bench' => l.categoryBench,
@@ -92,6 +95,125 @@ Future<void> _confirmRemoveSpot(
   try {
     await removeAdminSpot(ref, spotId);
     messenger.showSnackBar(SnackBar(content: Text(l10n.adminSpotRemoved)));
+  } catch (_) {
+    messenger.showSnackBar(SnackBar(content: Text(l10n.errorGeneric)));
+  }
+}
+
+Future<void> _editUser(
+  BuildContext context,
+  WidgetRef ref,
+  AdminUser user,
+) async {
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  int? me;
+  try {
+    me = (await ref.read(authControllerProvider.future))?.id;
+  } catch (_) {}
+  if (!context.mounted) return;
+  final updated = await showEditUserDialog(
+    context,
+    user: user,
+    currentUserId: me,
+  );
+  if (updated == null) return;
+  ref.read(adminUsersProvider.notifier).replace(updated);
+  messenger.showSnackBar(SnackBar(content: Text(l10n.adminUserSaved)));
+}
+
+/// Opens the spot edit dialog. [fallbackTitle] is used to look the spot up on
+/// the server when it is not in the loaded Spots list (e.g. from a report).
+Future<void> _editSpot(
+  BuildContext context,
+  WidgetRef ref,
+  int spotId, {
+  required String fallbackTitle,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  AdminSpot? spot;
+  for (final s in ref.read(adminSpotsProvider).items) {
+    if (s.id == spotId) spot = s;
+  }
+  if (spot == null) {
+    try {
+      final page = await ref
+          .read(adminRepositoryProvider)
+          .spots(q: fallbackTitle.isEmpty ? null : fallbackTitle, limit: 50);
+      for (final s in page.items) {
+        if (s.id == spotId) spot = s;
+      }
+    } catch (_) {}
+  }
+  if (spot == null) {
+    messenger.showSnackBar(SnackBar(content: Text(l10n.errorGeneric)));
+    return;
+  }
+  if (!context.mounted) return;
+  final updated = await showEditSpotDialog(context, spot: spot);
+  if (updated == null) return;
+  applyEditedSpot(ref, updated);
+  messenger.showSnackBar(SnackBar(content: Text(l10n.adminSpotSaved)));
+}
+
+Future<void> _dismissOne(
+  BuildContext context,
+  WidgetRef ref,
+  AdminReport report,
+) async {
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    await dismissAdminReport(ref, report);
+    messenger.showSnackBar(SnackBar(content: Text(l10n.adminReportDismissed)));
+  } catch (_) {
+    messenger.showSnackBar(SnackBar(content: Text(l10n.errorGeneric)));
+  }
+}
+
+Future<void> _dismissAll(
+  BuildContext context,
+  WidgetRef ref,
+  AdminReport report, {
+  required bool restore,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(l10n.adminDismissAllTitle),
+      content: Text(
+        restore
+            ? l10n.adminDismissAllRestoreBody
+            : l10n.adminDismissAllKeepBody,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          key: const Key('confirm-dismiss-all'),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(
+            restore ? l10n.adminDismissAllRestore : l10n.adminDismissAllKeep,
+          ),
+        ),
+      ],
+    ),
+  );
+  if (ok != true) return;
+  try {
+    final removed = await dismissAdminReportsOfTarget(
+      ref,
+      report,
+      restore: restore,
+    );
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.adminReportsDismissed(removed))),
+    );
   } catch (_) {
     messenger.showSnackBar(SnackBar(content: Text(l10n.errorGeneric)));
   }
@@ -370,28 +492,57 @@ class _ReportTile extends ConsumerWidget {
             ],
           ),
       ],
-      actions: t.exists && t.spotId != null
-          ? [
-              OutlinedButton(
-                key: Key('report-open-${report.id}'),
-                onPressed: () => context.push('/spot/${t.spotId}'),
-                child: Text(l10n.adminOpenSpot),
-              ),
-              OutlinedButton(
-                key: Key('report-remove-${report.id}'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: theme.colorScheme.error,
-                ),
-                onPressed: () => _confirmRemoveSpot(
-                  context,
-                  ref,
-                  spotId: t.spotId!,
-                  title: t.title,
-                ),
-                child: Text(l10n.adminRemoveSpot),
-              ),
-            ]
-          : const [],
+      actions: [
+        OutlinedButton(
+          key: Key('report-dismiss-${report.id}'),
+          onPressed: () => _dismissOne(context, ref, report),
+          child: Text(l10n.adminDismiss),
+        ),
+        if (t.exists && t.spotId != null) ...[
+          OutlinedButton(
+            key: Key('report-open-${report.id}'),
+            onPressed: () => context.push('/spot/${t.spotId}'),
+            child: Text(l10n.adminOpenSpot),
+          ),
+          OutlinedButton(
+            key: Key('report-edit-spot-${report.id}'),
+            onPressed: () =>
+                _editSpot(context, ref, t.spotId!, fallbackTitle: t.title),
+            child: Text(l10n.adminEditSpot),
+          ),
+          OutlinedButton(
+            key: Key('report-remove-${report.id}'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: theme.colorScheme.error,
+            ),
+            onPressed: () => _confirmRemoveSpot(
+              context,
+              ref,
+              spotId: t.spotId!,
+              title: t.title,
+            ),
+            child: Text(l10n.adminRemoveSpot),
+          ),
+        ],
+        PopupMenuButton<bool>(
+          key: Key('report-more-${report.id}'),
+          tooltip: l10n.adminMoreActions,
+          onSelected: (restore) =>
+              _dismissAll(context, ref, report, restore: restore),
+          itemBuilder: (_) => [
+            PopupMenuItem(
+              key: Key('report-dismiss-all-restore-${report.id}'),
+              value: true,
+              child: Text(l10n.adminDismissAllRestore),
+            ),
+            PopupMenuItem(
+              key: Key('report-dismiss-all-keep-${report.id}'),
+              value: false,
+              child: Text(l10n.adminDismissAllKeep),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -468,6 +619,13 @@ class _UsersTabState extends ConsumerState<_UsersTab> {
                           .formatShortDate(u.createdAt.toLocal()),
                     ),
                     style: theme.textTheme.bodySmall,
+                  ),
+                ],
+                actions: [
+                  OutlinedButton(
+                    key: Key('user-edit-${u.id}'),
+                    onPressed: () => _editUser(ctx, ref, u),
+                    child: Text(l10n.adminEdit),
                   ),
                 ],
               );
@@ -571,6 +729,12 @@ class _SpotsTabState extends ConsumerState<_SpotsTab> {
                   ),
                 ],
                 actions: [
+                  OutlinedButton(
+                    key: Key('spot-edit-${s.id}'),
+                    onPressed: () =>
+                        _editSpot(ctx, ref, s.id, fallbackTitle: s.title),
+                    child: Text(l10n.adminEdit),
+                  ),
                   OutlinedButton(
                     key: Key('spot-open-${s.id}'),
                     onPressed: () => ctx.push('/spot/${s.id}'),
