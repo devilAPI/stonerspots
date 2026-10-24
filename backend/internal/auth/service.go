@@ -42,8 +42,9 @@ type Session struct {
 }
 
 type service struct {
-	db     *sql.DB
-	secret []byte
+	db        *sql.DB
+	secret    []byte
+	uploadDir string
 }
 
 // dummyHash is compared against when the email is unknown so that login
