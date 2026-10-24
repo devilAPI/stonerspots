@@ -15,6 +15,8 @@ class SpotClusterLayer extends StatelessWidget {
     return MarkerClusterLayerWidget(
       options: MarkerClusterLayerOptions(
         maxClusterRadius: 60,
+        // no outline of the tapped cluster (it showed up as a green triangle)
+        showPolygon: false,
         size: const Size(40, 40),
         markers: markers,
         builder: (context, markers) => Container(

@@ -66,4 +66,23 @@ void main() {
       expect(find.text('6'), findsNothing);
     },
   );
+
+  testWidgets('tapping a number bubble does not flash the cluster outline', (
+    tester,
+  ) async {
+    await tester.pumpWidget(app(markers()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('6'));
+    // sample the zoom animation several times; the outline polygon (the
+    // green triangle) must never be on screen
+    for (var i = 0; i < 8; i++) {
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(
+        find.byType(PolygonLayer),
+        findsNothing,
+        reason: 'cluster outline visible at frame $i',
+      );
+    }
+    await tester.pumpAndSettle();
+  });
 }
