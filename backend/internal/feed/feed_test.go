@@ -188,10 +188,10 @@ func TestCannotAttachSomeoneElsesPhoto(t *testing.T) {
 func TestFeedNewestFirst(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)
-	s := newSpot(t, db, u, "lake", 48, 11, 0)
-	a := newUpdate(t, db, s, u, "a", "2026-01-01 10:00:00")
-	b := newUpdate(t, db, s, u, "b", "2026-01-03 10:00:00")
-	c := newUpdate(t, db, s, u, "c", "2026-01-02 10:00:00")
+	// one card per spot, so three spots with one update each
+	a := newUpdate(t, db, newSpot(t, db, u, "lake", 48, 11, 0), u, "a", "2026-01-01 10:00:00")
+	b := newUpdate(t, db, newSpot(t, db, u, "lake", 48.1, 11, 0), u, "b", "2026-01-03 10:00:00")
+	c := newUpdate(t, db, newSpot(t, db, u, "lake", 48.2, 11, 0), u, "c", "2026-01-02 10:00:00")
 	code, fr, body := getFeed(t, h, url.Values{"sort": {"new"}})
 	if code != 200 || len(fr.Items) != 3 || fr.Items[0].ID != b || fr.Items[1].ID != c || fr.Items[2].ID != a {
 		t.Fatalf("%d %s", code, body)
@@ -220,11 +220,12 @@ func TestFeedTopSortsBySpotLikeCount(t *testing.T) {
 	a := newUpdate(t, db, low, u, "a", "2026-01-01 10:00:00")
 	b := newUpdate(t, db, high, u, "b", "2026-01-01 10:00:00")
 	c := newUpdate(t, db, high, u, "c", "2026-01-01 10:00:00")
-	_, fr, body := getFeed(t, h, url.Values{"sort": {"top"}, "limit": {"2"}})
-	if len(fr.Items) != 2 || fr.Items[0].ID != c || fr.Items[1].ID != b || fr.NextCursor == nil {
+	_ = b // superseded by c: the feed shows only the latest update of a spot
+	_, fr, body := getFeed(t, h, url.Values{"sort": {"top"}, "limit": {"1"}})
+	if len(fr.Items) != 1 || fr.Items[0].ID != c || fr.NextCursor == nil {
 		t.Fatal(body)
 	}
-	_, fr2, body := getFeed(t, h, url.Values{"sort": {"top"}, "limit": {"2"}, "cursor": {*fr.NextCursor}})
+	_, fr2, body := getFeed(t, h, url.Values{"sort": {"top"}, "limit": {"1"}, "cursor": {*fr.NextCursor}})
 	if len(fr2.Items) != 1 || fr2.Items[0].ID != a || fr2.NextCursor != nil {
 		t.Fatal(body)
 	}
@@ -277,9 +278,9 @@ func TestFeedCategoryFilter(t *testing.T) {
 func TestCursorPaginationWithIdenticalTimestamps(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)
-	s := newSpot(t, db, u, "lake", 48, 11, 0)
 	want := map[uint64]bool{}
 	for i := 0; i < 25; i++ {
+		s := newSpot(t, db, u, "lake", 48, 11, 0) // one card per spot
 		want[newUpdate(t, db, s, u, "x", "2026-01-01 10:00:00")] = true
 	}
 	for _, sortName := range []string{"new", "top", "nearby"} {

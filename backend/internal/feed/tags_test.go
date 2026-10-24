@@ -14,19 +14,23 @@ import (
 func TestFeedSpotCarriesTagsAndFilters(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)
-	// 25 matching items (spot with roof+quiet), 10 with only roof, 5 with none.
-	both := newSpot(t, db, u, "bench", 48, 11, 1)
-	roofOnly := newSpot(t, db, u, "bench", 48.1, 11.1, 2)
-	none := newSpot(t, db, u, "bench", 48.2, 11.2, 3)
-	db.Exec(`INSERT INTO spot_tags (spot_id, tag) VALUES (?, 'roof'), (?, 'quiet'), (?, 'roof')`, both, both, roofOnly)
+	// The feed shows one card per spot: 25 spots with roof+quiet, 10 with only
+	// roof, 5 with none, each with one update.
+	both := map[uint64]bool{}
 	for i := 0; i < 25; i++ {
-		newUpdate(t, db, both, u, fmt.Sprintf("b%d", i), fmt.Sprintf("2026-01-01 10:%02d:00", i))
+		s := newSpot(t, db, u, "bench", 48+float64(i)*0.001, 11, i)
+		both[s] = true
+		db.Exec(`INSERT INTO spot_tags (spot_id, tag) VALUES (?, 'roof'), (?, 'quiet')`, s, s)
+		newUpdate(t, db, s, u, fmt.Sprintf("b%d", i), fmt.Sprintf("2026-01-01 10:%02d:00", i))
 	}
 	for i := 0; i < 10; i++ {
-		newUpdate(t, db, roofOnly, u, fmt.Sprintf("r%d", i), fmt.Sprintf("2026-01-01 11:%02d:00", i))
+		s := newSpot(t, db, u, "bench", 48.1+float64(i)*0.001, 11.1, i)
+		db.Exec(`INSERT INTO spot_tags (spot_id, tag) VALUES (?, 'roof')`, s)
+		newUpdate(t, db, s, u, fmt.Sprintf("r%d", i), fmt.Sprintf("2026-01-01 11:%02d:00", i))
 	}
 	for i := 0; i < 5; i++ {
-		newUpdate(t, db, none, u, fmt.Sprintf("n%d", i), fmt.Sprintf("2026-01-01 12:%02d:00", i))
+		s := newSpot(t, db, u, "bench", 48.2+float64(i)*0.001, 11.2, i)
+		newUpdate(t, db, s, u, fmt.Sprintf("n%d", i), fmt.Sprintf("2026-01-01 12:%02d:00", i))
 	}
 
 	for _, sort := range []string{"new", "top", "nearby"} {
@@ -48,7 +52,7 @@ func TestFeedSpotCarriesTagsAndFilters(t *testing.T) {
 					t.Fatalf("%s: duplicate item %d", sort, it.ID)
 				}
 				seen[it.ID] = true
-				if it.Spot.ID != both {
+				if !both[it.Spot.ID] {
 					t.Fatalf("%s: item of spot %d leaked through filter", sort, it.Spot.ID)
 				}
 				if !reflect.DeepEqual(it.Spot.Tags, []string{"roof", "quiet"}) {

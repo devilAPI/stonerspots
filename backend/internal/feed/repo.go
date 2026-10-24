@@ -75,6 +75,10 @@ type FeedItem struct {
 	Author    Author     `json:"author"`
 	Spot      SpotRef    `json:"spot"`
 
+	// UpdateCount is how many active updates the spot has (>= 1): the feed
+	// shows one card per spot, so older updates are reachable via this count.
+	UpdateCount int `json:"update_count"`
+
 	sortKey float64
 }
 
@@ -205,7 +209,8 @@ const selectBase = `SELECT u.id, u.body, u.created_at, u.tag, u.edited_at,
   a.id, a.display_name,
   s.id, s.title, s.category, ST_Y(s.location), ST_X(s.location), s.like_count,
   (SELECT COALESCE(ROUND(AVG(rv.rating), 1), 0) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active'),
-  (SELECT COUNT(*) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active')`
+  (SELECT COUNT(*) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active'),
+  (SELECT COUNT(*) FROM spot_updates uc WHERE uc.spot_id = s.id AND uc.status = 'active')`
 
 const fromBase = ` FROM spot_updates u
   JOIN spots s ON s.id = u.spot_id
@@ -221,6 +226,7 @@ func scanItem(rows *sql.Rows) (FeedItem, error) {
 		&it.Author.ID, &it.Author.DisplayName,
 		&it.Spot.ID, &it.Spot.Title, &it.Spot.Category, &it.Spot.Lat, &it.Spot.Lon, &it.Spot.LikeCount,
 		&it.Spot.RatingAvg, &it.Spot.RatingCount,
+		&it.UpdateCount,
 		&it.sortKey)
 	it.Photos = []PhotoRef{}
 	it.Spot.Tags = []string{}
@@ -263,8 +269,12 @@ func list(ctx context.Context, db *sql.DB, base string, q query) ([]FeedItem, *s
 		catArgs = []any{q.category}
 	}
 	if q.spotID != 0 {
+		// a spot's own timeline lists every update
 		catWhere += " AND s.id = ?"
 		catArgs = append(catArgs, q.spotID)
+	} else {
+		// the feed shows each spot once, with its latest active update
+		catWhere += " AND u.id = (SELECT MAX(ul.id) FROM spot_updates ul WHERE ul.spot_id = u.spot_id AND ul.status = 'active')"
 	}
 	tq, targs := tagset.FilterSQL("s", q.tags)
 	catWhere += tq
