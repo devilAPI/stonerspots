@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"stonerspots/backend/internal/admin"
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/auth"
 	"stonerspots/backend/internal/engagement"
@@ -29,6 +30,7 @@ func New(d app.Deps) http.Handler {
 		feed.Mount(r, d)
 		engagement.Mount(r, d)
 		geocode.Mount(r, d)
+		admin.Mount(r, d)
 	})
 	return r
 }

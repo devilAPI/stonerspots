@@ -32,6 +32,7 @@ type User struct {
 	ID          uint64 `json:"id"`
 	Email       string `json:"email"`
 	DisplayName string `json:"display_name"`
+	IsAdmin     bool   `json:"is_admin"`
 }
 
 // Session is returned by register, login and refresh.
@@ -109,8 +110,8 @@ func (s *service) login(ctx context.Context, email, password string) (*Session, 
 	var u User
 	var hash string
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, email, display_name, password_hash FROM users WHERE email = ?`, email,
-	).Scan(&u.ID, &u.Email, &u.DisplayName, &hash)
+		`SELECT id, email, display_name, is_admin, password_hash FROM users WHERE email = ?`, email,
+	).Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin, &hash)
 	if errors.Is(err, sql.ErrNoRows) {
 		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
 		return nil, errBadCredentials
@@ -182,8 +183,8 @@ func newUUID() string {
 
 func (s *service) user(ctx context.Context, id uint64) (*User, error) {
 	var u User
-	err := s.db.QueryRowContext(ctx, `SELECT id, email, display_name FROM users WHERE id = ?`, id).
-		Scan(&u.ID, &u.Email, &u.DisplayName)
+	err := s.db.QueryRowContext(ctx, `SELECT id, email, display_name, is_admin FROM users WHERE id = ?`, id).
+		Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin)
 	if err != nil {
 		return nil, err
 	}

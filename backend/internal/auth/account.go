@@ -26,8 +26,8 @@ func (s *service) checkPassword(ctx context.Context, userID uint64, password str
 	var u User
 	var hash string
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, email, display_name, password_hash FROM users WHERE id = ?`, userID,
-	).Scan(&u.ID, &u.Email, &u.DisplayName, &hash)
+		`SELECT id, email, display_name, is_admin, password_hash FROM users WHERE id = ?`, userID,
+	).Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin, &hash)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errNoUser
 	}
