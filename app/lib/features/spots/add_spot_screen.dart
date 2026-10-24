@@ -9,6 +9,7 @@ import '../../l10n/app_localizations.dart';
 import 'add_spot_controller.dart';
 import 'location_picker.dart';
 import 'photo_uploader.dart';
+import 'place_search.dart';
 
 String categoryLabel(AppLocalizations l, String c) => switch (c) {
   'bench' => l.categoryBench,
@@ -76,7 +77,11 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
           return LocationPicker(
             point: s.point,
             initialCenter: snap.data,
-            onChanged: ctrl.setPoint,
+            focus: ref.watch(placeSearchControllerProvider).focus,
+            onChanged: (p) {
+              ctrl.setPoint(p);
+              ref.read(placeSearchControllerProvider.notifier).dismiss();
+            },
           );
         },
       ),
@@ -203,6 +208,8 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const PlaceSearchField(),
+                        const SizedBox(height: 8),
                         Expanded(child: pickerBox),
                         deniedNote,
                       ],
@@ -222,6 +229,8 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                const PlaceSearchField(),
+                const SizedBox(height: 8),
                 SizedBox(height: 240, child: pickerBox),
                 deniedNote,
                 const SizedBox(height: 16),

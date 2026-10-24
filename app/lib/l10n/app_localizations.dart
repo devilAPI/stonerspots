@@ -475,6 +475,66 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Endgültig löschen'**
   String get deleteAccountConfirm;
+
+  /// No description provided for @placeSearchHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Adresse oder Koordinaten'**
+  String get placeSearchHint;
+
+  /// No description provided for @placeSearchClear.
+  ///
+  /// In de, this message translates to:
+  /// **'Leeren'**
+  String get placeSearchClear;
+
+  /// No description provided for @placeSearchGo.
+  ///
+  /// In de, this message translates to:
+  /// **'Suchen'**
+  String get placeSearchGo;
+
+  /// No description provided for @placeSearchTooShort.
+  ///
+  /// In de, this message translates to:
+  /// **'Bitte mindestens 3 Zeichen eingeben'**
+  String get placeSearchTooShort;
+
+  /// No description provided for @placeSearchNoResult.
+  ///
+  /// In de, this message translates to:
+  /// **'Kein Ort gefunden'**
+  String get placeSearchNoResult;
+
+  /// No description provided for @placeSearchOutside.
+  ///
+  /// In de, this message translates to:
+  /// **'Diese Koordinaten liegen außerhalb des unterstützten Gebiets (Deutschland, Österreich, Schweiz, Liechtenstein)'**
+  String get placeSearchOutside;
+
+  /// No description provided for @placeSearchRateLimited.
+  ///
+  /// In de, this message translates to:
+  /// **'Zu viele Suchanfragen, bitte gleich noch einmal versuchen'**
+  String get placeSearchRateLimited;
+
+  /// No description provided for @placeSearchUnavailable.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Adresssuche ist gerade nicht verfügbar, bitte später erneut versuchen'**
+  String get placeSearchUnavailable;
+
+  /// No description provided for @placeSearchError.
+  ///
+  /// In de, this message translates to:
+  /// **'Suche fehlgeschlagen, bitte erneut versuchen'**
+  String get placeSearchError;
+
+  /// No description provided for @placeSearchShortLink.
+  ///
+  /// In de, this message translates to:
+  /// **'Kurzlinks können nicht aufgelöst werden. Bitte den vollständigen Link oder die Koordinaten einfügen.'**
+  String get placeSearchShortLink;
 }
 
 class _AppLocalizationsDelegate
