@@ -17,6 +17,7 @@ import (
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/config"
 	"stonerspots/backend/internal/feed"
+	"stonerspots/backend/internal/quotas"
 	"stonerspots/backend/internal/testutil"
 )
 
@@ -25,7 +26,7 @@ func setupDir(t *testing.T) (*sql.DB, http.Handler, string) {
 	db := testutil.NewDB(t)
 	dir := t.TempDir()
 	r := chi.NewRouter()
-	feed.Mount(r, app.Deps{DB: db, Cfg: config.Config{JWTSecret: []byte(testutil.JWTSecret), PublicBaseURL: "http://test", UploadDir: dir}})
+	feed.Mount(r, app.Deps{DB: db, Cfg: config.Config{JWTSecret: []byte(testutil.JWTSecret), PublicBaseURL: "http://test", UploadDir: dir}}, quotas.NewTracker(quotas.Config{}))
 	return db, r, dir
 }
 

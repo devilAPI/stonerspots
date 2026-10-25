@@ -15,12 +15,16 @@ import (
 	"stonerspots/backend/internal/auth"
 	"stonerspots/backend/internal/feed"
 	"stonerspots/backend/internal/httpx"
+	"stonerspots/backend/internal/quotas"
 	"stonerspots/backend/internal/spots/tagset"
 )
 
 // Mount registers spot routes with full paths on the /api/v1 router.
-func Mount(r chi.Router, d app.Deps) {
-	h := &handler{repo: &Repo{DB: d.DB, PublicBaseURL: strings.TrimRight(d.Cfg.PublicBaseURL, "/")}}
+func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
+	h := &handler{
+		repo:  &Repo{DB: d.DB, PublicBaseURL: strings.TrimRight(d.Cfg.PublicBaseURL, "/")},
+		quota: quota,
+	}
 	r.With(auth.Middleware(d.Cfg.JWTSecret)).Post("/spots", h.create)
 	r.Get("/spots/nearby", h.nearby)
 	r.With(auth.Middleware(d.Cfg.JWTSecret)).Put("/spots/{id}/tags", h.putTags)
@@ -44,7 +48,10 @@ func (h *handler) tags(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, list)
 }
 
-type handler struct{ repo *Repo }
+type handler struct {
+	repo  *Repo
+	quota *quotas.Tracker
+}
 
 type createReq struct {
 	Title       string   `json:"title"`
@@ -158,6 +165,10 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 	uid, ok := auth.UserID(r.Context())
 	if !ok {
 		httpx.Error(w, http.StatusUnauthorized, "unauthorized", "login required")
+		return
+	}
+	if h.quota != nil && !h.quota.Allow(uid, quotas.Spots) {
+		httpx.Error(w, http.StatusTooManyRequests, "quota_exceeded", "daily spot creation limit reached")
 		return
 	}
 	var req createReq

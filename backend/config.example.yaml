@@ -16,8 +16,10 @@ public_base_url: "http://localhost:8080"
 allowed_origins:
   - "https://devilapi.github.io"
 
-# Secret that signs login tokens. Required; use a long random string,
-# e.g. `openssl rand -hex 32` [JWT_SECRET]
+# Secret that signs login tokens: whoever knows it can log in as anyone.
+# Required, at least 32 characters, e.g. `openssl rand -hex 32`. The API
+# refuses to start with this example value unless public_base_url is
+# localhost [JWT_SECRET]
 jwt_secret: "change-me"
 
 # Where uploaded photos are stored [UPLOAD_DIR]
@@ -28,6 +30,31 @@ migrations_dir: "./migrations"
 
 # Nominatim-compatible geocoder [GEOCODER_URL]
 geocoder_url: "https://nominatim.openstreetmap.org"
+
+# Reverse proxies (IPs or CIDR ranges) whose X-Forwarded-For header is
+# trusted to name the client, e.g. ["127.0.0.1", "::1"] when Caddy or nginx
+# runs on the same machine. Empty: the connection address is the client,
+# which is right when clients connect directly. Rate limits work per client
+# IP, so a wrong value lets clients dodge them [TRUSTED_PROXIES, comma-separated]
+trusted_proxies: []
+
+# Rate limits (N requests per period). All periods are duration strings like "1m", "1h".
+# Zero disables the limit. Override via env vars with the same names in uppercase.
+limits:
+  per_ip:         { n: 600, per: "1m" }   # every request, per client IP
+  login:          { n: 10,  per: "1m" }   # login attempts per IP
+  login_failures: { n: 20,  per: "1h" }   # wrong passwords per account (email)
+  register:       { n: 5,   per: "1h" }   # new accounts per IP
+  refresh:        { n: 30,  per: "1m" }   # token refreshes per IP
+  uploads:        { n: 30,  per: "1h" }   # photo uploads per user
+  spots_per_day:     10   # new spots per user per day (0 = unlimited)
+  updates_per_day:   50   # spot updates per user per day (0 = unlimited)
+  reviews_per_day:   20   # reviews per user per day (0 = unlimited)
+  reports_per_day:   10   # reports per user per day (0 = unlimited)
+
+# Global request body size limit as a safety net (bytes). Per-handler limits
+# still apply (e.g. 8 MB for photo uploads). Default 10 MB [MAX_BODY_BYTES].
+max_body_bytes: 10485760
 
 # MariaDB 11.4 (see schema.example.sql for the table layout).
 database:

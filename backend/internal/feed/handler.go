@@ -12,6 +12,7 @@ import (
 
 	"stonerspots/backend/internal/auth"
 	"stonerspots/backend/internal/httpx"
+	"stonerspots/backend/internal/quotas"
 	"stonerspots/backend/internal/spots/tagset"
 )
 
@@ -19,12 +20,17 @@ type handler struct {
 	db        *sql.DB
 	base      string
 	uploadDir string
+	quota     *quotas.Tracker
 }
 
 func (h *handler) postUpdate(w http.ResponseWriter, r *http.Request) {
 	uid, ok := auth.UserID(r.Context())
 	if !ok {
 		httpx.Error(w, http.StatusUnauthorized, "unauthorized", "authentication required")
+		return
+	}
+	if h.quota != nil && !h.quota.Allow(uid, quotas.Updates) {
+		httpx.Error(w, http.StatusTooManyRequests, "quota_exceeded", "daily update limit reached")
 		return
 	}
 	spotID, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)

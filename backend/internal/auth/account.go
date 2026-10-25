@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -156,6 +157,10 @@ func (h *handler) changePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, _ := UserID(r.Context())
+	key := "user:" + strconv.FormatUint(id, 10)
+	if h.passwordBlocked(w, key) {
+		return
+	}
 	if len(in.NewPassword) < 10 || len(in.NewPassword) > 72 || in.NewPassword == in.CurrentPassword {
 		// Existence check first so a deleted user gets 401, not 400.
 		if _, err := h.svc.user(r.Context(), id); err != nil {
@@ -167,6 +172,9 @@ func (h *handler) changePassword(w http.ResponseWriter, r *http.Request) {
 	}
 	s, err := h.svc.changePassword(r.Context(), id, in.CurrentPassword, in.NewPassword)
 	if err != nil {
+		if errors.Is(err, errWrongPassword) {
+			h.failures.Allow(key)
+		}
 		h.accountError(w, err)
 		return
 	}
@@ -181,7 +189,14 @@ func (h *handler) deleteAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, _ := UserID(r.Context())
+	key := "user:" + strconv.FormatUint(id, 10)
+	if h.passwordBlocked(w, key) {
+		return
+	}
 	if err := h.svc.deleteAccount(r.Context(), id, in.Password); err != nil {
+		if errors.Is(err, errWrongPassword) {
+			h.failures.Allow(key)
+		}
 		h.accountError(w, err)
 		return
 	}

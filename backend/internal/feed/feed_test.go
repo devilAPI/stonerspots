@@ -17,6 +17,7 @@ import (
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/config"
 	"stonerspots/backend/internal/feed"
+	"stonerspots/backend/internal/quotas"
 	"stonerspots/backend/internal/testutil"
 )
 
@@ -24,7 +25,7 @@ func setup(t *testing.T) (*sql.DB, http.Handler) {
 	t.Helper()
 	db := testutil.NewDB(t)
 	r := chi.NewRouter()
-	feed.Mount(r, app.Deps{DB: db, Cfg: config.Config{JWTSecret: []byte(testutil.JWTSecret), PublicBaseURL: "http://test"}})
+	feed.Mount(r, app.Deps{DB: db, Cfg: config.Config{JWTSecret: []byte(testutil.JWTSecret), PublicBaseURL: "http://test"}}, quotas.NewTracker(quotas.Config{}))
 	return db, r
 }
 

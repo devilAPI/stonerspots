@@ -7,9 +7,29 @@ import (
 	"unicode/utf8"
 
 	"stonerspots/backend/internal/httpx"
+	"stonerspots/backend/internal/ratelimit"
 )
 
-type handler struct{ svc *service }
+type handler struct {
+	svc *service
+
+	// failures counts wrong passwords per account ("email:..." for logins,
+	// "user:<id>" for password change and deletion): once used up, the
+	// password is not even checked until tokens refill. This stops guessing
+	// spread over many IPs, at the price that an attacker can lock an
+	// account's logins for a while.
+	failures *ratelimit.Limiter
+}
+
+// passwordBlocked writes the 429 and reports true when key has no wrong
+// guesses left.
+func (h *handler) passwordBlocked(w http.ResponseWriter, key string) bool {
+	if blocked, retry := h.failures.Blocked(key); blocked {
+		ratelimit.TooMany(w, retry)
+		return true
+	}
+	return false
+}
 
 func decodeBody(w http.ResponseWriter, r *http.Request, v any) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<16)
@@ -71,9 +91,14 @@ func (h *handler) login(w http.ResponseWriter, r *http.Request) {
 	if !decodeBody(w, r, &in) {
 		return
 	}
-	s, err := h.svc.login(r.Context(), normalizeEmail(in.Email), in.Password)
+	email := normalizeEmail(in.Email)
+	if h.passwordBlocked(w, "email:"+email) {
+		return
+	}
+	s, err := h.svc.login(r.Context(), email, in.Password)
 	switch {
 	case errors.Is(err, errBadCredentials):
+		h.failures.Allow("email:" + email)
 		httpx.Error(w, http.StatusUnauthorized, "invalid_credentials", "invalid email or password")
 	case err != nil:
 		serverError(w)

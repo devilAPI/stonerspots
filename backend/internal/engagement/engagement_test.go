@@ -15,6 +15,7 @@ import (
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/config"
 	"stonerspots/backend/internal/engagement"
+	"stonerspots/backend/internal/quotas"
 	"stonerspots/backend/internal/testutil"
 )
 
@@ -22,7 +23,7 @@ func setup(t *testing.T) (*sql.DB, http.Handler) {
 	t.Helper()
 	db := testutil.NewDB(t)
 	r := chi.NewRouter()
-	engagement.Mount(r, app.Deps{DB: db, Cfg: config.Config{JWTSecret: []byte(testutil.JWTSecret)}})
+	engagement.Mount(r, app.Deps{DB: db, Cfg: config.Config{JWTSecret: []byte(testutil.JWTSecret)}}, quotas.NewTracker(quotas.Config{}))
 	return db, r
 }
 

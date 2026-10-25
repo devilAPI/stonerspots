@@ -12,18 +12,22 @@ import (
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/auth"
 	"stonerspots/backend/internal/httpx"
+	"stonerspots/backend/internal/quotas"
 )
 
 // Mount registers like and report routes on the /api/v1 router.
-func Mount(r chi.Router, d app.Deps) {
-	h := handler{repo: repo{db: d.DB}}
+func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
+	h := handler{repo: repo{db: d.DB}, quota: quota}
 	authed := r.With(auth.Middleware(d.Cfg.JWTSecret))
 	authed.Put("/spots/{id}/like", h.like(true))
 	authed.Delete("/spots/{id}/like", h.like(false))
 	authed.Post("/reports", h.report)
 }
 
-type handler struct{ repo repo }
+type handler struct {
+	repo  repo
+	quota *quotas.Tracker
+}
 
 func (h handler) like(liked bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -54,6 +58,10 @@ func (h handler) report(w http.ResponseWriter, r *http.Request) {
 	uid, ok := auth.UserID(r.Context())
 	if !ok {
 		httpx.Error(w, http.StatusUnauthorized, "unauthorized", "login required")
+		return
+	}
+	if h.quota != nil && !h.quota.Allow(uid, quotas.Reports) {
+		httpx.Error(w, http.StatusTooManyRequests, "quota_exceeded", "daily report limit reached")
 		return
 	}
 	var in struct {

@@ -5,12 +5,13 @@ import (
 
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/auth"
+	"stonerspots/backend/internal/quotas"
 )
 
 // Mount registers feed and update routes on the /api/v1 router. Full paths are
 // registered (no r.Route("/spots")) because other modules share the prefix.
-func Mount(r chi.Router, d app.Deps) {
-	h := &handler{db: d.DB, base: d.Cfg.PublicBaseURL, uploadDir: d.Cfg.UploadDir}
+func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
+	h := &handler{db: d.DB, base: d.Cfg.PublicBaseURL, uploadDir: d.Cfg.UploadDir, quota: quota}
 	authed := r.With(auth.Middleware(d.Cfg.JWTSecret))
 	authed.Post("/spots/{id}/updates", h.postUpdate)
 	authed.Patch("/updates/{id}", h.patchUpdate)

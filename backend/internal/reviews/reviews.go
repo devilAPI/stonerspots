@@ -18,6 +18,7 @@ import (
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/auth"
 	"stonerspots/backend/internal/httpx"
+	"stonerspots/backend/internal/quotas"
 )
 
 const (
@@ -27,15 +28,18 @@ const (
 )
 
 // Mount registers review routes with full paths on the /api/v1 router.
-func Mount(r chi.Router, d app.Deps) {
-	h := &handler{db: d.DB}
+func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
+	h := &handler{db: d.DB, quota: quota}
 	r.With(auth.Optional(d.Cfg.JWTSecret)).Get("/spots/{id}/reviews", h.list)
 	authed := r.With(auth.Middleware(d.Cfg.JWTSecret))
 	authed.Put("/spots/{id}/review", h.put)
 	authed.Delete("/spots/{id}/review", h.delete)
 }
 
-type handler struct{ db *sql.DB }
+type handler struct {
+	db    *sql.DB
+	quota *quotas.Tracker
+}
 
 type author struct {
 	ID          uint64 `json:"id"`
@@ -90,6 +94,10 @@ func (h *handler) put(w http.ResponseWriter, r *http.Request) {
 	uid, ok := auth.UserID(r.Context())
 	if !ok {
 		httpx.Error(w, http.StatusUnauthorized, "unauthorized", "login required")
+		return
+	}
+	if h.quota != nil && !h.quota.Allow(uid, quotas.Reviews) {
+		httpx.Error(w, http.StatusTooManyRequests, "quota_exceeded", "daily review limit reached")
 		return
 	}
 	sid, ok := spotID(w, r)

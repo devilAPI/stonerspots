@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -12,8 +13,10 @@ import (
 
 var envKeys = []string{
 	"CONFIG_FILE", "DATABASE_URL", "JWT_SECRET", "UPLOAD_DIR", "ADDR", "PUBLIC_BASE_URL",
-	"GEOCODER_URL", "ALLOWED_ORIGINS", "MIGRATIONS_DIR",
+	"GEOCODER_URL", "ALLOWED_ORIGINS", "MIGRATIONS_DIR", "TRUSTED_PROXIES",
 }
+
+const strongSecret = "0123456789abcdef0123456789abcdef"
 
 // clearEnv blanks every variable Load reads; getenv treats "" as unset.
 func clearEnv(t *testing.T) {
@@ -37,8 +40,9 @@ func TestLoadFromFile(t *testing.T) {
 addr: ":9000"
 public_base_url: https://api.example.com/
 allowed_origins: [https://devilapi.github.io]
-jwt_secret: file-secret
+jwt_secret: `+strongSecret+`
 upload_dir: /srv/uploads
+trusted_proxies: [127.0.0.1, "10.0.0.0/8", "::1"]
 migrations_dir: /srv/migrations
 database:
   host: db.internal
@@ -51,7 +55,10 @@ database:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.Addr != ":9000" || string(c.JWTSecret) != "file-secret" || c.UploadDir != "/srv/uploads" ||
+	if got := fmt.Sprint(c.TrustedProxies); got != "[127.0.0.1/32 10.0.0.0/8 ::1/128]" {
+		t.Fatalf("proxies = %s", got)
+	}
+	if c.Addr != ":9000" || string(c.JWTSecret) != strongSecret || c.UploadDir != "/srv/uploads" ||
 		c.MigrationsDir != "/srv/migrations" || c.PublicBaseURL != "https://api.example.com" {
 		t.Fatalf("config = %+v", c)
 	}
@@ -141,6 +148,57 @@ func TestErrors(t *testing.T) {
 				t.Fatalf("err = %v, want it to mention %q", err, tc.want)
 			}
 		})
+	}
+}
+
+func TestWeakSecretRefusedOnPublicServers(t *testing.T) {
+	for name, tc := range map[string]struct {
+		secret, url, want string
+	}{
+		"example value":   {"change-me", "https://api.example.com", "example value"},
+		"dev value":       {"dev-secret-change-me", "https://api.example.com", "example value"},
+		"too short":       {"0123456789abcdef", "https://api.example.com", "shorter than 32"},
+		"strong":          {strongSecret, "https://api.example.com", ""},
+		"weak but local":  {"change-me", "http://localhost:8080", ""},
+		"weak, 127.0.0.1": {"short", "http://127.0.0.1:8080", ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			clearEnv(t)
+			t.Chdir(t.TempDir())
+			t.Setenv("JWT_SECRET", tc.secret)
+			t.Setenv("PUBLIC_BASE_URL", tc.url)
+			_, err := Load()
+			if tc.want == "" {
+				if err != nil {
+					t.Fatal(err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("err = %v, want %q", err, tc.want)
+			}
+		})
+	}
+}
+
+func TestTrustedProxies(t *testing.T) {
+	clearEnv(t)
+	t.Chdir(t.TempDir())
+	t.Setenv("TRUSTED_PROXIES", " 192.168.1.5 , fd00::/8")
+	c, err := Read()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := fmt.Sprint(c.TrustedProxies); got != "[192.168.1.5/32 fd00::/8]" {
+		t.Fatalf("proxies = %s", got)
+	}
+	t.Setenv("TRUSTED_PROXIES", "not-an-ip")
+	if _, err := Read(); err == nil || !strings.Contains(err.Error(), "not-an-ip") {
+		t.Fatalf("err = %v", err)
+	}
+	t.Setenv("TRUSTED_PROXIES", "")
+	if c, _ := Read(); len(c.TrustedProxies) != 0 {
+		t.Fatalf("default must trust no proxy: %v", c.TrustedProxies)
 	}
 }
 

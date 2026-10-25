@@ -14,6 +14,7 @@ import (
 
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/config"
+	"stonerspots/backend/internal/quotas"
 	"stonerspots/backend/internal/testutil"
 )
 
@@ -29,7 +30,7 @@ func setup(t *testing.T) *env {
 	db := testutil.NewDB(t)
 	cfg := config.Config{JWTSecret: []byte(testutil.JWTSecret), PublicBaseURL: "http://x.test"}
 	r := chi.NewRouter()
-	Mount(r, app.Deps{DB: db, Cfg: cfg})
+	Mount(r, app.Deps{DB: db, Cfg: cfg}, quotas.NewTracker(quotas.Config{SpotsPerDay: 1000}))
 	uid := testutil.NewUser(t, db)
 	return &env{db: db, h: r, uid: uid, tok: testutil.Token(t, uid)}
 }
