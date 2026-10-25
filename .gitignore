@@ -15,3 +15,4 @@ build/
 *.iml
 .claude/
 app/env/local.json
+backend/config.yaml

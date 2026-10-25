@@ -1,0 +1,40 @@
+# Stonerspots API configuration.
+#
+#   cp config.example.yaml config.yaml   # config.yaml is git-ignored
+#
+# The API reads ./config.yaml (or the file named by $CONFIG_FILE). Every key is
+# optional; environment variables (in brackets) override the file, and missing
+# values fall back to the local dev defaults shown here.
+
+# Address to listen on [ADDR]
+addr: ":8080"
+
+# Public HTTPS origin of this server, used for absolute photo URLs [PUBLIC_BASE_URL]
+public_base_url: "http://localhost:8080"
+
+# Browser origins the web app may call the API from (CORS) [ALLOWED_ORIGINS, comma-separated]
+allowed_origins:
+  - "https://devilapi.github.io"
+
+# Secret that signs login tokens. Required; use a long random string,
+# e.g. `openssl rand -hex 32` [JWT_SECRET]
+jwt_secret: "change-me"
+
+# Where uploaded photos are stored [UPLOAD_DIR]
+upload_dir: "./uploads"
+
+# Folder with the SQL migrations; applied on every start [MIGRATIONS_DIR]
+migrations_dir: "./migrations"
+
+# Nominatim-compatible geocoder [GEOCODER_URL]
+geocoder_url: "https://nominatim.openstreetmap.org"
+
+# MariaDB 11.4 (see schema.example.sql for the table layout).
+database:
+  host: "127.0.0.1"
+  port: 3307
+  user: "stonerspots"
+  password: "stonerspots"
+  name: "stonerspots"
+  # Alternatively a complete DSN; when set, the fields above are ignored [DATABASE_URL]
+  # url: "user:password@tcp(host:3306)/stonerspots?parseTime=true&multiStatements=true"

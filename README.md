@@ -18,16 +18,19 @@ small picture feed. Launch region: Germany, Austria, Switzerland, Liechtenstein.
 # 1. database (MariaDB 11.4 on 127.0.0.1:3307)
 make db-up
 
-# 2. API on :8080
+# 2. API on :8080 (config.yaml: database, JWT secret, CORS, ...; env vars override it)
 cd backend
-DATABASE_URL='root:stonerspots@tcp(127.0.0.1:3307)/stonerspots?parseTime=true&multiStatements=true' \
-JWT_SECRET=change-me UPLOAD_DIR=./uploads go run ./cmd/api
+cp config.example.yaml config.yaml
+go run ./cmd/api
 
 # 3. app (Linux desktop compiles fastest; use -d chrome / an emulator otherwise)
 cd app
 cp env/local.example.json env/local.json   # then fill in CARTO_KEY (optional)
 flutter run -d linux --dart-define-from-file=env/local.json
 ```
+
+The table layout is in `backend/schema.example.sql` (generated from
+`backend/migrations/`, which the API applies on start).
 
 Tests: `make test` (backend, needs the database) and `cd app && flutter test`.
 
@@ -41,11 +44,12 @@ For it to reach a backend:
 
 - repository secret `API_URL`: public **HTTPS** URL of the API, e.g.
   `https://api.example.com/api/v1` (compiled into every build, so it is public)
-- backend env `ALLOWED_ORIGINS=https://devilapi.github.io` (CORS) and
-  `PUBLIC_BASE_URL` set to the backend's HTTPS origin so photo URLs work
+- backend `allowed_origins: [https://devilapi.github.io]` (CORS) and
+  `public_base_url` set to the backend's HTTPS origin so photo URLs work, in its
+  `config.yaml` (or the env vars `ALLOWED_ORIGINS` / `PUBLIC_BASE_URL`)
 
-The database credentials (`DATABASE_URL`) are only ever set on the backend
-server, never in the app or its build.
+The database credentials are only ever set on the backend server (its
+`config.yaml`), never in the app or its build.
 
 ## Map tiles
 

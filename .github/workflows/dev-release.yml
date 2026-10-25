@@ -168,12 +168,12 @@ jobs:
           GOOS: linux
           GOARCH: ${{ matrix.arch }}
         run: |
-          # api loads ./migrations from its working directory: run it from the unpacked folder
+          # api reads ./config.yaml and ./migrations from its working directory: run it from the unpacked folder
           name="stonerspots-backend-${TAG}-linux-${GOARCH}"
           mkdir -p "pkg/$name" ../dist
           go build -trimpath -ldflags="-s -w" -o "pkg/$name/api" ./cmd/api
           go build -trimpath -ldflags="-s -w" -o "pkg/$name/makeadmin" ./cmd/makeadmin
-          cp -R migrations "pkg/$name/"
+          cp -R migrations config.example.yaml schema.example.sql "pkg/$name/"
           tar -czf "../dist/$name.tar.gz" -C pkg "$name"
       - uses: actions/upload-artifact@v4
         with:

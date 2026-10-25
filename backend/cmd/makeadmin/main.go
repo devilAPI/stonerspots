@@ -1,6 +1,8 @@
 // Command makeadmin grants or revokes the admin flag of a user.
 //
-//	DATABASE_URL=... go run ./cmd/makeadmin -email someone@example.com [-revoke]
+//	go run ./cmd/makeadmin -email someone@example.com [-revoke]
+//
+// The database comes from -db, $DATABASE_URL or the config file (see config.example.yaml).
 package main
 
 import (
@@ -13,6 +15,7 @@ import (
 	"os"
 
 	"stonerspots/backend/internal/auth"
+	"stonerspots/backend/internal/config"
 	"stonerspots/backend/internal/db"
 )
 
@@ -37,11 +40,19 @@ func run(ctx context.Context, d *sql.DB, email string, revoke bool, out, errOut 
 func main() {
 	email := flag.String("email", "", "email of the user (required)")
 	revoke := flag.Bool("revoke", false, "revoke admin instead of granting it")
-	dsn := flag.String("db", os.Getenv("DATABASE_URL"), "database DSN (default: $DATABASE_URL)")
+	dsn := flag.String("db", "", "database DSN (default: $DATABASE_URL, then the config file)")
 	flag.Parse()
-	if *email == "" || *dsn == "" {
-		fmt.Fprintln(os.Stderr, "usage: makeadmin -email user@example.com [-revoke] [-db DSN | $DATABASE_URL]")
+	if *email == "" {
+		fmt.Fprintln(os.Stderr, "usage: makeadmin -email user@example.com [-revoke] [-db DSN]")
 		os.Exit(2)
+	}
+	if *dsn == "" {
+		cfg, err := config.Read()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+		*dsn = cfg.DatabaseURL
 	}
 	d, err := db.Open(*dsn)
 	if err != nil {

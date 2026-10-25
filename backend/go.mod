@@ -11,6 +11,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.20.1
 	golang.org/x/crypto v0.58.0
 	golang.org/x/image v0.0.0-20191009234506-e7c1f5e7dbb8
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

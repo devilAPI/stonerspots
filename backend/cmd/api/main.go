@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 	"path/filepath"
 
 	"stonerspots/backend/internal/app"
@@ -17,9 +16,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("config: %v", err)
 	}
-	dir := os.Getenv("MIGRATIONS_DIR")
-	if dir == "" {
-		dir, _ = filepath.Abs("migrations")
+	dir, err := filepath.Abs(cfg.MigrationsDir)
+	if err != nil {
+		log.Fatalf("migrations dir: %v", err)
 	}
 	if err := db.Migrate(cfg.DatabaseURL, dir); err != nil {
 		log.Fatalf("migrate: %v", err)
