@@ -1,6 +1,7 @@
 name: Dev build & release
 
-# Every push to main: test, build Android / Linux / web / iOS, and publish a
+# Every push to main: test, build the backend (Linux amd64/arm64) and the app
+# (Android / Linux / web / iOS), and publish a
 # prerelease tagged dev-<run number> (dev-1, dev-2, ...). Can also be started
 # by hand from the Actions tab.
 #
@@ -147,6 +148,39 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+  build-backend:
+    name: Build backend (linux-${{ matrix.arch }})
+    needs: [test-backend]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Build static binaries
+        working-directory: backend
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          # api loads ./migrations from its working directory: run it from the unpacked folder
+          name="stonerspots-backend-${TAG}-linux-${GOARCH}"
+          mkdir -p "pkg/$name" ../dist
+          go build -trimpath -ldflags="-s -w" -o "pkg/$name/api" ./cmd/api
+          go build -trimpath -ldflags="-s -w" -o "pkg/$name/makeadmin" ./cmd/makeadmin
+          cp -R migrations "pkg/$name/"
+          tar -czf "../dist/$name.tar.gz" -C pkg "$name"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-backend-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+
   build-web:
     name: Build web
     needs: [test-app]
@@ -209,7 +243,7 @@ jobs:
 
   release:
     name: Publish ${{ github.run_number }} as dev-${{ github.run_number }}
-    needs: [test-backend, build-android, build-linux, build-web, build-ios]
+    needs: [build-backend, build-android, build-linux, build-web, build-ios]
     runs-on: ubuntu-latest
     permissions:
       contents: write
