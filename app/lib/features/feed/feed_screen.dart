@@ -49,7 +49,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final state = ref.watch(feedControllerProvider);
-    final ctrl = ref.read(feedControllerProvider.notifier);
 
     ref.listen(feedControllerProvider.select((s) => s.locationDenied), (
       _,
@@ -61,9 +60,22 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       }
     });
 
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.feedTitle)),
+      // Gutter from the space the feed actually gets (the nav rail takes
+      // part of the window), not from the window width.
+      body: LayoutBuilder(
+        builder: (context, c) => _buildBody(context, state, c.maxWidth),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, FeedState state, double width) {
+    final l10n = AppLocalizations.of(context);
+    final ctrl = ref.read(feedControllerProvider.notifier);
     // Cards stay at a readable width on wide windows, while the scrollable
-    // area (and its mouse-wheel/scrollbar) spans the whole window.
-    final gutter = sideGutter(MediaQuery.sizeOf(context).width);
+    // area (and its mouse-wheel/scrollbar) spans the whole pane.
+    final gutter = sideGutter(width);
     Widget body;
     if (state.error != null && state.items.isEmpty) {
       body = Center(
@@ -100,39 +112,36 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.feedTitle)),
-      body: Column(
-        children: [
-          _ChipRow(
-            gutter: gutter,
-            children: [
-              for (final s in FeedSort.values)
-                ChoiceChip(
-                  label: Text(_sortLabel(l10n, s)),
-                  selected: state.sort == s,
-                  onSelected: (_) => ctrl.setSort(s),
-                ),
-            ],
+    return Column(
+      children: [
+        _ChipRow(
+          gutter: gutter,
+          children: [
+            for (final s in FeedSort.values)
+              ChoiceChip(
+                label: Text(_sortLabel(l10n, s)),
+                selected: state.sort == s,
+                onSelected: (_) => ctrl.setSort(s),
+              ),
+          ],
+        ),
+        _ChipRow(
+          key: const Key('feedTagRow'),
+          gutter: gutter,
+          children: spotTagFilterItems(
+            context,
+            keyPrefix: 'feedTag-',
+            selected: state.tags,
+            onToggle: ctrl.toggleTag,
+            onClear: ctrl.clearTags,
+            clearKey: const Key('feedTagsClear'),
+            withDivider: false,
           ),
-          _ChipRow(
-            key: const Key('feedTagRow'),
-            gutter: gutter,
-            children: spotTagFilterItems(
-              context,
-              keyPrefix: 'feedTag-',
-              selected: state.tags,
-              onToggle: ctrl.toggleTag,
-              onClear: ctrl.clearTags,
-              clearKey: const Key('feedTagsClear'),
-              withDivider: false,
-            ),
-          ),
-          Expanded(
-            child: RefreshIndicator(onRefresh: ctrl.refresh, child: body),
-          ),
-        ],
-      ),
+        ),
+        Expanded(
+          child: RefreshIndicator(onRefresh: ctrl.refresh, child: body),
+        ),
+      ],
     );
   }
 }

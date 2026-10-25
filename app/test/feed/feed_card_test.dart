@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:app/core/models.dart';
 import 'package:app/features/feed/feed_card.dart';
 import 'package:app/features/feed/satellite_thumb.dart';
@@ -32,33 +34,45 @@ void main() {
           ),
         ),
       );
-      expect(find.byType(SatelliteThumb), findsOneWidget);
-      final camera = MapCamera.of(tester.element(find.byType(TileLayer)));
-      expect(camera.center.latitude, closeTo(48.1234, 1e-6));
-      expect(camera.center.longitude, closeTo(11.5678, 1e-6));
-      expect(camera.zoom, 19);
+      final thumb = tester.widget<SatelliteThumb>(find.byType(SatelliteThumb));
+      expect(thumb.lat, 48.1234);
+      expect(thumb.lon, 11.5678);
+      expect(thumb.zoom, 19);
+      // plain tile images, no map widget per card (keeps the feed smooth)
+      expect(find.byType(FlutterMap), findsNothing);
+      expect(find.byType(Image), findsWidgets);
       expect(find.text('Lake bench'), findsOneWidget);
     },
   );
 
-  testWidgets(
-    'the satellite layer uses an imagery source, not the street map',
-    (tester) async {
-      late TileLayer layer;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (c) {
-              layer = buildSatelliteTileLayer();
-              return const SizedBox();
-            },
-          ),
-        ),
-      );
-      expect(layer.urlTemplate, contains('World_Imagery'));
-      expect(layer.maxNativeZoom, 18);
-    },
-  );
+  test('satellite tiles cover the thumbnail with the spot in its centre', () {
+    const w = 400.0, h = 300.0;
+    final tiles = satelliteThumbTiles(
+      lat: 48.1234,
+      lon: 11.5678,
+      zoom: 19,
+      width: w,
+      height: h,
+    );
+    // zoom 19 is drawn from zoom-18 imagery scaled up 2x
+    expect(tiles.every((t) => t.size == 512), isTrue);
+    expect(tiles.every((t) => t.url.contains('World_Imagery')), isTrue);
+    expect(tiles.map((t) => t.left).reduce(math.min), lessThanOrEqualTo(0));
+    expect(tiles.map((t) => t.top).reduce(math.min), lessThanOrEqualTo(0));
+    expect(
+      tiles.map((t) => t.left + t.size).reduce(math.max),
+      greaterThanOrEqualTo(w),
+    );
+    expect(
+      tiles.map((t) => t.top + t.size).reduce(math.max),
+      greaterThanOrEqualTo(h),
+    );
+    final centre = tiles.singleWhere(
+      (t) => t.url == satelliteTileUrl(18, 139495, 90990),
+    );
+    expect(centre.left, closeTo(w / 2 - 0.41489777 * 512, 1e-3));
+    expect(centre.top, closeTo(h / 2 - 0.58302616 * 512, 1e-3));
+  });
 
   testWidgets('feed card shows the spot rating next to the likes', (t) async {
     Future<void> pumpItem(Spot spot) => t.pumpWidget(

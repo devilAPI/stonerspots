@@ -74,8 +74,10 @@ const _satelliteTiles =
 
 /// Tiles are requested up to zoom 18 (Esri often has no sharper imagery and
 /// answers with a "not yet available" tile); closer views are scaled up.
-TileLayer buildSatelliteTileLayer() => TileLayer(
-  urlTemplate: _satelliteTiles,
-  userAgentPackageName: 'de.stonerspots.app',
-  maxNativeZoom: 18,
-);
+const int kSatelliteMaxNativeZoom = 18;
+
+/// URL of one satellite tile.
+String satelliteTileUrl(int z, int x, int y) => _satelliteTiles
+    .replaceFirst('{z}', '$z')
+    .replaceFirst('{x}', '$x')
+    .replaceFirst('{y}', '$y');
