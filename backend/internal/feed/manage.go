@@ -22,10 +22,15 @@ var (
 	errForbidden = errors.New("feed: not the author")
 )
 
-// lockOwn locks an active update and checks that userID wrote it.
+// lockOwn locks an active update and checks that userID wrote it and that
+// its spot is not locked (admins may change their updates on locked spots).
 func lockOwn(ctx context.Context, tx *sql.Tx, id, userID uint64) (body string, err error) {
 	var owner uint64
-	err = tx.QueryRowContext(ctx, "SELECT user_id, body FROM spot_updates WHERE id = ? AND status = 'active' FOR UPDATE", id).Scan(&owner, &body)
+	var locked, admin bool
+	err = tx.QueryRowContext(ctx, `SELECT u.user_id, u.body, s.locked,
+			COALESCE((SELECT is_admin FROM users WHERE id = ?), 0)
+		FROM spot_updates u JOIN spots s ON s.id = u.spot_id
+		WHERE u.id = ? AND u.status = 'active' FOR UPDATE`, userID, id).Scan(&owner, &body, &locked, &admin)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", errNotFound
 	}
@@ -34,6 +39,9 @@ func lockOwn(ctx context.Context, tx *sql.Tx, id, userID uint64) (body string, e
 	}
 	if owner != userID {
 		return "", errForbidden
+	}
+	if locked && !admin {
+		return "", ErrSpotLocked
 	}
 	return body, nil
 }
@@ -159,6 +167,11 @@ func updateID(w http.ResponseWriter, r *http.Request) (uint64, uint64, bool) {
 	return uid, id, true
 }
 
+// spotLocked is the answer to a non-admin changing a locked spot.
+func spotLocked(w http.ResponseWriter) {
+	httpx.Error(w, http.StatusForbidden, "spot_locked", "this spot is locked; only admins can change it")
+}
+
 // manageError writes the shared error responses; it returns true if err was handled.
 func manageError(w http.ResponseWriter, err error) {
 	switch {
@@ -167,6 +180,8 @@ func manageError(w http.ResponseWriter, err error) {
 		httpx.Error(w, http.StatusNotFound, "not_found", "update not found")
 	case errors.Is(err, errForbidden):
 		httpx.Error(w, http.StatusForbidden, "forbidden", "only the author can change this update")
+	case errors.Is(err, ErrSpotLocked):
+		spotLocked(w)
 	case errors.Is(err, ErrInvalidTag):
 		httpx.Error(w, http.StatusBadRequest, "invalid_tag", "tag must be one of note, still_good, crowded, dirty, closed")
 	case errors.Is(err, ErrInvalidBody):

@@ -68,11 +68,11 @@ func (r *Repo) SetTags(ctx context.Context, id uint64, tags []string) error {
 	return tx.Commit()
 }
 
-// Owner returns the author id of an active spot, or sql.ErrNoRows.
-func (r *Repo) Owner(ctx context.Context, id uint64) (uint64, error) {
-	var uid uint64
-	err := r.DB.QueryRowContext(ctx, `SELECT user_id FROM spots WHERE id = ? AND status = 'active'`, id).Scan(&uid)
-	return uid, err
+// OwnerAndLock returns the author of an active spot and whether it is
+// locked, or sql.ErrNoRows.
+func (r *Repo) OwnerAndLock(ctx context.Context, id uint64) (owner uint64, locked bool, err error) {
+	err = r.DB.QueryRowContext(ctx, `SELECT user_id, locked FROM spots WHERE id = ? AND status = 'active'`, id).Scan(&owner, &locked)
+	return owner, locked, err
 }
 
 // IsAdmin reports whether the user has the admin flag.
@@ -123,7 +123,7 @@ func (r *Repo) Get(ctx context.Context, id uint64) (*Spot, error) {
 	}
 	var a Author
 	if err := r.DB.QueryRowContext(ctx,
-		`SELECT u.id, u.display_name FROM spots s JOIN users u ON u.id = s.user_id WHERE s.id = ?`, id).Scan(&a.ID, &a.DisplayName); err != nil {
+		`SELECT u.id, u.display_name, s.locked FROM spots s JOIN users u ON u.id = s.user_id WHERE s.id = ?`, id).Scan(&a.ID, &a.DisplayName, &list[0].Locked); err != nil {
 		return nil, err
 	}
 	list[0].Author = &a

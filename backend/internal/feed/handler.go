@@ -55,6 +55,9 @@ func (h *handler) postUpdate(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, ErrSpotNotFound):
 		httpx.Error(w, http.StatusNotFound, "not_found", "spot not found")
 		return
+	case errors.Is(err, ErrSpotLocked):
+		spotLocked(w)
+		return
 	case err != nil:
 		httpx.Error(w, http.StatusInternalServerError, "internal", "internal error")
 		return
@@ -80,9 +83,13 @@ func (h *handler) getFeed(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_sort", "sort must be new, top or nearby")
 		return
 	}
-	tags, err := tagset.ParseParam(p.Get("tags"))
+	tags, err := tagset.ParseParam(r.Context(), h.db, p.Get("tags"))
+	if errors.Is(err, tagset.ErrInvalid) {
+		httpx.Error(w, http.StatusBadRequest, "invalid_tags", "tags must be a comma separated list of tag catalog entries (GET /tags)")
+		return
+	}
 	if err != nil {
-		httpx.Error(w, http.StatusBadRequest, "invalid_tags", "tags must be a comma separated list of: roof, seating, view, quiet, shade, water, lit")
+		httpx.Error(w, http.StatusInternalServerError, "internal", "internal error")
 		return
 	}
 	q.tags = tags

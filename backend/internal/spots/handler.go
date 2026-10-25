@@ -26,6 +26,22 @@ func Mount(r chi.Router, d app.Deps) {
 	r.With(auth.Middleware(d.Cfg.JWTSecret)).Put("/spots/{id}/tags", h.putTags)
 	r.Get("/spots/{id}", h.get)
 	r.Get("/spots", h.list)
+	r.Get("/tags", h.tags)
+}
+
+// spotLocked is the answer to a non-admin changing a locked spot.
+func spotLocked(w http.ResponseWriter) {
+	httpx.Error(w, http.StatusForbidden, "spot_locked", "this spot is locked; only admins can change it")
+}
+
+// tags lists the tag catalog (key, German and English name, icon) in order.
+func (h *handler) tags(w http.ResponseWriter, r *http.Request) {
+	list, err := tagset.List(r.Context(), h.repo.DB)
+	if err != nil {
+		internal(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, list)
 }
 
 type handler struct{ repo *Repo }
@@ -40,15 +56,21 @@ type createReq struct {
 	Tags        []string `json:"tags"`
 }
 
-func invalidTags(w http.ResponseWriter) {
-	httpx.Error(w, http.StatusBadRequest, "invalid_tags", "tags must be at most 7 of: roof, seating, view, quiet, shade, water, lit")
+// tagsError writes the response for a failed tag validation: 400 for unknown
+// tags (see GET /tags), 500 for a database error.
+func tagsError(w http.ResponseWriter, err error) {
+	if errors.Is(err, tagset.ErrInvalid) {
+		httpx.Error(w, http.StatusBadRequest, "invalid_tags", "tags must be distinct entries of the tag catalog (GET /tags)")
+		return
+	}
+	internal(w, err)
 }
 
-// tagsParam parses the ?tags= filter, writing the 400 itself on failure.
-func tagsParam(w http.ResponseWriter, r *http.Request) ([]string, bool) {
-	tags, err := tagset.ParseParam(r.URL.Query().Get("tags"))
+// tagsParam parses the ?tags= filter, writing the error itself on failure.
+func (h *handler) tagsParam(w http.ResponseWriter, r *http.Request) ([]string, bool) {
+	tags, err := tagset.ParseParam(r.Context(), h.repo.DB, r.URL.Query().Get("tags"))
 	if err != nil {
-		invalidTags(w)
+		tagsError(w, err)
 		return nil, false
 	}
 	return tags, true
@@ -72,7 +94,7 @@ func (h *handler) putTags(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_json", "request body is not valid JSON")
 		return
 	}
-	owner, err := h.repo.Owner(r.Context(), id)
+	owner, locked, err := h.repo.OwnerAndLock(r.Context(), id)
 	if errors.Is(err, sql.ErrNoRows) {
 		httpx.Error(w, http.StatusNotFound, "not_found", "spot not found")
 		return
@@ -81,20 +103,25 @@ func (h *handler) putTags(w http.ResponseWriter, r *http.Request) {
 		internal(w, err)
 		return
 	}
-	if owner != uid {
+	if owner != uid || locked {
 		isAdmin, err := h.repo.IsAdmin(r.Context(), uid)
 		if err != nil {
 			internal(w, err)
 			return
 		}
-		if !isAdmin {
+		switch {
+		case isAdmin:
+		case owner != uid:
 			httpx.Error(w, http.StatusForbidden, "forbidden", "only the author or an admin can change tags")
+			return
+		default:
+			spotLocked(w)
 			return
 		}
 	}
-	tags, err := NormalizeTags(req.Tags)
+	tags, err := NormalizeTags(r.Context(), h.repo.DB, req.Tags)
 	if err != nil {
-		invalidTags(w)
+		tagsError(w, err)
 		return
 	}
 	if err := h.repo.SetTags(r.Context(), id, tags); err != nil {
@@ -151,9 +178,9 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_location", "lat must be in -90..90 and lon in -180..180")
 		return
 	}
-	tags, err := NormalizeTags(req.Tags)
+	tags, err := NormalizeTags(r.Context(), h.repo.DB, req.Tags)
 	if err != nil {
-		invalidTags(w)
+		tagsError(w, err)
 		return
 	}
 	lat, lon := *req.Lat, *req.Lon
@@ -264,7 +291,7 @@ func (h *handler) list(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_limit", "limit must be an integer")
 		return
 	}
-	tags, ok := tagsParam(w, r)
+	tags, ok := h.tagsParam(w, r)
 	if !ok {
 		return
 	}
@@ -300,7 +327,7 @@ func (h *handler) nearby(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_limit", "limit must be an integer")
 		return
 	}
-	tags, ok := tagsParam(w, r)
+	tags, ok := h.tagsParam(w, r)
 	if !ok {
 		return
 	}

@@ -74,6 +74,7 @@ CREATE TABLE `spots` (
   `like_count` int(11) NOT NULL DEFAULT 0,
   `status` enum('active','hidden') NOT NULL DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `locked` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   SPATIAL KEY `idx_spots_location` (`location`),
   KEY `idx_spots_user` (`user_id`),
@@ -115,7 +116,8 @@ CREATE TABLE `spot_tags` (
   `tag` varchar(16) NOT NULL,
   PRIMARY KEY (`spot_id`,`tag`),
   KEY `idx_spot_tags_tag` (`tag`,`spot_id`),
-  CONSTRAINT `fk_spot_tags_spot` FOREIGN KEY (`spot_id`) REFERENCES `spots` (`id`) ON DELETE CASCADE
+  CONSTRAINT `fk_spot_tags_spot` FOREIGN KEY (`spot_id`) REFERENCES `spots` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_spot_tags_tag` FOREIGN KEY (`tag`) REFERENCES `tags` (`tag`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 DROP TABLE IF EXISTS `spot_updates`;
@@ -136,6 +138,17 @@ CREATE TABLE `spot_updates` (
   CONSTRAINT `fk_updates_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+DROP TABLE IF EXISTS `tags`;
+CREATE TABLE `tags` (
+  `tag` varchar(16) NOT NULL,
+  `name_de` varchar(40) NOT NULL,
+  `name_en` varchar(40) NOT NULL,
+  `icon` varchar(32) NOT NULL,
+  `sort` int(11) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`tag`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -149,6 +162,15 @@ CREATE TABLE `users` (
   UNIQUE KEY `uq_users_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (10, 0);
+INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (11, 0);
+
+INSERT INTO `tags` (`tag`, `name_de`, `name_en`, `icon`, `sort`) VALUES
+  ('roof', 'Überdacht', 'Roof', 'roof', 10),
+  ('seating', 'Sitzgelegenheit', 'Seating', 'seating', 20),
+  ('view', 'Aussicht', 'View', 'view', 30),
+  ('quiet', 'Ruhig', 'Quiet', 'quiet', 40),
+  ('shade', 'Schatten', 'Shade', 'shade', 50),
+  ('water', 'Wasser in der Nähe', 'Water nearby', 'water', 60),
+  ('lit', 'Beleuchtet', 'Lit', 'lit', 70);
 
 SET FOREIGN_KEY_CHECKS = 1;

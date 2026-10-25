@@ -2,6 +2,7 @@
 package spots
 
 import (
+	"context"
 	"time"
 
 	"stonerspots/backend/internal/spots/tagset"
@@ -9,19 +10,22 @@ import (
 
 // Spot is a place on the map. Coordinates are degrees (lat, lon).
 type Spot struct {
-	ID          uint64    `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Lat         float64   `json:"lat"`
-	Lon         float64   `json:"lon"`
-	LikeCount   int       `json:"like_count"`
-	CoverURL    string    `json:"cover_url"`
-	RatingAvg   float64   `json:"rating_avg"`
-	RatingCount int       `json:"rating_count"`
-	Tags        []string  `json:"tags"`
-	Author      *Author   `json:"author,omitempty"` // only on GET /spots/{id}
-	DistanceM   *float64  `json:"distance_m,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID          uint64   `json:"id"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Lat         float64  `json:"lat"`
+	Lon         float64  `json:"lon"`
+	LikeCount   int      `json:"like_count"`
+	CoverURL    string   `json:"cover_url"`
+	RatingAvg   float64  `json:"rating_avg"`
+	RatingCount int      `json:"rating_count"`
+	Tags        []string `json:"tags"`
+	Author      *Author  `json:"author,omitempty"` // only on GET /spots/{id}
+	// Locked spots take no new updates or edits from non-admins. Only set on
+	// GET /spots/{id}.
+	Locked    bool      `json:"locked"`
+	DistanceM *float64  `json:"distance_m,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // Author is the user who created a spot.
@@ -30,14 +34,11 @@ type Author struct {
 	DisplayName string `json:"display_name"`
 }
 
-// Tags is the canonical spot tag list, in canonical order.
-var Tags = tagset.Tags
-
-// ValidTag reports whether t is a known spot tag.
-func ValidTag(t string) bool { return tagset.Valid(t) }
-
-// NormalizeTags validates, dedupes and orders tags canonically (max 7 entries).
-func NormalizeTags(in []string) ([]string, error) { return tagset.Normalize(in) }
+// NormalizeTags validates against the tag catalog, dedupes and orders tags
+// canonically.
+func NormalizeTags(ctx context.Context, q tagset.Querier, in []string) ([]string, error) {
+	return tagset.Normalize(ctx, q, in)
+}
 
 // BBox is a geographic bounding box in degrees.
 type BBox struct{ South, West, North, East float64 }

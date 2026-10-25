@@ -4,38 +4,51 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 	"testing"
 
+	"stonerspots/backend/internal/spots/tagset"
 	"stonerspots/backend/internal/testutil"
 )
 
 func TestNormalizeTags(t *testing.T) {
-	if !reflect.DeepEqual(Tags, []string{"roof", "seating", "view", "quiet", "shade", "water", "lit"}) {
-		t.Fatalf("Tags = %v", Tags)
+	e := setup(t)
+	ctx := context.Background()
+	all, err := tagset.Keys(ctx, e.db)
+	if err != nil || !reflect.DeepEqual(all, []string{"roof", "seating", "view", "quiet", "shade", "water", "lit"}) {
+		t.Fatalf("seeded catalog = %v %v", all, err)
 	}
-	if !ValidTag("roof") || ValidTag("Roof") || ValidTag("") || ValidTag("nope") {
-		t.Fatal("ValidTag")
-	}
-	got, err := NormalizeTags([]string{"lit", "roof", "lit", "view"})
+	norm := func(in []string) ([]string, error) { return NormalizeTags(ctx, e.db, in) }
+	got, err := norm([]string{"lit", "roof", "lit", "view"})
 	if err != nil || !reflect.DeepEqual(got, []string{"roof", "view", "lit"}) {
 		t.Fatalf("got %v %v", got, err)
 	}
-	got, err = NormalizeTags(nil)
+	got, err = norm(nil)
 	if err != nil || got == nil || len(got) != 0 {
 		t.Fatalf("nil -> %#v %v", got, err)
 	}
-	if _, err := NormalizeTags([]string{"roof", "bogus"}); err == nil {
-		t.Fatal("unknown must fail")
+	for _, bad := range [][]string{{"roof", "bogus"}, {"Roof"}, {""}} {
+		if _, err := norm(bad); !errors.Is(err, tagset.ErrInvalid) {
+			t.Fatalf("%v must fail with ErrInvalid, got %v", bad, err)
+		}
 	}
-	// 8 entries (duplicate included) is more than 7 -> error, even if only 7 distinct
-	if _, err := NormalizeTags([]string{"roof", "seating", "view", "quiet", "shade", "water", "lit", "roof"}); err == nil {
+	// 8 entries (duplicate included) is more than the 7 tags -> error
+	if _, err := norm([]string{"roof", "seating", "view", "quiet", "shade", "water", "lit", "roof"}); err == nil {
 		t.Fatal(">7 must fail")
 	}
-	if got, err := NormalizeTags(Tags); err != nil || len(got) != 7 {
+	if got, err := norm(all); err != nil || len(got) != 7 {
 		t.Fatalf("all 7: %v %v", got, err)
+	}
+	// a tag added to the catalog is valid right away, in its sort position
+	if _, err := e.db.Exec("INSERT INTO tags (tag, name_de, name_en, icon, sort) VALUES ('fire', 'Feuerstelle', 'Fire pit', 'fire', 15)"); err != nil {
+		t.Fatal(err)
+	}
+	got, err = norm([]string{"seating", "fire", "roof"})
+	if err != nil || !reflect.DeepEqual(got, []string{"roof", "fire", "seating"}) {
+		t.Fatalf("with new tag: %v %v", got, err)
 	}
 }
 
@@ -261,6 +274,59 @@ func TestPutTags(t *testing.T) {
 	}
 	if code, ec, _ := e.putTags(99999, e.tok, `{"tags":["lit"]}`); code != 404 || ec != "not_found" {
 		t.Fatalf("missing: %d %s", code, ec)
+	}
+}
+
+func TestLockedSpotTags(t *testing.T) {
+	e := setup(t)
+	s := e.createTagged(t, "Locked", 52.5, 13.4, "roof")
+	adminID := testutil.NewUser(t, e.db)
+	e.db.Exec(`UPDATE users SET is_admin=1 WHERE id=?`, adminID)
+
+	var got struct {
+		Locked bool `json:"locked"`
+	}
+	json.Unmarshal(e.do("GET", fmt.Sprintf("/spots/%d", s.ID), "", false).Body.Bytes(), &got)
+	if got.Locked {
+		t.Fatal("new spots are unlocked")
+	}
+	e.db.Exec(`UPDATE spots SET locked=1 WHERE id=?`, s.ID)
+	json.Unmarshal(e.do("GET", fmt.Sprintf("/spots/%d", s.ID), "", false).Body.Bytes(), &got)
+	if !got.Locked {
+		t.Fatal("GET /spots/{id} must report the lock")
+	}
+	// the author can no longer change tags, an admin can
+	if code, ec, _ := e.putTags(s.ID, e.tok, `{"tags":["lit"]}`); code != 403 || ec != "spot_locked" {
+		t.Fatalf("author: %d %s", code, ec)
+	}
+	if code, _, b := e.putTags(s.ID, testutil.Token(t, adminID), `{"tags":["lit"]}`); code != 200 {
+		t.Fatalf("admin: %d %s", code, b)
+	}
+}
+
+func TestTagCatalogIsPublic(t *testing.T) {
+	e := setup(t)
+	rec := e.do("GET", "/tags", "", false)
+	var list []struct {
+		Tag    string `json:"tag"`
+		NameDE string `json:"name_de"`
+		NameEN string `json:"name_en"`
+		Icon   string `json:"icon"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil || rec.Code != 200 || len(list) != 7 {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+	if list[0].Tag != "roof" || list[0].NameDE != "Überdacht" || list[0].NameEN != "Roof" || list[0].Icon != "roof" {
+		t.Fatalf("%+v", list[0])
+	}
+	// a catalog addition is filterable and assignable at once
+	e.db.Exec(`INSERT INTO tags (tag, name_de, name_en, icon, sort) VALUES ('bridge', 'Brücke', 'Bridge', 'bridge', 99)`)
+	s := e.createTagged(t, "Under the bridge", 52.5, 13.4, "bridge")
+	if !reflect.DeepEqual(s.Tags, []string{"bridge"}) {
+		t.Fatalf("%v", s.Tags)
+	}
+	if rec := e.do("GET", "/spots?south=52&west=13&north=53&east=14&tags=bridge", "", false); rec.Code != 200 || !strings.Contains(rec.Body.String(), "Under the bridge") {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
 }
 

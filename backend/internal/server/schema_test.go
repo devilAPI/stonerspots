@@ -61,8 +61,34 @@ func dumpSchema(t *testing.T, d *sql.DB) string {
 		t.Fatal(err)
 	}
 	fmt.Fprintf(&b, "\nINSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (%d, %d);\n", version, boolInt(dirty))
+	dumpTagCatalog(t, d, &b)
 	b.WriteString("\nSET FOREIGN_KEY_CHECKS = 1;\n")
 	return b.String()
+}
+
+// dumpTagCatalog writes the tag catalog rows the migrations seed: without
+// them a database made from the file would have no tags at all.
+func dumpTagCatalog(t *testing.T, d *sql.DB, b *strings.Builder) {
+	t.Helper()
+	rows, err := d.Query(`SELECT tag, name_de, name_en, icon, sort FROM tags ORDER BY sort, tag`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	q := func(s string) string { return "'" + strings.ReplaceAll(s, "'", "''") + "'" }
+	var vals []string
+	for rows.Next() {
+		var tag, de, en, icon string
+		var sort int
+		if err := rows.Scan(&tag, &de, &en, &icon, &sort); err != nil {
+			t.Fatal(err)
+		}
+		vals = append(vals, fmt.Sprintf("  (%s, %s, %s, %s, %d)", q(tag), q(de), q(en), q(icon), sort))
+	}
+	if len(vals) == 0 {
+		return
+	}
+	fmt.Fprintf(b, "\nINSERT INTO `tags` (`tag`, `name_de`, `name_en`, `icon`, `sort`) VALUES\n%s;\n", strings.Join(vals, ",\n"))
 }
 
 func boolInt(v bool) int {

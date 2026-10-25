@@ -21,6 +21,9 @@ var (
 	ErrInvalidBody = errors.New("feed: invalid body")
 	// ErrInvalidTag: tag is not one of Tags. Map to 400 invalid_tag.
 	ErrInvalidTag = errors.New("feed: invalid tag")
+	// ErrSpotLocked: the spot is locked and the user is no admin. Map to 403
+	// spot_locked.
+	ErrSpotLocked = errors.New("feed: spot locked")
 )
 
 // Tags are the allowed update tags.
@@ -116,12 +119,17 @@ func CreateUpdateTagged(ctx context.Context, db *sql.DB, userID, spotID uint64, 
 	}
 	defer tx.Rollback()
 
-	var one int
-	err = tx.QueryRowContext(ctx, "SELECT 1 FROM spots WHERE id = ? AND status = 'active'", spotID).Scan(&one)
+	var locked, admin bool
+	err = tx.QueryRowContext(ctx,
+		"SELECT s.locked, COALESCE((SELECT is_admin FROM users WHERE id = ?), 0) FROM spots s WHERE s.id = ? AND s.status = 'active'",
+		userID, spotID).Scan(&locked, &admin)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, ErrSpotNotFound
 	} else if err != nil {
 		return 0, err
+	}
+	if locked && !admin {
+		return 0, ErrSpotLocked
 	}
 
 	if len(photoIDs) > 0 {

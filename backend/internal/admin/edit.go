@@ -213,7 +213,11 @@ type spotPatch struct {
 	title, description, status *string
 	lat, lon                   *float64
 	tags                       *[]string
+	ownerID                    *uint64
+	locked                     *bool
 }
+
+var errNoSuchOwner = errors.New("no such owner")
 
 func (h handler) patchSpot(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(r)
@@ -221,7 +225,7 @@ func (h handler) patchSpot(w http.ResponseWriter, r *http.Request) {
 		notFound(w, "spot")
 		return
 	}
-	p, ok := readPatch(w, r, "title", "description", "status", "lat", "lon", "tags")
+	p, ok := readPatch(w, r, "title", "description", "status", "lat", "lon", "tags", "owner_id", "locked")
 	if !ok {
 		return
 	}
@@ -257,12 +261,30 @@ func (h handler) patchSpot(w http.ResponseWriter, r *http.Request) {
 		badBody(w)
 		return
 	} else if present {
-		norm, err := spots.NormalizeTags(tagsIn)
+		norm, err := spots.NormalizeTags(r.Context(), h.repo.db, tagsIn)
+		if errors.Is(err, tagset.ErrInvalid) {
+			httpx.Error(w, http.StatusBadRequest, "invalid_tags", "tags must be distinct entries of the tag catalog (GET /tags)")
+			return
+		}
 		if err != nil {
-			httpx.Error(w, http.StatusBadRequest, "invalid_tags", "tags must be at most 7 of: roof, seating, view, quiet, shade, water, lit")
+			serverError(w)
 			return
 		}
 		sp.tags = &norm
+	}
+	var owner uint64
+	if present, good := field(p, "owner_id", &owner); !good {
+		badBody(w)
+		return
+	} else if present {
+		sp.ownerID = &owner
+	}
+	var locked bool
+	if present, good := field(p, "locked", &locked); !good {
+		badBody(w)
+		return
+	} else if present {
+		sp.locked = &locked
 	}
 	if sp.title != nil {
 		t := strings.TrimSpace(*sp.title)
@@ -295,6 +317,8 @@ func (h handler) patchSpot(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case errors.Is(err, errNotFound):
 		notFound(w, "spot")
+	case errors.Is(err, errNoSuchOwner):
+		httpx.Error(w, http.StatusBadRequest, "invalid_owner", "owner_id must be an existing user")
 	case err != nil:
 		serverError(w)
 	default:
@@ -325,6 +349,20 @@ func (r repo) patchSpot(ctx context.Context, id uint64, p spotPatch) (spotItem, 
 		if f.v != nil {
 			sets, args = append(sets, f.col+" = ?"), append(args, *f.v)
 		}
+	}
+	if p.ownerID != nil {
+		var one uint64
+		err := tx.QueryRowContext(ctx, `SELECT id FROM users WHERE id = ?`, *p.ownerID).Scan(&one)
+		if errors.Is(err, sql.ErrNoRows) {
+			return spotItem{}, errNoSuchOwner
+		}
+		if err != nil {
+			return spotItem{}, err
+		}
+		sets, args = append(sets, "user_id = ?"), append(args, *p.ownerID)
+	}
+	if p.locked != nil {
+		sets, args = append(sets, "locked = ?"), append(args, *p.locked)
 	}
 	if p.lat != nil {
 		// MariaDB POINT(x, y) = (lon, lat), as in the spots package.
