@@ -12,6 +12,9 @@ name: Dev build & release
 #                      Pages needs HTTPS here and the backend must have
 #                      ALLOWED_ORIGINS=https://devilapi.github.io set (CORS).
 #                      Database credentials never go here: only the backend uses them.
+#   secret   RELEASE_TOKEN fine-grained token (this repo; Contents + Workflows: read and
+#                      write). Without it, pushes that change a workflow file build fine
+#                      but cannot be published: GitHub refuses github.token there.
 #   secret   CARTO_KEY CARTO basemaps key for the dark map (without it the app falls
 #                      back to OpenStreetMap tiles). The key is compiled into the app.
 
@@ -248,7 +251,9 @@ jobs:
     permissions:
       contents: write
     env:
-      GH_TOKEN: ${{ github.token }}
+      # github.token may not tag a commit that changes .github/workflows/ (HTTP 403);
+      # RELEASE_TOKEN (fine-grained PAT: Contents + Workflows read/write) can.
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/download-artifact@v4
