@@ -1,0 +1,54 @@
+name: Publish downloads page
+
+# Builds a GitHub Pages site that links to the newest release and the newest
+# dev build (dev-<n>). Runs when a release is published or changed, after every
+# dev release run (releases created with GITHUB_TOKEN do not fire release
+# events), and by hand from the Actions tab.
+#
+# Requires Settings -> Pages -> Source: "GitHub Actions".
+
+on:
+  release:
+    types: [published, edited, deleted, released, prereleased]
+  workflow_run:
+    workflows: ["Dev build & release"]
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate page from releases
+        run: |
+          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            | jq 'add' \
+            | python3 .github/scripts/build_pages.py site "$GITHUB_REPOSITORY"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
