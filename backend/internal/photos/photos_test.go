@@ -121,6 +121,10 @@ func TestUploadJPEGReturnsURLs(t *testing.T) {
 	if !strings.HasSuffix(key, ".jpg") || strings.Count(key, "/") != 2 {
 		t.Fatalf("key %q", key)
 	}
+	// Approve the photo for testing (normally done by admin)
+	if _, err := e.db.Exec("UPDATE photos SET status = 'approved' WHERE id = ?", r.ID); err != nil {
+		t.Fatal(err)
+	}
 	req := httptest.NewRequest("GET", strings.TrimPrefix(r.URL, "http://test"), nil)
 	g := httptest.NewRecorder()
 	e.h.ServeHTTP(g, req)

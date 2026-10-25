@@ -3,6 +3,7 @@ package photos
 import (
 	"bytes"
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -109,12 +110,26 @@ func (h *handler) upload(w http.ResponseWriter, r *http.Request) {
 }
 
 // serveMedia serves files from the upload dir. Only plain relative keys are allowed.
+// Only approved photos are served.
 func (h *handler) serveMedia(w http.ResponseWriter, r *http.Request) {
 	rest := strings.TrimPrefix(r.URL.Path, "/api/v1/media/")
 	if i := strings.Index(r.URL.Path, "/media/"); i >= 0 {
 		rest = r.URL.Path[i+len("/media/"):]
 	}
 	if rest == "" || strings.Contains(rest, "..") || strings.ContainsAny(rest, "\\\x00") || !strings.HasSuffix(rest, ".jpg") {
+		http.NotFound(w, r)
+		return
+	}
+	// Check if photo is approved
+	var status string
+	err := h.d.DB.QueryRowContext(r.Context(),
+		"SELECT status FROM photos WHERE `key` = ? OR thumb_key = ?", rest, rest).Scan(&status)
+	if errors.Is(err, sql.ErrNoRows) || status != "approved" {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		log.Printf("photos: serveMedia status check: %v", err)
 		http.NotFound(w, r)
 		return
 	}

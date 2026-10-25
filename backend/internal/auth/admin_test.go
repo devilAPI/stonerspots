@@ -18,7 +18,7 @@ import (
 func TestIsAdminInResponsesAndNotSettable(t *testing.T) {
 	d := app.Deps{DB: testutil.NewDB(t), Cfg: config.Config{JWTSecret: []byte(testutil.JWTSecret)}}
 	r := chi.NewRouter()
-	r.Route("/api/v1", func(r chi.Router) { auth.Mount(r, d) })
+	r.Route("/api/v1", func(r chi.Router) { auth.MountForTest(r, d) })
 
 	rec := do(t, r, "POST", "/auth/register", "", map[string]any{
 		"email": "a@example.com", "password": "correct-horse-1", "display_name": "A", "adult": true, "is_admin": true,

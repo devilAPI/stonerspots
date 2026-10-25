@@ -170,6 +170,15 @@ func (h *handler) changePassword(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_password", "new password must be 10 to 72 bytes long and differ from the current one")
 		return
 	}
+	// Check new password against HIBP (non-blocking on network errors)
+	if h.hibp != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if breached, err := h.hibp.IsBreached(ctx, in.NewPassword); err == nil && breached {
+			httpx.Error(w, http.StatusBadRequest, "password_breached", "this password has appeared in a data breach; please choose a different one")
+			return
+		}
+	}
 	s, err := h.svc.changePassword(r.Context(), id, in.CurrentPassword, in.NewPassword)
 	if err != nil {
 		if errors.Is(err, errWrongPassword) {

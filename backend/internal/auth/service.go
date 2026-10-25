@@ -14,6 +14,8 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"golang.org/x/crypto/bcrypt"
+
+	mailpkg "stonerspots/backend/internal/mail"
 )
 
 const (
@@ -47,6 +49,7 @@ type service struct {
 	db        *sql.DB
 	secret    []byte
 	uploadDir string
+	mail      *mailpkg.Client
 }
 
 // dummyHash is compared against when the email is unknown so that login
@@ -78,6 +81,23 @@ func newRefreshToken() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(b[:]), nil
 }
 
+// generateToken returns a URL-safe random token for email verification.
+func generateToken() string {
+	b := make([]byte, 32)
+	_, _ = rand.Read(b)
+	return base64.RawURLEncoding.EncodeToString(b)
+}
+
+// sendVerificationEmail sends the verification email to the user.
+func (s *service) sendVerificationEmail(ctx context.Context, email, token string) {
+	verifyURL := "https://example.com/verify-email?token=" + token // TODO: use config.PublicBaseURL
+	body := "Please verify your email address by clicking the following link:\n\n" +
+		verifyURL + "\n\n" +
+		"This link expires in 24 hours.\n\n" +
+		"If you did not create an account, please ignore this email."
+	_ = s.mail.Send(ctx, email, "Verify your Stonerspots account", body)
+}
+
 func (s *service) session(ctx context.Context, u User, family string) (*Session, error) {
 	access, err := IssueAccess(s.secret, u.ID, accessTTL)
 	if err != nil {
@@ -104,8 +124,17 @@ func (s *service) register(ctx context.Context, email, password, name string) (*
 	if err != nil {
 		return nil, err
 	}
+	// Generate email verification token if mail is enabled
+	var verifyToken string
+	var verifyExpires *time.Time
+	if s.mail != nil && s.mail.Config().Enabled() {
+		verifyToken = generateToken()
+		expires := time.Now().UTC().Add(24 * time.Hour)
+		verifyExpires = &expires
+	}
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO users (email, password_hash, display_name, adult_confirmed_at) VALUES (?, ?, ?, NOW())`, email, string(hash), name)
+		`INSERT INTO users (email, password_hash, display_name, adult_confirmed_at, email_verify_token, email_verify_expires) VALUES (?, ?, ?, NOW(), ?, ?)`,
+		email, string(hash), name, verifyToken, verifyExpires)
 	if err != nil {
 		var me *mysql.MySQLError
 		if errors.As(err, &me) && me.Number == 1062 {
@@ -114,15 +143,21 @@ func (s *service) register(ctx context.Context, email, password, name string) (*
 		return nil, err
 	}
 	id, _ := res.LastInsertId()
-	return s.session(ctx, User{ID: uint64(id), Email: email, DisplayName: name}, "")
+	user := User{ID: uint64(id), Email: email, DisplayName: name}
+	// Send verification email if mail is enabled
+	if s.mail != nil && s.mail.Config().Enabled() && verifyToken != "" {
+		go s.sendVerificationEmail(context.Background(), email, verifyToken)
+	}
+	return s.session(ctx, user, "")
 }
 
 func (s *service) login(ctx context.Context, email, password string) (*Session, error) {
 	var u User
 	var hash string
+	var verified sql.NullBool
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, email, display_name, is_admin, password_hash FROM users WHERE email = ?`, email,
-	).Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin, &hash)
+		`SELECT id, email, display_name, is_admin, password_hash, email_verified FROM users WHERE email = ?`, email,
+	).Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin, &hash, &verified)
 	if errors.Is(err, sql.ErrNoRows) {
 		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
 		return nil, errBadCredentials
@@ -131,6 +166,10 @@ func (s *service) login(ctx context.Context, email, password string) (*Session, 
 		return nil, err
 	}
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
+		return nil, errBadCredentials
+	}
+	// If mail is configured and email is not verified, reject login
+	if s.mail != nil && s.mail.Config().Enabled() && !(verified.Valid && verified.Bool) {
 		return nil, errBadCredentials
 	}
 	return s.session(ctx, u, "")
@@ -180,6 +219,28 @@ func (s *service) refresh(ctx context.Context, token string) (*Session, error) {
 		return nil, err
 	}
 	return s.session(ctx, *u, family)
+}
+
+// sendPasswordResetEmail sends the password reset email to the user.
+func (s *service) sendPasswordResetEmail(ctx context.Context, email string) {
+	var token string
+	var expires *time.Time
+	if s.mail != nil && s.mail.Config().Enabled() {
+		token = generateToken()
+		exp := time.Now().UTC().Add(1 * time.Hour)
+		expires = &exp
+		_, _ = s.db.ExecContext(ctx,
+			`UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE email = ?`, token, expires, email)
+	}
+	if token == "" {
+		return
+	}
+	resetURL := "https://example.com/reset-password?token=" + token // TODO: use config.PublicBaseURL
+	body := "Please reset your password by clicking the following link:\n\n" +
+		resetURL + "\n\n" +
+		"This link expires in 1 hour.\n\n" +
+		"If you did not request a password reset, please ignore this email."
+	_ = s.mail.Send(ctx, email, "Reset your Stonerspots password", body)
 }
 
 // newUUID returns a random (v4) UUID string.

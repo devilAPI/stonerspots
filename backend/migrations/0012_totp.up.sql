@@ -1,0 +1,3 @@
+ALTER TABLE `users`
+  ADD COLUMN `totp_secret` VARCHAR(255) DEFAULT NULL,
+  ADD COLUMN `totp_enabled` TINYINT(1) NOT NULL DEFAULT 0;

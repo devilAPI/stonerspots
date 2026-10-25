@@ -48,7 +48,7 @@ func (c *e2e) do(method, path string, body any) (int, map[string]any, []byte) {
 // spot (which creates its first update), read it back from the feed, like it.
 func TestEndToEndFlow(t *testing.T) {
 	d := testutil.NewDB(t)
-	cfg := config.Config{JWTSecret: []byte(testutil.JWTSecret), UploadDir: t.TempDir(), PublicBaseURL: "http://test"}
+	cfg := config.Config{JWTSecret: []byte(testutil.JWTSecret), UploadDir: t.TempDir(), PublicBaseURL: "http://test", DisablePoW: true}
 	c := &e2e{t: t, h: server.New(app.Deps{DB: d, Cfg: cfg})}
 
 	code, reg, raw := c.do("POST", "/api/v1/auth/register", map[string]any{

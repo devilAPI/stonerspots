@@ -63,6 +63,10 @@ type Config struct {
 	// Mail is the SMTP configuration for transactional emails.
 	// Zero value disables all mail features (verification, password reset).
 	Mail MailConfig
+
+	// DisablePoW disables proof-of-work requirement for registration.
+	// Used in tests to avoid PoW overhead.
+	DisablePoW bool
 }
 
 // MailConfig holds SMTP settings. Empty Host disables mail.

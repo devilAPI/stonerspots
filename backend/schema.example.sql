@@ -18,11 +18,13 @@ CREATE TABLE `photos` (
   `thumb_key` varchar(255) NOT NULL,
   `width` int(11) NOT NULL,
   `height` int(11) NOT NULL,
+  `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
   `update_id` bigint(20) unsigned DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_photos_user` (`user_id`),
   KEY `idx_photos_update` (`update_id`),
+  KEY `idx_photos_status` (`status`),
   CONSTRAINT `fk_photos_update` FOREIGN KEY (`update_id`) REFERENCES `spot_updates` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_photos_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -158,11 +160,18 @@ CREATE TABLE `users` (
   `adult_confirmed_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `is_admin` tinyint(1) NOT NULL DEFAULT 0,
+  `totp_secret` varchar(255) DEFAULT NULL,
+  `totp_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `email_verified` tinyint(1) NOT NULL DEFAULT 0,
+  `email_verify_token` varchar(255) DEFAULT NULL,
+  `email_verify_expires` timestamp NULL DEFAULT NULL,
+  `password_reset_token` varchar(255) DEFAULT NULL,
+  `password_reset_expires` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_users_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (11, 0);
+INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (15, 0);
 
 INSERT INTO `tags` (`tag`, `name_de`, `name_en`, `icon`, `sort`) VALUES
   ('roof', 'Überdacht', 'Roof', 'roof', 10),

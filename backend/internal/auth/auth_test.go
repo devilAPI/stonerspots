@@ -19,7 +19,8 @@ func newRouter(t *testing.T) http.Handler {
 	t.Helper()
 	d := app.Deps{DB: testutil.NewDB(t), Cfg: config.Config{JWTSecret: []byte(testutil.JWTSecret)}}
 	r := chi.NewRouter()
-	r.Route("/api/v1", func(r chi.Router) { auth.Mount(r, d) })
+	// Mount with pow=nil to disable PoW in tests
+	r.Route("/api/v1", func(r chi.Router) { auth.MountForTest(r, d) })
 	return r
 }
 

@@ -28,4 +28,14 @@ func Mount(r chi.Router, d app.Deps) {
 	g.Patch("/admin/users/{id}", h.patchUser)
 	g.Delete("/admin/reports/{id}", h.deleteReport)
 	g.Post("/admin/reports/dismiss", h.dismiss)
+
+	// Photo moderation
+	g.Get("/admin/photos", h.listPhotos)
+	g.Patch("/admin/photos/{id}", h.patchPhoto)
+
+	// TOTP 2FA for admins (require admin + 2FA if enabled)
+	g.Get("/admin/2fa", h.totpStatus)
+	g.Post("/admin/2fa/enable", h.totpEnableStart)
+	g.Post("/admin/2fa/verify", h.totpVerify)
+	g.Post("/admin/2fa/disable", h.totpDisable)
 }

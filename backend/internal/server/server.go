@@ -62,7 +62,7 @@ func New(d app.Deps) http.Handler {
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", health(d))
-		auth.Mount(r, d)
+		auth.MountWithOptions(r, d, auth.MountOptions{DisablePoW: d.Cfg.DisablePoW})
 		spots.Mount(r, d, quotaTracker)
 		photos.Mount(r, d)
 		feed.Mount(r, d, quotaTracker)

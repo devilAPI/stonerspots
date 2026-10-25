@@ -30,7 +30,7 @@ func newEnv(t *testing.T) env {
 	dir := t.TempDir()
 	cfg := config.Config{JWTSecret: []byte(testutil.JWTSecret), UploadDir: dir, PublicBaseURL: "http://test"}
 	r := chi.NewRouter()
-	r.Route("/api/v1", func(r chi.Router) { auth.Mount(r, app.Deps{DB: d, Cfg: cfg}) })
+	r.Route("/api/v1", func(r chi.Router) { auth.MountForTest(r, app.Deps{DB: d, Cfg: cfg}) })
 	return env{h: r, db: d, dir: dir}
 }
 
