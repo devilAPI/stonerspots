@@ -1,6 +1,6 @@
 name: Dev build & release
 
-# Every push to main: test, build Android / Linux / iOS, and publish a
+# Every push to main: test, build Android / Linux / web / iOS, and publish a
 # prerelease tagged dev-<run number> (dev-1, dev-2, ...). Can also be started
 # by hand from the Actions tab.
 #
@@ -142,6 +142,36 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+  build-web:
+    name: Build web
+    needs: [test-app]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build web app
+        working-directory: app
+        env:
+          CARTO_KEY: ${{ secrets.CARTO_KEY }}
+        run: |
+          # base href stays "/"; the Pages workflow rewrites it for its sub-path
+          flutter pub get
+          flutter build web --release \
+            --build-number="$BUILD_NUMBER" \
+            --dart-define=API_URL="$API_URL" \
+            --dart-define=CARTO_KEY="$CARTO_KEY"
+          mkdir -p ../dist
+          (cd build/web && zip -qr "../../../dist/stonerspots-${TAG}-web.zip" .)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-web
+          path: dist/*
+          if-no-files-found: error
+
   build-ios:
     name: Build iOS (unsigned)
     needs: [test-app]
@@ -174,7 +204,7 @@ jobs:
 
   release:
     name: Publish ${{ github.run_number }} as dev-${{ github.run_number }}
-    needs: [test-backend, build-android, build-linux, build-ios]
+    needs: [test-backend, build-android, build-linux, build-web, build-ios]
     runs-on: ubuntu-latest
     permissions:
       contents: write

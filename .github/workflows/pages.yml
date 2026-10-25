@@ -1,9 +1,12 @@
-name: Publish downloads page
+name: Publish web app
 
-# Builds a GitHub Pages site that links to the newest release and the newest
-# dev build (dev-<n>). Runs when a release is published or changed, after every
-# dev release run (releases created with GITHUB_TOKEN do not fire release
-# events), and by hand from the Actions tab.
+# Deploys the Flutter web build to GitHub Pages:
+#   /      web build of the newest release (falls back to the newest dev build
+#          while there is no release with a web build)
+#   /dev/  web build of the newest dev build (dev-<n>)
+# The web build is the *-web.zip asset of each release. Runs when a release is
+# published or changed, after every successful dev release run (releases
+# created with GITHUB_TOKEN do not fire release events), and by hand.
 #
 # Requires Settings -> Pages -> Source: "GitHub Actions".
 
@@ -24,17 +27,50 @@ permissions:
 
 jobs:
   build:
-    name: Build site
+    name: Assemble site
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Generate page from releases
+      - id: pages
+        uses: actions/configure-pages@v5
+      - name: Download newest web builds
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
         run: |
-          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
-            | jq 'add' \
-            | python3 .github/scripts/build_pages.py site "$GITHUB_REPOSITORY"
+          gh api --paginate --slurp "repos/${GH_REPO}/releases?per_page=100" | jq 'add' > releases.json
+          # newest published release of a kind that has a web build attached
+          newest() {
+            jq -r --arg kind "$1" '
+              map(select(.draft | not)
+                  | select(any(.assets[]; .name | endswith("-web.zip")))
+                  | select(if $kind == "dev"
+                           then .prerelease and (.tag_name | startswith("dev-"))
+                           else (.prerelease | not) end))
+              | sort_by(.published_at) | last | .tag_name // empty' releases.json
+          }
+          stable="$(newest stable)"
+          dev="$(newest dev)"
+          echo "stable: ${stable:-none}, dev: ${dev:-none}"
+          if [ -z "$dev" ] && [ -z "$stable" ]; then
+            echo "::error::No release has a *-web.zip asset yet"
+            exit 1
+          fi
+
+          # unpack <tag> into <dir> and point its base href at <href>
+          unpack() {
+            mkdir -p "$2" dl
+            gh release download "$1" --pattern '*-web.zip' --dir dl --clobber
+            unzip -qo dl/*-web.zip -d "$2"
+            rm -f dl/*
+            sed -i "s|<base href=\"/\">|<base href=\"$3\">|" "$2/index.html"
+            grep -q "<base href=\"$3\">" "$2/index.html"
+          }
+          unpack "${stable:-$dev}" site "${BASE_PATH}/"
+          [ -n "$dev" ] && unpack "$dev" site/dev "${BASE_PATH}/dev/"
+          ls site
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
