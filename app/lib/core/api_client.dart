@@ -2,10 +2,25 @@ import 'package:dio/dio.dart';
 
 import 'token_store.dart';
 
-const String kApiUrl = String.fromEnvironment(
-  'API_URL',
-  defaultValue: 'http://localhost:8080/api/v1',
+final String kApiUrl = normalizeApiUrl(
+  const String.fromEnvironment(
+    'API_URL',
+    defaultValue: 'http://localhost:8080/api/v1',
+  ),
 );
+
+/// Makes the configured API URL absolute: without a scheme the browser would
+/// resolve it relative to the page (`stonerspots.example.com` becomes
+/// `https://<pages>/stonerspots.example.com/...`). Adds `https://` when the
+/// scheme is missing and `/api/v1` when no path is given.
+String normalizeApiUrl(String raw) {
+  var url = raw.trim();
+  if (!url.contains('://')) url = 'https://$url';
+  final uri = Uri.parse(url);
+  var path = uri.path.replaceAll(RegExp(r'/+$'), '');
+  if (path.isEmpty) path = '/api/v1';
+  return uri.replace(path: path).toString();
+}
 
 /// Error returned by the API: `{"error": {"code", "message"}}`.
 class ApiException implements Exception {
