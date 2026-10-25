@@ -36,6 +36,22 @@ Tests: `make test` (backend, needs the database) and `cd app && flutter test`.
 
 Optional demo data from a GPX file: `cd backend && go run ./cmd/seedgpx -gpx spots.gpx`.
 
+## Install the backend on a server
+
+`install-backend.sh` downloads the newest backend build from the GitHub
+releases (amd64 or arm64), verifies its checksum and installs it as the
+systemd service `stonerspots-backend`. Run it again to update.
+
+```sh
+sudo ./install-backend.sh         # newest release
+sudo ./install-backend.sh --dev   # newest dev build
+```
+
+Binaries go to `/opt/stonerspots`, photos to `/var/lib/stonerspots/uploads`.
+The first run creates `/etc/stonerspots/config.yaml` with a random JWT secret;
+fill in the database there (MariaDB 11.4, not installed by the script), then
+`sudo systemctl start stonerspots-backend`.
+
 ## Web app on GitHub Pages
 
 The `Publish web app` workflow deploys the web build of the newest release to
