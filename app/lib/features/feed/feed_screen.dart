@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/models.dart';
 import '../../core/responsive.dart';
 import '../../core/spot_tag_widgets.dart';
 import '../../l10n/app_localizations.dart';
@@ -73,9 +74,21 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   Widget _buildBody(BuildContext context, FeedState state, double width) {
     final l10n = AppLocalizations.of(context);
     final ctrl = ref.read(feedControllerProvider.notifier);
-    // Cards stay at a readable width on wide windows, while the scrollable
+    // Phones get one column; tablets/desktops a grid as wide as the pane
+    // allows. Content stays centred at a readable width, while the scrollable
     // area (and its mouse-wheel/scrollbar) spans the whole pane.
-    final gutter = sideGutter(width);
+    final columns = context.isPhone ? 1 : feedColumns(width);
+    final grid = columns > 1;
+    final gutter = sideGutter(
+      width,
+      maxWidth: grid ? kFeedGridMaxWidth : kContentMaxWidth,
+    );
+    final cardLayout = context.isPhoneLandscape
+        ? FeedCardLayout.side
+        : FeedCardLayout.stacked;
+    final rows = grid
+        ? (state.items.length / columns).ceil()
+        : state.items.length;
     Widget body;
     if (state.error != null && state.items.isEmpty) {
       body = Center(
@@ -98,17 +111,32 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         ],
       );
     } else {
+      // A short first page (wide grid) may not fill the pane, so nothing
+      // would scroll to trigger the next one.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _scroll.hasClients) _onScroll();
+      });
       body = ListView.builder(
         controller: _scroll,
-        padding: EdgeInsets.symmetric(horizontal: gutter),
+        padding: EdgeInsets.symmetric(
+          horizontal: gutter + (grid ? 6 : 0),
+          vertical: grid ? 6 : 0,
+        ),
         physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: state.items.length + (state.loadingMore ? 1 : 0),
-        itemBuilder: (_, i) => i >= state.items.length
-            ? const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            : FeedCard(item: state.items[i]),
+        itemCount: rows + (state.loadingMore ? 1 : 0),
+        itemBuilder: (_, i) {
+          if (i >= rows) {
+            return const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (!grid) return FeedCard(item: state.items[i], layout: cardLayout);
+          return _GridRow(
+            items: state.items.skip(i * columns).take(columns).toList(),
+            columns: columns,
+          );
+        },
       );
     }
 
@@ -144,6 +172,33 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       ],
     );
   }
+}
+
+/// One row of the feed grid: cards share the row's height (the tallest
+/// card's), so their pictures and likes line up.
+class _GridRow extends StatelessWidget {
+  const _GridRow({required this.items, required this.columns});
+  final List<FeedItem> items;
+  final int columns;
+
+  @override
+  Widget build(BuildContext context) => IntrinsicHeight(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var j = 0; j < columns; j++)
+          Expanded(
+            child: j < items.length
+                ? FeedCard(
+                    item: items[j],
+                    layout: FeedCardLayout.tile,
+                    margin: const EdgeInsets.all(6),
+                  )
+                : const SizedBox.shrink(),
+          ),
+      ],
+    ),
+  );
 }
 
 class _ChipRow extends StatelessWidget {

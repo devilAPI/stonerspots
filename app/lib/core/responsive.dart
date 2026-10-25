@@ -9,6 +9,23 @@ const double kExtendedRailBreakpoint = 1000;
 /// Readable width for single-column content (feed, forms, lists).
 const double kContentMaxWidth = 680;
 
+/// Feed grid on tablets/desktops: columns of at least this width ...
+const double kFeedTileMinWidth = 300;
+
+/// ... up to this many, inside at most [kFeedGridMaxWidth].
+const int kFeedMaxColumns = 4;
+const double kFeedGridMaxWidth = 1400;
+
+/// Shortest window side below which the device counts as a phone (in either
+/// orientation).
+const double kPhoneShortestSide = 600;
+
+/// Number of feed columns for a pane of [width] (1 = plain list).
+int feedColumns(double width) {
+  final usable = (width < kFeedGridMaxWidth ? width : kFeedGridMaxWidth) - 24;
+  return (usable / kFeedTileMinWidth).floor().clamp(1, kFeedMaxColumns);
+}
+
 extension ResponsiveContext on BuildContext {
   double get _width => MediaQuery.sizeOf(this).width;
 
@@ -20,6 +37,15 @@ extension ResponsiveContext on BuildContext {
 
   /// Room for a side-by-side layout (e.g. gallery | details).
   bool get twoPane => _width >= kTwoPaneBreakpoint;
+
+  /// Phone-sized window (portrait or landscape).
+  bool get isPhone => MediaQuery.sizeOf(this).shortestSide < kPhoneShortestSide;
+
+  /// Phone held sideways: little height, so content goes side by side.
+  bool get isPhoneLandscape {
+    final size = MediaQuery.sizeOf(this);
+    return isPhone && size.width > size.height;
+  }
 }
 
 /// Horizontal padding that centres a column of at most [maxWidth] in a scroll
