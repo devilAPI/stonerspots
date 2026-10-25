@@ -42,10 +42,16 @@ Optional demo data from a GPX file: `cd backend && go run ./cmd/seedgpx -gpx spo
 releases (amd64 or arm64), verifies its checksum and installs it as the
 systemd service `stonerspots-backend`. Run it again to update.
 
+One-liner, straight from GitHub:
+
 ```sh
-sudo ./install-backend.sh         # newest release
-sudo ./install-backend.sh --dev   # newest dev build
+# newest release
+curl -fsSL https://raw.githubusercontent.com/devilAPI/stonerspots/main/install-backend.sh | sudo bash
+# newest dev build
+curl -fsSL https://raw.githubusercontent.com/devilAPI/stonerspots/main/install-backend.sh | sudo bash -s -- --dev
 ```
+
+Or from a checkout: `sudo ./install-backend.sh [--dev]`.
 
 Binaries go to `/opt/stonerspots`, photos to `/var/lib/stonerspots/uploads`.
 The first run creates `/etc/stonerspots/config.yaml` with a random JWT secret;
