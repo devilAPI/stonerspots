@@ -1183,6 +1183,210 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Einer der Tags ist ungültig'**
   String get tagsErrInvalid;
+
+  /// No description provided for @adminOwner.
+  ///
+  /// In de, this message translates to:
+  /// **'Besitzer'**
+  String get adminOwner;
+
+  /// No description provided for @adminChangeOwner.
+  ///
+  /// In de, this message translates to:
+  /// **'Besitzer ändern'**
+  String get adminChangeOwner;
+
+  /// No description provided for @adminPickUser.
+  ///
+  /// In de, this message translates to:
+  /// **'Neuen Besitzer wählen'**
+  String get adminPickUser;
+
+  /// No description provided for @adminLocked.
+  ///
+  /// In de, this message translates to:
+  /// **'Gesperrt'**
+  String get adminLocked;
+
+  /// No description provided for @adminLockedHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Nutzer können keine Updates posten und nichts ändern; Admins schon.'**
+  String get adminLockedHint;
+
+  /// No description provided for @adminErrInvalidOwner.
+  ///
+  /// In de, this message translates to:
+  /// **'Diesen Nutzer gibt es nicht'**
+  String get adminErrInvalidOwner;
+
+  /// No description provided for @spotLockedNotice.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieser Spot ist gesperrt. Nur Admins können ihn ändern.'**
+  String get spotLockedNotice;
+
+  /// No description provided for @adminEditSpotHere.
+  ///
+  /// In de, this message translates to:
+  /// **'Spot bearbeiten (Admin)'**
+  String get adminEditSpotHere;
+
+  /// No description provided for @adminLock.
+  ///
+  /// In de, this message translates to:
+  /// **'Spot sperren'**
+  String get adminLock;
+
+  /// No description provided for @adminUnlock.
+  ///
+  /// In de, this message translates to:
+  /// **'Spot entsperren'**
+  String get adminUnlock;
+
+  /// No description provided for @adminSpotLocked.
+  ///
+  /// In de, this message translates to:
+  /// **'Spot gesperrt'**
+  String get adminSpotLocked;
+
+  /// No description provided for @adminSpotUnlocked.
+  ///
+  /// In de, this message translates to:
+  /// **'Spot entsperrt'**
+  String get adminSpotUnlocked;
+
+  /// No description provided for @adminEditUpdate.
+  ///
+  /// In de, this message translates to:
+  /// **'Update bearbeiten (Admin)'**
+  String get adminEditUpdate;
+
+  /// No description provided for @adminHideUpdate.
+  ///
+  /// In de, this message translates to:
+  /// **'Update ausblenden'**
+  String get adminHideUpdate;
+
+  /// No description provided for @adminUpdateHidden.
+  ///
+  /// In de, this message translates to:
+  /// **'Update ausgeblendet'**
+  String get adminUpdateHidden;
+
+  /// No description provided for @adminTags.
+  ///
+  /// In de, this message translates to:
+  /// **'Tags'**
+  String get adminTags;
+
+  /// No description provided for @adminNewTag.
+  ///
+  /// In de, this message translates to:
+  /// **'Neuer Tag'**
+  String get adminNewTag;
+
+  /// No description provided for @adminEditTag.
+  ///
+  /// In de, this message translates to:
+  /// **'Tag bearbeiten'**
+  String get adminEditTag;
+
+  /// No description provided for @adminTagKey.
+  ///
+  /// In de, this message translates to:
+  /// **'Schlüssel (a-z, 0-9, _)'**
+  String get adminTagKey;
+
+  /// No description provided for @adminTagKeyHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Wird von App und API benutzt; später nicht änderbar'**
+  String get adminTagKeyHint;
+
+  /// No description provided for @adminTagNameDe.
+  ///
+  /// In de, this message translates to:
+  /// **'Deutscher Name'**
+  String get adminTagNameDe;
+
+  /// No description provided for @adminTagNameEn.
+  ///
+  /// In de, this message translates to:
+  /// **'Englischer Name'**
+  String get adminTagNameEn;
+
+  /// No description provided for @adminTagIcon.
+  ///
+  /// In de, this message translates to:
+  /// **'Symbol'**
+  String get adminTagIcon;
+
+  /// No description provided for @adminTagMoveUp.
+  ///
+  /// In de, this message translates to:
+  /// **'Nach oben'**
+  String get adminTagMoveUp;
+
+  /// No description provided for @adminTagMoveDown.
+  ///
+  /// In de, this message translates to:
+  /// **'Nach unten'**
+  String get adminTagMoveDown;
+
+  /// No description provided for @adminTagSpots.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =0{keine Spots} =1{1 Spot} other{{count} Spots}}'**
+  String adminTagSpots(int count);
+
+  /// No description provided for @adminDeleteTag.
+  ///
+  /// In de, this message translates to:
+  /// **'Tag löschen'**
+  String get adminDeleteTag;
+
+  /// No description provided for @adminDeleteTagTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Den Tag „{name}“ löschen?'**
+  String adminDeleteTagTitle(String name);
+
+  /// No description provided for @adminDeleteTagBody.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =0{Kein Spot benutzt ihn.} =1{Er wird von 1 Spot entfernt.} other{Er wird von {count} Spots entfernt.}}'**
+  String adminDeleteTagBody(int count);
+
+  /// No description provided for @adminTagDeleted.
+  ///
+  /// In de, this message translates to:
+  /// **'Tag gelöscht'**
+  String get adminTagDeleted;
+
+  /// No description provided for @adminTagSaved.
+  ///
+  /// In de, this message translates to:
+  /// **'Tag gespeichert'**
+  String get adminTagSaved;
+
+  /// No description provided for @adminErrTagTaken.
+  ///
+  /// In de, this message translates to:
+  /// **'Einen Tag mit diesem Schlüssel gibt es schon'**
+  String get adminErrTagTaken;
+
+  /// No description provided for @adminErrTagKey.
+  ///
+  /// In de, this message translates to:
+  /// **'2 bis 16 Zeichen: a-z, 0-9 und _, mit einem Buchstaben am Anfang'**
+  String get adminErrTagKey;
+
+  /// No description provided for @adminErrTagName.
+  ///
+  /// In de, this message translates to:
+  /// **'Namen müssen 1 bis 40 Zeichen lang sein'**
+  String get adminErrTagName;
 }
 
 class _AppLocalizationsDelegate

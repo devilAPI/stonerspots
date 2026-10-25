@@ -3,6 +3,7 @@ import '../../core/providers.dart' show apiClientProvider;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/models.dart' show SpotTag;
 import 'admin_models.dart';
 
 abstract class AdminRepository {
@@ -38,6 +39,21 @@ abstract class AdminRepository {
 
   /// Updates the given spot fields; returns the updated spot.
   Future<AdminSpot> updateSpot(int id, AdminSpotPatch patch);
+
+  /// Edits any update (text, tag, visibility), whoever wrote it.
+  Future<void> updateUpdate(int id, AdminUpdatePatch patch);
+
+  /// The tag catalog with usage counts, in canonical order.
+  Future<List<AdminTag>> tags();
+
+  /// Adds a tag; [draft] needs every field but sort.
+  Future<SpotTag> createTag(AdminTagDraft draft);
+
+  /// Renames, re-icons or moves a tag.
+  Future<SpotTag> updateTag(String tag, AdminTagDraft draft);
+
+  /// Deletes a tag from the catalog and from every spot.
+  Future<void> deleteTag(String tag);
 
   /// Removes one report. 404 `not_found` is thrown as [ApiException] for the
   /// caller to treat as success.
@@ -135,6 +151,36 @@ class ApiAdminRepository implements AdminRepository {
           data: patch.toJson(),
         ),
       );
+
+  @override
+  Future<void> updateUpdate(int id, AdminUpdatePatch patch) async {
+    await _api.patch<dynamic>('/admin/updates/$id', data: patch.toJson());
+  }
+
+  @override
+  Future<List<AdminTag>> tags() async => [
+    for (final e in await _api.get<List<dynamic>>('/admin/tags'))
+      AdminTag.fromJson(e as Map<String, dynamic>),
+  ];
+
+  @override
+  Future<SpotTag> createTag(AdminTagDraft draft) async => SpotTag.fromJson(
+    await _api.post<Map<String, dynamic>>('/admin/tags', data: draft.toJson()),
+  );
+
+  @override
+  Future<SpotTag> updateTag(String tag, AdminTagDraft draft) async =>
+      SpotTag.fromJson(
+        await _api.patch<Map<String, dynamic>>(
+          '/admin/tags/${Uri.encodeComponent(tag)}',
+          data: draft.toJson(),
+        ),
+      );
+
+  @override
+  Future<void> deleteTag(String tag) async {
+    await _api.delete<dynamic>('/admin/tags/${Uri.encodeComponent(tag)}');
+  }
 
   @override
   Future<void> deleteReport(int id) async {

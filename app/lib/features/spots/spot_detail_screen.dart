@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/api_client.dart';
 import '../../core/models.dart';
 import '../../core/responsive.dart';
 import '../../core/spot_tag_widgets.dart';
 import '../../l10n/app_localizations.dart';
+import '../admin/admin_edit_dialogs.dart';
+import '../admin/admin_models.dart';
+import '../admin/admin_repository.dart';
 import '../auth/auth_controller.dart';
 import '../reviews/rating_widgets.dart';
 import '../reviews/reviews_section.dart';
@@ -169,6 +173,79 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
     }
   }
 
+  // ---- admin actions ----
+
+  Future<void> _adminEditSpot(Spot spot) async {
+    final saved = await showEditSpotDialog(
+      context,
+      spot: AdminSpot.fromSpot(spot),
+    );
+    if (saved == null || !mounted) return;
+    _snack(AppLocalizations.of(context).adminSpotSaved);
+    ref.invalidate(spotDetailProvider(widget.spotId));
+  }
+
+  Future<void> _adminToggleLock(Spot spot) async {
+    final l = AppLocalizations.of(context);
+    try {
+      await ref
+          .read(adminRepositoryProvider)
+          .updateSpot(spot.id, AdminSpotPatch(locked: !spot.locked));
+      _snack(spot.locked ? l.adminSpotUnlocked : l.adminSpotLocked);
+      ref.invalidate(spotDetailProvider(widget.spotId));
+    } catch (_) {
+      _snack(l.errorGeneric);
+    }
+  }
+
+  Future<void> _adminEditUpdate(FeedItem item) async {
+    final saved = await showAdminUpdateDialog(context, item);
+    if (saved == true) ref.invalidate(spotUpdatesProvider(widget.spotId));
+  }
+
+  Future<void> _adminHideUpdate(FeedItem item) async {
+    final l = AppLocalizations.of(context);
+    try {
+      await ref
+          .read(adminRepositoryProvider)
+          .updateUpdate(item.id, const AdminUpdatePatch(status: 'hidden'));
+      _snack(l.adminUpdateHidden);
+      ref.invalidate(spotUpdatesProvider(widget.spotId));
+    } catch (_) {
+      _snack(l.errorGeneric);
+    }
+  }
+
+  Future<void> _adminDeleteUpdate(FeedItem item) async {
+    final l = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.adminRemoveUpdateTitle),
+        content: Text(l.adminRemoveUpdateBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            key: const Key('adminUpdateDeleteConfirm'),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.adminRemove),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await ref.read(adminRepositoryProvider).deleteUpdate(item.id);
+      _snack(l.adminUpdateRemoved);
+    } catch (e) {
+      if (!(e is ApiException && e.status == 404)) _snack(l.errorGeneric);
+    }
+    ref.invalidate(spotUpdatesProvider(widget.spotId));
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -177,6 +254,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
     final updates = ref.watch(spotUpdatesProvider(widget.spotId));
     final me = ref.watch(authControllerProvider).value;
     final myId = me?.id;
+    final isAdmin = me?.isAdmin ?? false;
+    final loaded = spotAsync.value;
 
     return Scaffold(
       appBar: AppBar(
@@ -185,11 +264,37 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
           PopupMenuButton<String>(
             key: const Key('menu'),
             onSelected: (v) {
-              if (v == 'report') {
-                _gated(() => _report('spot', widget.spotId));
+              switch (v) {
+                case 'report':
+                  _gated(() => _report('spot', widget.spotId));
+                case 'admin-edit':
+                  if (loaded != null) _adminEditSpot(loaded);
+                case 'admin-lock':
+                  if (loaded != null) _adminToggleLock(loaded);
               }
             },
             itemBuilder: (_) => [
+              if (isAdmin && loaded != null) ...[
+                PopupMenuItem(
+                  key: const Key('adminEditSpot'),
+                  value: 'admin-edit',
+                  child: ListTile(
+                    leading: const Icon(Icons.edit_note),
+                    title: Text(l.adminEditSpotHere),
+                  ),
+                ),
+                PopupMenuItem(
+                  key: const Key('adminLockSpot'),
+                  value: 'admin-lock',
+                  child: ListTile(
+                    leading: Icon(
+                      loaded.locked ? Icons.lock_open : Icons.lock_outline,
+                    ),
+                    title: Text(loaded.locked ? l.adminUnlock : l.adminLock),
+                  ),
+                ),
+                const PopupMenuDivider(),
+              ],
               PopupMenuItem(value: 'report', child: Text(l.report)),
             ],
           ),
@@ -219,7 +324,10 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                 if (p.url != spot.coverUrl) p.url,
           ]);
           void openPhoto(int i) => showPhotoViewer(context, urls, i);
+          // A locked spot stays as it is for everyone but admins.
+          final canChange = !spot.locked || isAdmin;
           final canEditTags =
+              canChange &&
               me != null &&
               (me.isAdmin || (spot.author != null && spot.author!.id == me.id));
           final info = Padding(
@@ -231,6 +339,22 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   spot.title,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
+                if (spot.locked)
+                  Padding(
+                    key: const Key('spotLockedNotice'),
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.lock,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.tertiary,
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(child: Text(l.spotLockedNotice)),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 4),
                 RatingBadge(
                   key: const Key('spotRating'),
@@ -274,12 +398,13 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                         const SizedBox(width: 8),
                       ],
                     ),
-                    OutlinedButton.icon(
-                      key: const Key('postUpdate'),
-                      onPressed: () => _gated(_postUpdate),
-                      icon: const Icon(Icons.edit),
-                      label: Text(l.postUpdate),
-                    ),
+                    if (canChange)
+                      OutlinedButton.icon(
+                        key: const Key('postUpdate'),
+                        onPressed: () => _gated(_postUpdate),
+                        icon: const Icon(Icons.edit),
+                        label: Text(l.postUpdate),
+                      ),
                     OutlinedButton.icon(
                       key: const Key('openInMaps'),
                       onPressed: () => _openInMaps(spot),
@@ -332,6 +457,16 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                                 onPhotoTap: (i) => showPhotoViewer(context, [
                                   for (final p in u.photos) p.url,
                                 ], i),
+                                canChangeOwn: canChange,
+                                onAdminEdit: isAdmin
+                                    ? () => _adminEditUpdate(u)
+                                    : null,
+                                onAdminHide: isAdmin
+                                    ? () => _adminHideUpdate(u)
+                                    : null,
+                                onAdminDelete: isAdmin
+                                    ? () => _adminDeleteUpdate(u)
+                                    : null,
                               ),
                           ],
                         ),

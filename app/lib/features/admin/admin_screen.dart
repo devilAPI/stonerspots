@@ -9,6 +9,7 @@ import 'admin_controller.dart';
 import 'admin_edit_dialogs.dart';
 import 'admin_models.dart';
 import 'admin_repository.dart';
+import 'admin_tags_tab.dart';
 
 String _formatDateTime(BuildContext context, DateTime d) {
   final loc = MaterialLocalizations.of(context);
@@ -17,7 +18,7 @@ String _formatDateTime(BuildContext context, DateTime d) {
       '${loc.formatTimeOfDay(TimeOfDay.fromDateTime(local))}';
 }
 
-/// Moderation page for admins: reports, users and spots.
+/// Moderation page for admins: reports, users, spots and the tag catalog.
 class AdminScreen extends ConsumerWidget {
   const AdminScreen({super.key});
 
@@ -30,7 +31,7 @@ class AdminScreen extends ConsumerWidget {
     ref.listen(adminUsersProvider, (_, _) {});
     ref.listen(adminSpotsProvider, (_, _) {});
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: Text(l10n.adminTitle),
@@ -39,11 +40,12 @@ class AdminScreen extends ConsumerWidget {
               Tab(text: l10n.adminReports),
               Tab(text: l10n.adminUsers),
               Tab(text: l10n.adminSpots),
+              Tab(text: l10n.adminTags),
             ],
           ),
         ),
         body: const TabBarView(
-          children: [_ReportsTab(), _UsersTab(), _SpotsTab()],
+          children: [_ReportsTab(), _UsersTab(), _SpotsTab(), AdminTagsTab()],
         ),
       ),
     );
@@ -807,6 +809,16 @@ class _SpotsTabState extends ConsumerState<_SpotsTab> {
                           style: theme.textTheme.titleMedium,
                         ),
                       ),
+                      if (s.locked)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8, top: 4),
+                          child: Icon(
+                            Icons.lock,
+                            key: Key('spot-locked-${s.id}'),
+                            size: 18,
+                            semanticLabel: l10n.adminLocked,
+                          ),
+                        ),
                       const SizedBox(width: 8),
                       _StatusChip(s.status),
                     ],

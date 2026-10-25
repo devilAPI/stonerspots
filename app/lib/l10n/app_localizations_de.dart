@@ -657,4 +657,130 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get tagsErrInvalid => 'Einer der Tags ist ungültig';
+
+  @override
+  String get adminOwner => 'Besitzer';
+
+  @override
+  String get adminChangeOwner => 'Besitzer ändern';
+
+  @override
+  String get adminPickUser => 'Neuen Besitzer wählen';
+
+  @override
+  String get adminLocked => 'Gesperrt';
+
+  @override
+  String get adminLockedHint =>
+      'Nutzer können keine Updates posten und nichts ändern; Admins schon.';
+
+  @override
+  String get adminErrInvalidOwner => 'Diesen Nutzer gibt es nicht';
+
+  @override
+  String get spotLockedNotice =>
+      'Dieser Spot ist gesperrt. Nur Admins können ihn ändern.';
+
+  @override
+  String get adminEditSpotHere => 'Spot bearbeiten (Admin)';
+
+  @override
+  String get adminLock => 'Spot sperren';
+
+  @override
+  String get adminUnlock => 'Spot entsperren';
+
+  @override
+  String get adminSpotLocked => 'Spot gesperrt';
+
+  @override
+  String get adminSpotUnlocked => 'Spot entsperrt';
+
+  @override
+  String get adminEditUpdate => 'Update bearbeiten (Admin)';
+
+  @override
+  String get adminHideUpdate => 'Update ausblenden';
+
+  @override
+  String get adminUpdateHidden => 'Update ausgeblendet';
+
+  @override
+  String get adminTags => 'Tags';
+
+  @override
+  String get adminNewTag => 'Neuer Tag';
+
+  @override
+  String get adminEditTag => 'Tag bearbeiten';
+
+  @override
+  String get adminTagKey => 'Schlüssel (a-z, 0-9, _)';
+
+  @override
+  String get adminTagKeyHint =>
+      'Wird von App und API benutzt; später nicht änderbar';
+
+  @override
+  String get adminTagNameDe => 'Deutscher Name';
+
+  @override
+  String get adminTagNameEn => 'Englischer Name';
+
+  @override
+  String get adminTagIcon => 'Symbol';
+
+  @override
+  String get adminTagMoveUp => 'Nach oben';
+
+  @override
+  String get adminTagMoveDown => 'Nach unten';
+
+  @override
+  String adminTagSpots(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Spots',
+      one: '1 Spot',
+      zero: 'keine Spots',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get adminDeleteTag => 'Tag löschen';
+
+  @override
+  String adminDeleteTagTitle(String name) {
+    return 'Den Tag „$name“ löschen?';
+  }
+
+  @override
+  String adminDeleteTagBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Er wird von $count Spots entfernt.',
+      one: 'Er wird von 1 Spot entfernt.',
+      zero: 'Kein Spot benutzt ihn.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get adminTagDeleted => 'Tag gelöscht';
+
+  @override
+  String get adminTagSaved => 'Tag gespeichert';
+
+  @override
+  String get adminErrTagTaken => 'Einen Tag mit diesem Schlüssel gibt es schon';
+
+  @override
+  String get adminErrTagKey =>
+      '2 bis 16 Zeichen: a-z, 0-9 und _, mit einem Buchstaben am Anfang';
+
+  @override
+  String get adminErrTagName => 'Namen müssen 1 bis 40 Zeichen lang sein';
 }

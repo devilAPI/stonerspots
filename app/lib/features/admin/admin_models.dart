@@ -180,6 +180,7 @@ class AdminSpot {
     required this.author,
     required this.reportCount,
     this.tags = const [],
+    this.locked = false,
   });
 
   final int id;
@@ -188,6 +189,9 @@ class AdminSpot {
   final double lat;
   final double lon;
   final List<SpotTag> tags;
+
+  /// Locked spots take no new updates or edits from non-admins.
+  final bool locked;
 
   /// `active` or `hidden`.
   final String status;
@@ -208,6 +212,24 @@ class AdminSpot {
     author: Author.fromJson(j['author'] as Map<String, dynamic>),
     reportCount: (j['report_count'] ?? 0) as int,
     tags: SpotTag.parse(j['tags']),
+    locked: (j['locked'] ?? false) as bool,
+  );
+
+  /// The editable part of a spot as the spot page has it (it is active
+  /// there; date and report count are unknown and not edited).
+  factory AdminSpot.fromSpot(Spot s) => AdminSpot(
+    id: s.id,
+    title: s.title,
+    description: s.description,
+    lat: s.lat,
+    lon: s.lon,
+    status: 'active',
+    likeCount: s.likeCount,
+    createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+    author: s.author ?? const Author(id: 0, displayName: ''),
+    reportCount: 0,
+    tags: s.tags,
+    locked: s.locked,
   );
 
   AdminSpot copyWith({String? status, int? reportCount}) => AdminSpot(
@@ -222,6 +244,7 @@ class AdminSpot {
     author: author,
     reportCount: reportCount ?? this.reportCount,
     tags: tags,
+    locked: locked,
   );
 }
 
@@ -252,10 +275,16 @@ class AdminSpotPatch {
     this.lat,
     this.lon,
     this.tags,
+    this.ownerId,
+    this.locked,
   });
 
   /// The complete new tag list (empty = remove all); null = unchanged.
   final List<SpotTag>? tags;
+
+  /// New author of the spot.
+  final int? ownerId;
+  final bool? locked;
   final String? title;
   final String? description;
   final String? status;
@@ -270,5 +299,65 @@ class AdminSpotPatch {
     'status': ?status,
     if (lat != null && lon != null) ...{'lat': lat, 'lon': lon},
     if (tags != null) 'tags': [for (final t in SpotTag.sorted(tags!)) t.wire],
+    'owner_id': ?ownerId,
+    'locked': ?locked,
+  };
+}
+
+/// Fields of `PATCH /admin/updates/{id}`; only set fields are serialized.
+class AdminUpdatePatch {
+  const AdminUpdatePatch({this.body, this.tag, this.status});
+
+  final String? body;
+  final UpdateTag? tag;
+
+  /// `active` or `hidden`.
+  final String? status;
+
+  bool get isEmpty => toJson().isEmpty;
+
+  Map<String, dynamic> toJson() => {
+    'body': ?body,
+    'tag': ?tag?.wire,
+    'status': ?status,
+  };
+}
+
+/// A tag catalog entry as admins see it: the tag plus how many spots use it.
+class AdminTag {
+  const AdminTag(this.tag, {this.spotCount = 0});
+
+  final SpotTag tag;
+  final int spotCount;
+
+  factory AdminTag.fromJson(Map<String, dynamic> j) =>
+      AdminTag(SpotTag.fromJson(j), spotCount: (j['spot_count'] ?? 0) as int);
+}
+
+/// Fields of `POST /admin/tags` (all required) and `PATCH /admin/tags/{tag}`
+/// (only set fields are sent; the key cannot change).
+class AdminTagDraft {
+  const AdminTagDraft({
+    this.tag,
+    this.nameDe,
+    this.nameEn,
+    this.icon,
+    this.sort,
+  });
+
+  final String? tag;
+  final String? nameDe;
+  final String? nameEn;
+  final String? icon;
+  final int? sort;
+
+  bool get isEmpty => toJson().isEmpty;
+
+  Map<String, dynamic> toJson() => {
+    'tag': ?tag,
+    'name_de': ?nameDe,
+    'name_en': ?nameEn,
+    'icon': ?icon,
+    'sort': ?sort,
   };
 }

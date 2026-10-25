@@ -23,12 +23,23 @@ class UpdateTile extends StatelessWidget {
     required this.onDelete,
     required this.onReport,
     required this.onPhotoTap,
+    this.canChangeOwn = true,
+    this.onAdminEdit,
+    this.onAdminHide,
+    this.onAdminDelete,
   });
 
   final FeedItem item;
 
-  /// Own updates get edit and delete; others get report.
+  /// Own updates get edit and delete (unless [canChangeOwn] is false, on a
+  /// locked spot); others get report, or the admin menu for admins.
   final bool isMine;
+  final bool canChangeOwn;
+
+  /// Set for admins: a menu to edit, hide or delete someone else's update.
+  final VoidCallback? onAdminEdit;
+  final VoidCallback? onAdminHide;
+  final VoidCallback? onAdminDelete;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onReport;
@@ -96,7 +107,9 @@ class UpdateTile extends StatelessWidget {
               ],
             ),
           ),
-          if (isMine) ...[
+          if (isMine && !canChangeOwn)
+            const SizedBox.shrink()
+          else if (isMine) ...[
             IconButton(
               key: Key('updateEdit_${item.id}'),
               tooltip: l.updateActionEdit,
@@ -109,7 +122,35 @@ class UpdateTile extends StatelessWidget {
               icon: const Icon(Icons.delete_outline),
               onPressed: onDelete,
             ),
-          ] else
+          ] else if (onAdminEdit != null)
+            PopupMenuButton<String>(
+              key: Key('updateAdmin_${item.id}'),
+              tooltip: l.adminMoreActions,
+              icon: const Icon(Icons.admin_panel_settings_outlined),
+              onSelected: (v) => switch (v) {
+                'edit' => onAdminEdit?.call(),
+                'hide' => onAdminHide?.call(),
+                _ => onAdminDelete?.call(),
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  key: Key('updateAdminEdit_${item.id}'),
+                  value: 'edit',
+                  child: Text(l.adminEditUpdate),
+                ),
+                PopupMenuItem(
+                  key: Key('updateAdminHide_${item.id}'),
+                  value: 'hide',
+                  child: Text(l.adminHideUpdate),
+                ),
+                PopupMenuItem(
+                  key: Key('updateAdminDelete_${item.id}'),
+                  value: 'delete',
+                  child: Text(l.adminRemoveUpdate),
+                ),
+              ],
+            )
+          else
             IconButton(
               key: Key('updateReport_${item.id}'),
               tooltip: l.report,

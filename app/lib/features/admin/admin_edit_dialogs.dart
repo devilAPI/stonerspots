@@ -5,7 +5,8 @@ import 'package:latlong2/latlong.dart';
 import '../../core/api_client.dart';
 import '../../core/coordinates.dart';
 import '../../l10n/app_localizations.dart';
-import '../../core/models.dart' show SpotTag;
+import '../../core/models.dart' show Author, FeedItem, SpotTag, UpdateTag;
+import '../spots/update_tile.dart' show updateTagLabel;
 import '../../core/spot_tag_widgets.dart';
 import 'admin_models.dart';
 import 'admin_repository.dart';
@@ -45,6 +46,8 @@ String adminSpotErrorText(AppLocalizations l, Object e) {
         return l.adminErrInvalidLocation;
       case 'invalid_tags':
         return l.tagsErrInvalid;
+      case 'invalid_owner':
+        return l.adminErrInvalidOwner;
     }
   }
   return l.errorGeneric;
@@ -221,6 +224,8 @@ class _EditSpotDialogState extends ConsumerState<_EditSpotDialog> {
   );
   late String _status = widget.spot.status == 'hidden' ? 'hidden' : 'active';
   late List<SpotTag> _tags = SpotTag.sorted(widget.spot.tags);
+  late Author _owner = widget.spot.author;
+  late bool _locked = widget.spot.locked;
   bool _busy = false;
   String? _error;
 
@@ -267,6 +272,8 @@ class _EditSpotDialogState extends ConsumerState<_EditSpotDialog> {
       lat: point?.latitude,
       lon: point?.longitude,
       tags: _sameTags(_tags, s.tags) ? null : _tags,
+      ownerId: _owner.id != s.author.id ? _owner.id : null,
+      locked: _locked != s.locked ? _locked : null,
     );
     if (patch.isEmpty) {
       Navigator.pop(context);
@@ -329,7 +336,38 @@ class _EditSpotDialogState extends ConsumerState<_EditSpotDialog> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        SwitchListTile(
+          key: const Key('edit-spot-locked'),
+          contentPadding: EdgeInsets.zero,
+          secondary: Icon(_locked ? Icons.lock : Icons.lock_open),
+          title: Text(l10n.adminLocked),
+          subtitle: Text(l10n.adminLockedHint),
+          value: _locked,
+          onChanged: (v) => setState(() => _locked = v),
+        ),
+        ListTile(
+          key: const Key('edit-spot-owner'),
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.person_outline),
+          title: Text(l10n.adminOwner),
+          subtitle: Text(_owner.displayName),
+          trailing: TextButton(
+            key: const Key('edit-spot-change-owner'),
+            onPressed: () async {
+              final picked = await showUserPickerDialog(context);
+              if (picked != null) {
+                setState(
+                  () => _owner = Author(
+                    id: picked.id,
+                    displayName: picked.displayName,
+                  ),
+                );
+              }
+            },
+            child: Text(l10n.adminChangeOwner),
+          ),
+        ),
+        const SizedBox(height: 4),
         Text(l10n.tagsTitle, style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 4),
         SpotTagSelector(
@@ -353,6 +391,222 @@ class _EditSpotDialogState extends ConsumerState<_EditSpotDialog> {
         ),
         FilledButton(
           key: const Key('edit-spot-save'),
+          onPressed: _busy ? null : _save,
+          child: Text(l10n.save),
+        ),
+      ],
+    );
+  }
+}
+
+/// Searches users by name or email and resolves to the one picked (null =
+/// cancelled).
+Future<AdminUser?> showUserPickerDialog(BuildContext context) =>
+    showDialog<AdminUser>(
+      context: context,
+      builder: (_) => const _UserPicker(),
+    );
+
+class _UserPicker extends ConsumerStatefulWidget {
+  const _UserPicker();
+
+  @override
+  ConsumerState<_UserPicker> createState() => _UserPickerState();
+}
+
+class _UserPickerState extends ConsumerState<_UserPicker> {
+  List<AdminUser>? _users;
+  bool _failed = false;
+  int _gen = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _search('');
+  }
+
+  Future<void> _search(String q) async {
+    final gen = ++_gen;
+    setState(() => _failed = false);
+    try {
+      final page = await ref
+          .read(adminRepositoryProvider)
+          .users(q: q.trim().isEmpty ? null : q.trim());
+      if (mounted && gen == _gen) setState(() => _users = page.items);
+    } catch (_) {
+      if (mounted && gen == _gen) setState(() => _failed = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final users = _users;
+    return AlertDialog(
+      title: Text(l10n.adminPickUser),
+      content: SizedBox(
+        width: 400,
+        height: 360,
+        child: Column(
+          children: [
+            TextField(
+              key: const Key('owner-search'),
+              autofocus: true,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: l10n.adminSearchUsers,
+                prefixIcon: const Icon(Icons.search),
+              ),
+              onChanged: _search,
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: _failed
+                  ? Center(child: Text(l10n.errorGeneric))
+                  : users == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : users.isEmpty
+                  ? Center(child: Text(l10n.noResults))
+                  : ListView(
+                      children: [
+                        for (final u in users)
+                          ListTile(
+                            key: Key('owner-pick-${u.id}'),
+                            title: Text(u.displayName),
+                            subtitle: Text(u.email),
+                            onTap: () => Navigator.pop(context, u),
+                          ),
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+      ],
+    );
+  }
+}
+
+/// Localized inline message for an error of `PATCH /admin/updates/{id}`.
+String adminUpdateErrorText(AppLocalizations l, Object e) {
+  if (e is ApiException) {
+    switch (e.code) {
+      case 'invalid_body':
+        return l.updateErrorInvalidBody;
+      case 'invalid_tag':
+        return l.updateErrorInvalidTag;
+    }
+  }
+  return l.errorGeneric;
+}
+
+/// Admin edit of anyone's update (text and status tag); resolves to true
+/// when saved. Photos stay as they are.
+Future<bool?> showAdminUpdateDialog(BuildContext context, FeedItem item) =>
+    showDialog<bool>(
+      context: context,
+      builder: (_) => _AdminUpdateDialog(item: item),
+    );
+
+class _AdminUpdateDialog extends ConsumerStatefulWidget {
+  const _AdminUpdateDialog({required this.item});
+  final FeedItem item;
+
+  @override
+  ConsumerState<_AdminUpdateDialog> createState() => _AdminUpdateDialogState();
+}
+
+class _AdminUpdateDialogState extends ConsumerState<_AdminUpdateDialog> {
+  late final _body = TextEditingController(text: widget.item.body);
+  late UpdateTag _tag = widget.item.tag;
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _body.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
+    final body = _body.text.trim();
+    final patch = AdminUpdatePatch(
+      body: body != widget.item.body ? body : null,
+      tag: _tag != widget.item.tag ? _tag : null,
+    );
+    if (patch.isEmpty) {
+      Navigator.pop(context);
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(adminRepositoryProvider)
+          .updateUpdate(widget.item.id, patch);
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = adminUpdateErrorText(l10n, e);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l10n.adminEditUpdate),
+      content: _dialogBody([
+        Text(
+          widget.item.author.displayName,
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          key: const Key('admin-update-body'),
+          controller: _body,
+          minLines: 3,
+          maxLines: 8,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          l10n.updateTagLabel,
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            for (final t in UpdateTag.values)
+              ChoiceChip(
+                key: Key('admin-update-tag-${t.wire}'),
+                label: Text(updateTagLabel(l10n, t)),
+                selected: _tag == t,
+                onSelected: (_) => setState(() => _tag = t),
+              ),
+          ],
+        ),
+        _ErrorText(fieldKey: const Key('admin-update-error'), text: _error),
+      ]),
+      actions: [
+        TextButton(
+          onPressed: _busy ? null : () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          key: const Key('admin-update-save'),
           onPressed: _busy ? null : _save,
           child: Text(l10n.save),
         ),

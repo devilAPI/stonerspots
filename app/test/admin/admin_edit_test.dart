@@ -62,6 +62,10 @@ AdminUser _user(int id) => AdminUser(
 );
 
 class _Fake implements AdminRepository {
+  // Repository methods not used by these tests.
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
   List<AdminReport> reportItems = [];
   List<AdminUser> userItems = [for (var i = 1; i <= 3; i++) _user(i)];
   List<AdminSpot> spotItems = [];

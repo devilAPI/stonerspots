@@ -209,6 +209,7 @@ class Spot {
     this.ratingCount = 0,
     this.tags = const [],
     this.author,
+    this.locked = false,
   });
 
   final int id;
@@ -228,6 +229,10 @@ class Spot {
   /// Only sent by `GET /spots/{id}`.
   final Author? author;
 
+  /// Locked spots take no new updates or edits from non-admins. Only sent by
+  /// `GET /spots/{id}`.
+  final bool locked;
+
   /// Works for the full spot shape and for the reduced shape embedded in feed
   /// items (no description / cover / distance).
   factory Spot.fromJson(Map<String, dynamic> j) => Spot(
@@ -245,6 +250,7 @@ class Spot {
     author: j['author'] == null
         ? null
         : Author.fromJson(j['author'] as Map<String, dynamic>),
+    locked: (j['locked'] ?? false) as bool,
   );
 }
 

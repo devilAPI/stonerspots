@@ -1,6 +1,8 @@
 import 'package:app/core/api_client.dart';
 import 'package:app/core/models.dart';
 import 'package:app/core/responsive.dart';
+import 'package:app/features/admin/admin_models.dart';
+import 'package:app/features/admin/admin_repository.dart';
 import 'package:app/features/auth/auth_controller.dart';
 import 'package:app/features/feed/satellite_thumb.dart';
 import 'package:app/features/spots/maps_link.dart';
@@ -21,8 +23,14 @@ import '../reviews/review_helpers.dart';
 import 'update_helpers.dart';
 
 class _Api implements SpotApi {
-  _Api({this.cover, this.tags = const [], this.authorId = 9});
+  _Api({
+    this.cover,
+    this.tags = const [],
+    this.authorId = 9,
+    this.locked = false,
+  });
   final String? cover;
+  bool locked;
   int likes = 0;
   List<SpotTag> tags;
   final int authorId;
@@ -41,6 +49,7 @@ class _Api implements SpotApi {
     ratingCount: 2,
     tags: tags,
     author: Author(id: authorId, displayName: 'Ann'),
+    locked: locked,
   );
   @override
   Future<LikeResult> setLike(int spotId, {required bool liked}) async {
@@ -70,6 +79,30 @@ class _Auth extends AuthController {
   Future<User?> build() async => user;
 }
 
+/// Records the admin calls the spot page makes.
+class _Admin implements AdminRepository {
+  _Admin(this.api);
+  final _Api api;
+  final calls = <String>[];
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
+  @override
+  Future<AdminSpot> updateSpot(int id, AdminSpotPatch patch) async {
+    calls.add('spot:$id:${patch.toJson()}');
+    if (patch.locked != null) api.locked = patch.locked!;
+    return AdminSpot.fromSpot(await api.getSpot(id));
+  }
+
+  @override
+  Future<void> updateUpdate(int id, AdminUpdatePatch patch) async =>
+      calls.add('update:$id:${patch.toJson()}');
+
+  @override
+  Future<void> deleteUpdate(int id) async => calls.add('delete:$id');
+}
+
 late FakeUpdates updates;
 late FakeReviews reviews;
 
@@ -82,8 +115,12 @@ Future<_Api> _pump(
   List<SpotTag> tags = const [],
   int authorId = 9,
   _Api? withApi,
+  bool locked = false,
+  AdminRepository? admin,
 }) async {
-  final api = withApi ?? _Api(cover: cover, tags: tags, authorId: authorId);
+  final api =
+      withApi ??
+      _Api(cover: cover, tags: tags, authorId: authorId, locked: locked);
   updates = FakeUpdates(items: items);
   reviews = FakeReviews([
     ReviewsPage(
@@ -116,6 +153,7 @@ Future<_Api> _pump(
         reviewsRepositoryProvider.overrideWithValue(reviews),
         authControllerProvider.overrideWith(() => _Auth(user)),
         if (launcher != null) urlLauncherProvider.overrideWithValue(launcher),
+        if (admin != null) adminRepositoryProvider.overrideWithValue(admin),
       ],
       child: MaterialApp.router(
         routerConfig: router,
@@ -581,6 +619,137 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  const adminUser = User(
+    id: 3,
+    email: 'e@f.de',
+    displayName: 'Ad',
+    isAdmin: true,
+  );
+
+  testWidgets('admins lock and unlock the spot from the menu', (tester) async {
+    final api = _Api();
+    final admin = _Admin(api);
+    await _pump(tester, adminUser, withApi: api, admin: admin);
+    await tester.tap(find.byKey(const Key('menu')));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit spot (admin)'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('adminLockSpot')));
+    await tester.pumpAndSettle();
+    expect(admin.calls.single, 'spot:5:{locked: true}');
+    expect(find.text('Spot locked'), findsOneWidget);
+    expect(find.byKey(const Key('spotLockedNotice')), findsOneWidget);
+    // admins keep every action on a locked spot
+    expect(find.byKey(const Key('postUpdate')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('menu')));
+    await tester.pumpAndSettle();
+    expect(find.text('Unlock spot'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('adminLockSpot')));
+    await tester.pumpAndSettle();
+    expect(admin.calls.last, 'spot:5:{locked: false}');
+    expect(find.byKey(const Key('spotLockedNotice')), findsNothing);
+  });
+
+  testWidgets('the admin menu is only there for admins', (tester) async {
+    await _pump(tester, const User(id: 1, email: 'a@b.de', displayName: 'A'));
+    await tester.tap(find.byKey(const Key('menu')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('adminEditSpot')), findsNothing);
+    expect(find.byKey(const Key('adminLockSpot')), findsNothing);
+    expect(find.text('Report'), findsOneWidget);
+  });
+
+  testWidgets('admins open the full spot editor from the spot page', (
+    tester,
+  ) async {
+    final api = _Api();
+    final admin = _Admin(api);
+    await _pump(tester, adminUser, withApi: api, admin: admin);
+    await tester.tap(find.byKey(const Key('menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('adminEditSpot')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('edit-spot-owner')), findsOneWidget);
+    expect(find.text('Ann'), findsWidgets); // the current owner
+    await tester.enterText(
+      find.byKey(const Key('edit-spot-title')),
+      'New title',
+    );
+    await tester.tap(find.byKey(const Key('edit-spot-save')));
+    await tester.pumpAndSettle();
+    expect(admin.calls.single, 'spot:5:{title: New title}');
+  });
+
+  testWidgets('a locked spot: users see why and cannot post or edit', (
+    tester,
+  ) async {
+    _portrait(tester);
+    // the viewer is the spot's author and wrote update 7
+    await _pump(
+      tester,
+      const User(id: 9, email: 'a@b.de', displayName: 'Ann'),
+      locked: true,
+      items: [feedItem(authorId: 9)],
+    );
+    expect(find.byKey(const Key('spotLockedNotice')), findsOneWidget);
+    expect(
+      find.text('This spot is locked. Only admins can change it.'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('postUpdate')), findsNothing);
+    expect(find.byKey(const Key('editTags')), findsNothing);
+    await _scrollTo(tester, find.text('Updates'));
+    expect(find.byKey(const Key('updateEdit_7')), findsNothing);
+    expect(find.byKey(const Key('updateDelete_7')), findsNothing);
+    // liking and reviewing stay open
+    expect(find.byKey(const Key('like')), findsOneWidget);
+  });
+
+  testWidgets('admins edit, hide and delete other people\'s updates', (
+    tester,
+  ) async {
+    _portrait(tester);
+    final api = _Api();
+    final admin = _Admin(api);
+    await _pump(
+      tester,
+      adminUser,
+      withApi: api,
+      admin: admin,
+      items: [feedItem(id: 8, authorId: 2, body: 'rude words')],
+    );
+    final menu = find.byKey(const Key('updateAdmin_8'));
+    await _scrollTo(tester, menu);
+    expect(find.byKey(const Key('updateReport_8')), findsNothing);
+
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('updateAdminEdit_8')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('admin-update-body')),
+      'kind words',
+    );
+    await tester.tap(find.byKey(const Key('admin-update-tag-dirty')));
+    await tester.tap(find.byKey(const Key('admin-update-save')));
+    await tester.pumpAndSettle();
+    expect(admin.calls.last, 'update:8:{body: kind words, tag: dirty}');
+
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('updateAdminHide_8')));
+    await tester.pumpAndSettle();
+    expect(admin.calls.last, 'update:8:{status: hidden}');
+
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('updateAdminDelete_8')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('adminUpdateDeleteConfirm')));
+    await tester.pumpAndSettle();
+    expect(admin.calls.last, 'delete:8');
+  });
 
   const owner = User(id: 9, email: 'a@b.de', displayName: 'Ann');
   const stranger = User(id: 2, email: 'c@d.de', displayName: 'Cy');
