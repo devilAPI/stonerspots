@@ -324,26 +324,44 @@ class _EditSpotDialogState extends ConsumerState<_EditSpotDialog> {
           children: [
             ChoiceChip(
               key: const Key('edit-spot-status-active'),
-              label: Text(l10n.statusActive),
+              label: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.visibility, size: 16),
+                  const SizedBox(width: 6),
+                  Text(l10n.statusActive),
+                ],
+              ),
               selected: _status == 'active',
               onSelected: (_) => setState(() => _status = 'active'),
             ),
             ChoiceChip(
               key: const Key('edit-spot-status-hidden'),
-              label: Text(l10n.statusHidden),
+              label: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.visibility_off, size: 16),
+                  const SizedBox(width: 6),
+                  Text(l10n.statusHidden),
+                ],
+              ),
               selected: _status == 'hidden',
               onSelected: (_) => setState(() => _status = 'hidden'),
             ),
+            ChoiceChip(
+              key: const Key('edit-spot-status-locked'),
+              label: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.lock, size: 16),
+                  const SizedBox(width: 6),
+                  Text(l10n.statusLocked),
+                ],
+              ),
+              selected: _status == 'locked',
+              onSelected: (_) => setState(() => _status = 'locked'),
+            ),
           ],
-        ),
-        SwitchListTile(
-          key: const Key('edit-spot-locked'),
-          contentPadding: EdgeInsets.zero,
-          secondary: Icon(_locked ? Icons.lock : Icons.lock_open),
-          title: Text(l10n.adminLocked),
-          subtitle: Text(l10n.adminLockedHint),
-          value: _locked,
-          onChanged: (v) => setState(() => _locked = v),
         ),
         ListTile(
           key: const Key('edit-spot-owner'),

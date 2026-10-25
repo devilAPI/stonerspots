@@ -48,7 +48,7 @@ func (h handler) patchUpdate(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, feed.ErrInvalidTag):
 		httpx.Error(w, http.StatusBadRequest, "invalid_tag", "tag must be one of note, still_good, crowded, dirty, closed")
 	case errors.Is(err, feed.ErrInvalidStatus):
-		httpx.Error(w, http.StatusBadRequest, "invalid_status", "status must be active or hidden")
+		httpx.Error(w, http.StatusBadRequest, "invalid_status", "status must be active, hidden or locked")
 	case errors.Is(err, feed.ErrInvalidBody):
 		httpx.Error(w, http.StatusBadRequest, "invalid_body", "body must be at most 2000 characters; text or photos required")
 	case err != nil:

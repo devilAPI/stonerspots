@@ -108,6 +108,7 @@
   },
   "statusActive": "Active",
   "statusHidden": "Hidden",
+  "statusLocked": "Locked",
   "statusAll": "All",
   "adminOpenSpot": "Open spot",
   "adminRemoveSpot": "Remove spot",

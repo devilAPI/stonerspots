@@ -298,8 +298,8 @@ func (h handler) patchSpot(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_description", "description must be at most 1000 characters")
 		return
 	}
-	if sp.status != nil && *sp.status != "active" && *sp.status != "hidden" {
-		httpx.Error(w, http.StatusBadRequest, "invalid_status", "status must be active or hidden")
+	if sp.status != nil && *sp.status != "active" && *sp.status != "hidden" && *sp.status != "locked" {
+		httpx.Error(w, http.StatusBadRequest, "invalid_status", "status must be active, hidden or locked")
 		return
 	}
 	if latPresent != lonPresent {

@@ -108,6 +108,7 @@
   },
   "statusActive": "Aktiv",
   "statusHidden": "Versteckt",
+  "statusLocked": "Gesperrt",
   "statusAll": "Alle",
   "adminOpenSpot": "Spot öffnen",
   "adminRemoveSpot": "Spot entfernen",

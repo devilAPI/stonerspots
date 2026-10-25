@@ -111,8 +111,8 @@ func (h handler) users(w http.ResponseWriter, r *http.Request) {
 
 func (h handler) spots(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
-	if status != "" && status != "active" && status != "hidden" {
-		httpx.Error(w, http.StatusBadRequest, "invalid_status", "status must be active or hidden")
+	if status != "" && status != "active" && status != "hidden" && status != "locked" {
+		httpx.Error(w, http.StatusBadRequest, "invalid_status", "status must be active, hidden or locked")
 		return
 	}
 	limit, after, ok := page(w, r)

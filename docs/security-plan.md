@@ -1,66 +1,50 @@
 # API security plan
 
-The backend is open source and runs on the public internet, so assume that
-attackers read the code, know every endpoint and script against it. This plan
-lists what is already in place, what is missing, and the order to fix it in.
+The backend is open source and runs on the public internet. Attackers read the code and script against it.
 
-## Already in place (audit, 2026-10-25)
+## Done ✓
 
-- Passwords: bcrypt cost 12, 10-72 characters; login compares against a dummy
-  hash for unknown emails (no timing oracle).
-- Tokens: HS256 pinned, expiry required, 15 min access tokens, rotating
-  refresh tokens stored hashed; changing the password revokes refresh tokens.
-- Admin rights are read from the database on every request, never from the
-  token.
-- SQL: placeholders everywhere; LIKE patterns are escaped.
-- Request bodies are size-limited per handler; uploads are capped at 8 MB,
-  checked by content (JPEG/PNG/WebP/AVIF), 40 MP decompression-bomb guard,
-  re-encoded without metadata (no EXIF/GPS leak).
-- Media: path traversal blocked, `nosniff`, random 128-bit file names.
-- Errors: clients get codes, never internal details.
-- CORS: exact-origin allow list, no credentials.
-- systemd unit: own user, `ProtectSystem=strict`, `NoNewPrivileges`, write
-  access only to the data directory. Config file is 0640 root:stonerspots.
-- Geocoder proxy: 20 searches/minute per user.
+- bcrypt cost 12, timing-safe login (dummy hash for unknown emails)
+- HS256 JWT, 15 min access, rotating refresh tokens (hashed), revoke on password change
+- Admin rights from DB every request (immediate revocation)
+- SQL placeholders everywhere
+- 8 MB uploads, content-checked (JPEG/PNG/WebP/AVIF), 40 MP guard, EXIF stripped
+- Path traversal blocked, random 128-bit filenames, `nosniff`
+- CORS exact-origin allowlist, no credentials
+- systemd: dedicated user, `ProtectSystem=strict`, `NoNewPrivileges`, 0640 config
+- HTTP timeouts (2 min), header limit (32 KB), graceful shutdown
+- Weak `jwt_secret` rejected on public servers
+- Trusted proxy config for X-Forwarded-For
+- Security headers: nosniff, frame-ancestors=none, CSP, referrer-policy, CORP, HSTS, no-store
+- Rate limits: per-IP 600/min, login 10/min, register 5/hr, refresh 30/min, failed logins 20/hr/account, uploads 30/hr/user
+- Request logging with X-Request-Id for 5xx and 429
+- Per-user daily quotas: spots 10, updates 50, reviews 20, reports 10
+- Unattached photo cleanup (hourly, >24h orphans)
+- Global body limit 10 MB
 
-## Phase 1: quick wins
+## Next (priority order)
 
-- [ ] HTTP server timeouts and header size limit (slowloris), graceful
-      shutdown.
-- [ ] Refuse to start with a weak or example `jwt_secret` (anyone who knows
-      the secret can sign in as any user, admins included).
-- [ ] Stop trusting `X-Forwarded-For` / `X-Real-IP` from everyone; only from
-      configured `trusted_proxies`.
-- [ ] Security headers on every response (`nosniff`, `frame-ancestors`
-      none, no referrer, `Cross-Origin-Resource-Policy`, HSTS on https).
-- [ ] Rate limits: per IP on everything, tighter on login, register and
-      refresh; per account on failed logins; per user on photo uploads.
-- [ ] Log internal errors server-side with a request id (nothing is logged
-      today, so attacks and bugs are invisible).
+1. **TOTP 2FA for admins** - required for admin actions
+2. **HIBP k-anonymity password check** - reject breached passwords on register/change
+3. **Email verification on registration** - stops fake accounts / spam
+4. **Password reset via email** - secure single-use time-limited tokens
+5. **Photo moderation queue** - manual review for NSFW/illegal content
+6. **Serve photos only for active/visible spots** - no leaked media from deleted/hidden content
+7. **Registration CAPTCHA/proof-of-work** - rate-limiter isn't enough for bot registration
+7. **CI security scanning** - `govulncheck`, `gosec`, secret scanning, Dependabot
+8. **Admin audit log** - who deleted/locked/changed what
+9. **Shorter admin refresh TTL (1h) + "log out everywhere"** - limits blast radius of stolen admin token
+10. **JWT key rotation (kid header)** - enables secret rotation without logout
+11. **Per-user total upload quota** - disk exhaustion protection
+12. **Alerting** - 429 spikes, 5xx bursts, failed login bursts, new admin users
+13. **GDPR data export** - user downloads all their data (deletion already works)
 
-## Phase 2: abuse resistance
+## Nice to have (later)
 
-- [ ] Per-user quotas for spots, updates, reviews and reports per day.
-- [ ] Delete photos that were uploaded but never attached (after 24 h), and
-      cap unattached photos per user (disk filling).
-- [ ] Do not serve photos of hidden or deleted content.
-- [ ] Registration abuse: proof-of-work or CAPTCHA on register, or email
-      verification before posting.
-- [ ] Global body size limit as a safety net for every route.
-- [ ] Audit log of admin actions (who changed / deleted / locked what).
-
-## Phase 3: accounts and admins
-
-- [ ] TOTP two-factor authentication, required for admins.
-- [ ] Reject passwords from known breaches (HIBP k-anonymity range API).
-- [ ] Shorter refresh lifetime for admins; "log out everywhere".
-- [ ] JWT key rotation (key id in the token header).
-
-## Phase 4: process
-
-- [ ] `SECURITY.md`: how to report vulnerabilities privately.
-- [ ] CI: `govulncheck`, `gosec`, Dependabot for Go and Flutter, secret
-      scanning.
-- [ ] Deployment guide: TLS-terminating reverse proxy (Caddy), API bound to
-      localhost, MariaDB user with only the needed privileges and bound to
-      localhost, backups.
+- Device/session management UI (list/revoke)
+- Idempotency keys for mutations
+- Structured JSON logging + Prometheus metrics
+- SBOM + reproducible builds
+- Incident runbook
+- Data retention policy (auto-delete old tokens/logs)
+- Minimize PII in structured logs

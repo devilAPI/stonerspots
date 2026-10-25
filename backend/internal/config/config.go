@@ -59,6 +59,19 @@ type Config struct {
 	// Limits are the rate limits; Read fills in DefaultLimits. A zero rule
 	// (as in a Config built by hand, e.g. in tests) limits nothing.
 	Limits Limits
+
+	// Mail is the SMTP configuration for transactional emails.
+	// Zero value disables all mail features (verification, password reset).
+	Mail MailConfig
+}
+
+// MailConfig holds SMTP settings. Empty Host disables mail.
+type MailConfig struct {
+	Host     string
+	Port     int
+	Username string
+	Password string
+	From     string
 }
 
 // Limits are the per-client rate limits of the API.
@@ -107,6 +120,15 @@ type file struct {
 	Database       database `yaml:"database"`
 	Limits         fileLimits `yaml:"limits"`
 	MaxBodyBytes   int64    `yaml:"max_body_bytes"`
+	Mail           fileMail `yaml:"mail"`
+}
+
+type fileMail struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	From     string `yaml:"from"`
 }
 
 type fileLimits struct {
@@ -261,6 +283,13 @@ func Read() (Config, error) {
 		TrustedProxies: proxies,
 		MaxBodyBytes:   getenvInt64("MAX_BODY_BYTES", f.MaxBodyBytes, 10<<20),
 		Limits:         parseLimits(f.Limits),
+		Mail: MailConfig{
+			Host:     getenv("MAIL_HOST", f.Mail.Host),
+			Port:     getenvInt("MAIL_PORT", f.Mail.Port, 587),
+			Username: getenv("MAIL_USERNAME", f.Mail.Username),
+			Password: getenv("MAIL_PASSWORD", f.Mail.Password),
+			From:     getenv("MAIL_FROM", f.Mail.From),
+		},
 	}, nil
 }
 
@@ -332,6 +361,18 @@ func getenv(key, def string) string {
 func getenvInt64(key string, fileVal, def int64) int64 {
 	if v := os.Getenv(key); v != "" {
 		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+			return n
+		}
+	}
+	if fileVal != 0 {
+		return fileVal
+	}
+	return def
+}
+
+func getenvInt(key string, fileVal, def int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
 			return n
 		}
 	}
