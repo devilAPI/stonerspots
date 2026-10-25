@@ -22,7 +22,7 @@ import (
 
 func New(d app.Deps) http.Handler {
 	r := chi.NewRouter()
-	r.Use(middleware.RealIP, middleware.Recoverer)
+	r.Use(middleware.RealIP, middleware.Recoverer, cors(d.Cfg.AllowedOrigins))
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", health(d))
 		auth.Mount(r, d)

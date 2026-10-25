@@ -33,6 +33,20 @@ Tests: `make test` (backend, needs the database) and `cd app && flutter test`.
 
 Optional demo data from a GPX file: `cd backend && go run ./cmd/seedgpx -gpx spots.gpx`.
 
+## Web app on GitHub Pages
+
+The `Publish web app` workflow deploys the web build of the newest release to
+https://devilapi.github.io/stonerspots/ and of the newest dev build to `/dev/`.
+For it to reach a backend:
+
+- repository secret `API_URL`: public **HTTPS** URL of the API, e.g.
+  `https://api.example.com/api/v1` (compiled into every build, so it is public)
+- backend env `ALLOWED_ORIGINS=https://devilapi.github.io` (CORS) and
+  `PUBLIC_BASE_URL` set to the backend's HTTPS origin so photo URLs work
+
+The database credentials (`DATABASE_URL`) are only ever set on the backend
+server, never in the app or its build.
+
 ## Map tiles
 
 - Light theme: OpenStreetMap standard tiles (fine for development, not for heavy
