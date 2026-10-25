@@ -637,27 +637,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get tagRoof => 'Roof';
-
-  @override
-  String get tagSeating => 'Seating';
-
-  @override
-  String get tagView => 'View';
-
-  @override
-  String get tagQuiet => 'Quiet';
-
-  @override
-  String get tagShade => 'Shade';
-
-  @override
-  String get tagWater => 'Water nearby';
-
-  @override
-  String get tagLit => 'Lit';
-
-  @override
   String get tagsTitle => 'Tags';
 
   @override

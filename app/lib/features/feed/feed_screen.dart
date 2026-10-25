@@ -158,6 +158,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           gutter: gutter,
           children: spotTagFilterItems(
             context,
+            ref,
             keyPrefix: 'feedTag-',
             selected: state.tags,
             onToggle: ctrl.toggleTag,

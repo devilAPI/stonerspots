@@ -1,27 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import 'models.dart';
+import 'tag_catalog.dart';
 
-String spotTagLabel(AppLocalizations l, SpotTag t) => switch (t) {
-  SpotTag.roof => l.tagRoof,
-  SpotTag.seating => l.tagSeating,
-  SpotTag.view => l.tagView,
-  SpotTag.quiet => l.tagQuiet,
-  SpotTag.shade => l.tagShade,
-  SpotTag.water => l.tagWater,
-  SpotTag.lit => l.tagLit,
+/// Icons a tag can have, by the name stored in the catalog. Admins pick from
+/// these; unknown names show [kFallbackTagIcon].
+const Map<String, IconData> kTagIcons = {
+  'roof': Icons.roofing,
+  'seating': Icons.chair_alt,
+  'view': Icons.landscape,
+  'quiet': Icons.volume_off,
+  'shade': Icons.wb_shade,
+  'water': Icons.water_drop,
+  'lit': Icons.lightbulb_outline,
+  'fire': Icons.local_fire_department,
+  'tree': Icons.park,
+  'forest': Icons.forest,
+  'grass': Icons.grass,
+  'mountain': Icons.terrain,
+  'sun': Icons.wb_sunny_outlined,
+  'night': Icons.nightlight_outlined,
+  'beach': Icons.beach_access,
+  'table': Icons.table_restaurant,
+  'trash': Icons.delete_outline,
+  'toilet': Icons.wc,
+  'parking': Icons.local_parking,
+  'bike': Icons.pedal_bike,
+  'car': Icons.directions_car,
+  'train': Icons.train,
+  'shop': Icons.storefront,
+  'wifi': Icons.wifi,
+  'power': Icons.power,
+  'dog': Icons.pets,
+  'music': Icons.music_note,
+  'hidden': Icons.visibility_off,
+  'star': Icons.star_outline,
+  'warning': Icons.warning_amber,
 };
 
-IconData spotTagIcon(SpotTag t) => switch (t) {
-  SpotTag.roof => Icons.roofing,
-  SpotTag.seating => Icons.chair_alt,
-  SpotTag.view => Icons.landscape,
-  SpotTag.quiet => Icons.volume_off,
-  SpotTag.shade => Icons.wb_shade,
-  SpotTag.water => Icons.water_drop,
-  SpotTag.lit => Icons.lightbulb_outline,
-};
+const IconData kFallbackTagIcon = Icons.sell_outlined;
+
+/// Tag name in the app's language, from the catalog.
+String spotTagLabel(BuildContext context, SpotTag t) =>
+    t.label(Localizations.localeOf(context).languageCode);
+
+IconData spotTagIcon(SpotTag t) =>
+    kTagIcons[t.resolved.icon] ?? kFallbackTagIcon;
 
 /// A single multi-select tag chip (the returned [FilterChip] carries [key]).
 FilterChip spotTagFilterChip(
@@ -33,7 +59,7 @@ FilterChip spotTagFilterChip(
 }) => FilterChip(
   key: key,
   avatar: Icon(spotTagIcon(tag), size: 18),
-  label: Text(spotTagLabel(AppLocalizations.of(context), tag)),
+  label: Text(spotTagLabel(context, tag)),
   selected: selected,
   showCheckmark: false,
   onSelected: (_) => onToggle(),
@@ -41,7 +67,7 @@ FilterChip spotTagFilterChip(
 
 /// Wrap of multi-select chips for all tags. Chip keys are
 /// `Key('<keyPrefix><wire>')`.
-class SpotTagSelector extends StatelessWidget {
+class SpotTagSelector extends ConsumerWidget {
   const SpotTagSelector({
     super.key,
     required this.selected,
@@ -54,13 +80,13 @@ class SpotTagSelector extends StatelessWidget {
   final String keyPrefix;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final set = selected.toSet();
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
-        for (final t in SpotTag.values)
+        for (final t in ref.watch(tagCatalogProvider))
           spotTagFilterChip(
             context,
             key: Key('$keyPrefix${t.wire}'),
@@ -79,7 +105,7 @@ class SpotTagSelector extends StatelessWidget {
 
 /// Read-only chips for [tags]; renders nothing when empty. [compact] makes
 /// them small (map preview).
-class SpotTagChips extends StatelessWidget {
+class SpotTagChips extends ConsumerWidget {
   const SpotTagChips({
     super.key,
     required this.tags,
@@ -92,9 +118,9 @@ class SpotTagChips extends StatelessWidget {
   final bool compact;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (tags.isEmpty) return const SizedBox.shrink();
-    final l = AppLocalizations.of(context);
+    ref.watch(tagCatalogProvider); // names and icons may change
     return Wrap(
       spacing: compact ? 6 : 8,
       runSpacing: compact ? 4 : 8,
@@ -103,7 +129,7 @@ class SpotTagChips extends StatelessWidget {
           Chip(
             key: Key('$keyPrefix${t.wire}'),
             avatar: Icon(spotTagIcon(t), size: compact ? 14 : 18),
-            label: Text(spotTagLabel(l, t)),
+            label: Text(spotTagLabel(context, t)),
             visualDensity: compact ? VisualDensity.compact : null,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             labelStyle: compact ? Theme.of(context).textTheme.labelSmall : null,
@@ -114,11 +140,13 @@ class SpotTagChips extends StatelessWidget {
   }
 }
 
-/// The tag half of a horizontal filter chip row: a divider, the seven tag
-/// toggles and a "clear" chip while anything is selected. Returned as a flat
-/// list so callers can put it into their own scrolling row.
+/// The tag half of a horizontal filter chip row: a divider, one toggle per
+/// catalog tag and a "clear" chip while anything is selected. Returned as a
+/// flat list so callers can put it into their own scrolling row; [ref] makes
+/// the caller rebuild when the catalog changes.
 List<Widget> spotTagFilterItems(
-  BuildContext context, {
+  BuildContext context,
+  WidgetRef ref, {
   required String keyPrefix,
   required List<SpotTag> selected,
   required ValueChanged<SpotTag> onToggle,
@@ -135,7 +163,7 @@ List<Widget> spotTagFilterItems(
         height: 28,
         child: const VerticalDivider(width: 16, thickness: 1),
       ),
-    for (final t in SpotTag.values)
+    for (final t in ref.watch(tagCatalogProvider))
       spotTagFilterChip(
         context,
         key: Key('$keyPrefix${t.wire}'),

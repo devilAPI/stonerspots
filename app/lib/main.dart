@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/tag_catalog.dart';
 import 'core/theme.dart';
 import 'l10n/app_localizations.dart';
 import 'router.dart';
@@ -10,11 +11,23 @@ void main() {
   runApp(const ProviderScope(child: StonerspotsApp()));
 }
 
-class StonerspotsApp extends ConsumerWidget {
+class StonerspotsApp extends ConsumerStatefulWidget {
   const StonerspotsApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StonerspotsApp> createState() => _StonerspotsAppState();
+}
+
+class _StonerspotsAppState extends ConsumerState<StonerspotsApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Admin-defined tags; the built-in ones are used until this arrives.
+    Future.microtask(() => ref.read(tagCatalogProvider.notifier).load());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp.router(
       onGenerateTitle: (c) => AppLocalizations.of(c).appTitle,
       routerConfig: ref.watch(routerProvider),

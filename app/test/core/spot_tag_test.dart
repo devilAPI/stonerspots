@@ -59,8 +59,35 @@ void main() {
         'lit',
       ]);
       expect(SpotTag.fromWire('quiet'), SpotTag.quiet);
-      expect(SpotTag.fromWire('nope'), isNull);
       expect(SpotTag.fromWire(null), isNull);
+      expect(SpotTag.fromWire(''), isNull);
+      // a key the catalog does not know (yet) is kept as a bare tag
+      expect(SpotTag.fromWire('nope')?.wire, 'nope');
+    });
+
+    test('the loaded catalog defines order, names and icons', () {
+      addTearDown(SpotTag.resetCatalog);
+      SpotTag.setCatalog(const [
+        SpotTag('bridge', nameDe: 'Brücke', nameEn: 'Bridge', icon: 'x'),
+        SpotTag.roof,
+      ]);
+      expect(SpotTag.values.map((t) => t.wire), ['bridge', 'roof']);
+      // parsed before the catalog knew it: names come from the catalog
+      const bare = SpotTag('bridge');
+      expect(bare.label('de'), 'Brücke');
+      expect(bare.label('en'), 'Bridge');
+      expect(const SpotTag('unknown').label('de'), 'unknown');
+      expect(
+        SpotTag.sorted([SpotTag.quiet, SpotTag.roof, const SpotTag('bridge')]),
+        [const SpotTag('bridge'), SpotTag.roof, SpotTag.quiet],
+      );
+    });
+
+    test('names fall back to the other language', () {
+      expect(
+        const SpotTag('only_en', nameEn: 'Only English').label('de'),
+        'Only English',
+      );
     });
 
     test('encode sorts canonically and joins with commas', () {
@@ -79,12 +106,12 @@ void main() {
       expect(s.author, isNull);
     });
 
-    test('unknown tags are ignored, known kept in order', () {
+    test('tags keep the API order; keys not in the catalog are kept', () {
       final s = Spot.fromJson({
         ..._spotJson,
-        'tags': ['quiet', 'bogus', 'roof'],
+        'tags': ['quiet', 'brand_new', 'roof', 7],
       });
-      expect(s.tags, [SpotTag.quiet, SpotTag.roof]);
+      expect(s.tags, [SpotTag.quiet, const SpotTag('brand_new'), SpotTag.roof]);
     });
 
     test('author', () {
@@ -186,7 +213,7 @@ void main() {
           ...base,
           'tags': ['roof', 'x'],
         }).tags,
-        [SpotTag.roof],
+        [SpotTag.roof, const SpotTag('x')],
       );
       expect(AdminSpot.fromJson(base).tags, isEmpty);
     });

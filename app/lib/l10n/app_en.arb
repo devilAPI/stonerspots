@@ -288,13 +288,6 @@
       }
     }
   },
-  "tagRoof": "Roof",
-  "tagSeating": "Seating",
-  "tagView": "View",
-  "tagQuiet": "Quiet",
-  "tagShade": "Shade",
-  "tagWater": "Water nearby",
-  "tagLit": "Lit",
   "tagsTitle": "Tags",
   "tagsClear": "Clear tags",
   "editTags": "Edit tags",

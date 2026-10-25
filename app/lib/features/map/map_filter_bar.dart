@@ -16,6 +16,7 @@ class MapFilterBar extends ConsumerWidget {
     final items = <Widget>[
       ...spotTagFilterItems(
         context,
+        ref,
         keyPrefix: 'mapTag-',
         selected: tags,
         onToggle: ctrl.toggleTag,

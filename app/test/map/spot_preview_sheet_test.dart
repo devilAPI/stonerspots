@@ -4,6 +4,7 @@ import 'package:app/features/map/spot_preview_sheet.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Future<void> pumpSheet(WidgetTester t, Spot spot, {Size? size}) async {
@@ -13,12 +14,14 @@ Future<void> pumpSheet(WidgetTester t, Spot spot, {Size? size}) async {
     addTearDown(t.view.reset);
   }
   await t.pumpWidget(
-    MaterialApp(
-      locale: const Locale('en'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(
-        body: SpotPreviewSheet(spot: spot, onOpen: () {}),
+    ProviderScope(
+      child: MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: SpotPreviewSheet(spot: spot, onOpen: () {}),
+        ),
       ),
     ),
   );

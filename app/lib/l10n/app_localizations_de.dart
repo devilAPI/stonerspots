@@ -643,27 +643,6 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get tagRoof => 'Überdacht';
-
-  @override
-  String get tagSeating => 'Sitzgelegenheit';
-
-  @override
-  String get tagView => 'Aussicht';
-
-  @override
-  String get tagQuiet => 'Ruhig';
-
-  @override
-  String get tagShade => 'Schatten';
-
-  @override
-  String get tagWater => 'Wasser in der Nähe';
-
-  @override
-  String get tagLit => 'Beleuchtet';
-
-  @override
   String get tagsTitle => 'Tags';
 
   @override

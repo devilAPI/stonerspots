@@ -1154,48 +1154,6 @@ abstract class AppLocalizations {
   /// **'Etwas ist schiefgelaufen: {message}'**
   String errorWithDetail(String message);
 
-  /// No description provided for @tagRoof.
-  ///
-  /// In de, this message translates to:
-  /// **'Überdacht'**
-  String get tagRoof;
-
-  /// No description provided for @tagSeating.
-  ///
-  /// In de, this message translates to:
-  /// **'Sitzgelegenheit'**
-  String get tagSeating;
-
-  /// No description provided for @tagView.
-  ///
-  /// In de, this message translates to:
-  /// **'Aussicht'**
-  String get tagView;
-
-  /// No description provided for @tagQuiet.
-  ///
-  /// In de, this message translates to:
-  /// **'Ruhig'**
-  String get tagQuiet;
-
-  /// No description provided for @tagShade.
-  ///
-  /// In de, this message translates to:
-  /// **'Schatten'**
-  String get tagShade;
-
-  /// No description provided for @tagWater.
-  ///
-  /// In de, this message translates to:
-  /// **'Wasser in der Nähe'**
-  String get tagWater;
-
-  /// No description provided for @tagLit.
-  ///
-  /// In de, this message translates to:
-  /// **'Beleuchtet'**
-  String get tagLit;
-
   /// No description provided for @tagsTitle.
   ///
   /// In de, this message translates to:
