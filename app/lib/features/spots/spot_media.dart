@@ -85,38 +85,25 @@ class SpotMediaStrip extends StatelessWidget {
   }
 }
 
-/// Item [index] of a spot's media: a user photo, or (after the photos) the
-/// top-down view. Fills the size it is given.
+/// User photo [index] of a spot; tap opens it. Fills the size it is given.
 class SpotMediaTile extends StatelessWidget {
   const SpotMediaTile({
     super.key,
     required this.photoUrls,
     required this.index,
-    required this.lat,
-    required this.lon,
     this.onPhotoTap,
     this.radius = 8,
   });
 
   final List<String> photoUrls;
   final int index;
-  final double lat;
-  final double lon;
   final void Function(int index)? onPhotoTap;
   final double radius;
 
   @override
   Widget build(BuildContext context) {
-    final shape = BorderRadius.circular(radius);
-    if (index >= photoUrls.length) {
-      return ClipRRect(
-        key: const Key('satelliteTile'),
-        borderRadius: shape,
-        child: SatelliteThumb(lat: lat, lon: lon),
-      );
-    }
     return ClipRRect(
-      borderRadius: shape,
+      borderRadius: BorderRadius.circular(radius),
       child: Material(
         key: Key('galleryPhoto_$index'),
         color: Colors.black12,
@@ -133,21 +120,16 @@ class SpotMediaTile extends StatelessWidget {
   }
 }
 
-/// Full-width swipeable pictures of a spot (photos, then the top-down view)
-/// with a "2 / 5" counter. Mouse drag works too, for narrow desktop windows.
+/// Full-width swipeable photos of a spot with a "2 / 5" counter. Mouse drag works too, for narrow desktop windows.
 class SpotHeroCarousel extends StatefulWidget {
   const SpotHeroCarousel({
     super.key,
     required this.photoUrls,
-    required this.lat,
-    required this.lon,
     required this.height,
     this.onPhotoTap,
   });
 
   final List<String> photoUrls;
-  final double lat;
-  final double lon;
   final double height;
   final void Function(int index)? onPhotoTap;
 
@@ -167,7 +149,7 @@ class _SpotHeroCarouselState extends State<SpotHeroCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    final count = widget.photoUrls.length + 1;
+    final count = widget.photoUrls.length;
     return SizedBox(
       height: widget.height,
       child: Stack(
@@ -184,8 +166,6 @@ class _SpotHeroCarouselState extends State<SpotHeroCarousel> {
               itemBuilder: (_, i) => SpotMediaTile(
                 photoUrls: widget.photoUrls,
                 index: i,
-                lat: widget.lat,
-                lon: widget.lon,
                 onPhotoTap: widget.onPhotoTap,
                 radius: 0,
               ),
@@ -221,20 +201,12 @@ class _SpotHeroCarouselState extends State<SpotHeroCarousel> {
   }
 }
 
-/// Vertical gallery for a side pane: the first picture large, the others in
+/// Vertical gallery for a side pane: the first photo large, the others in
 /// a grid below it (two columns when the pane is wide enough).
 class SpotMediaGallery extends StatelessWidget {
-  const SpotMediaGallery({
-    super.key,
-    required this.photoUrls,
-    required this.lat,
-    required this.lon,
-    this.onPhotoTap,
-  });
+  const SpotMediaGallery({super.key, required this.photoUrls, this.onPhotoTap});
 
   final List<String> photoUrls;
-  final double lat;
-  final double lon;
   final void Function(int index)? onPhotoTap;
 
   static const _gap = 8.0;
@@ -242,7 +214,7 @@ class SpotMediaGallery extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, c) {
-      final count = photoUrls.length + 1;
+      final count = photoUrls.length;
       final columns = c.maxWidth >= 440 ? 2 : 1;
       final small = (c.maxWidth - _gap * (columns - 1)) / columns;
       Widget tile(int i, double width) => SizedBox(
@@ -251,8 +223,6 @@ class SpotMediaGallery extends StatelessWidget {
         child: SpotMediaTile(
           photoUrls: photoUrls,
           index: i,
-          lat: lat,
-          lon: lon,
           onPhotoTap: onPhotoTap,
         ),
       );

@@ -22,6 +22,7 @@ class MapScreen extends ConsumerStatefulWidget {
 class _MapScreenState extends ConsumerState<MapScreen> {
   final _mapController = MapController();
   bool _deniedShown = false;
+  bool _satellite = false;
 
   /// Set once the user drags/zooms; the late location result must then not
   /// yank the camera away from where they are looking.
@@ -118,12 +119,24 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               },
             ),
             children: [
-              buildTileLayer(context),
+              buildBaseLayer(context, satellite: _satellite),
               SpotClusterLayer(markers: _markers),
-              buildMapAttribution(context),
+              buildBaseAttribution(context, satellite: _satellite),
             ],
           ),
           Positioned(top: 8, left: 0, right: 0, child: const MapFilterBar()),
+          // below the filter chips
+          Positioned(
+            top: 64,
+            right: 12,
+            child: MapLayerToggle(
+              key: const Key('mapLayer'),
+              satellite: _satellite,
+              onChanged: (v) => setState(() => _satellite = v),
+              streetsLabel: l10n.mapStreets,
+              satelliteLabel: l10n.mapSatellite,
+            ),
+          ),
           if (state.loading)
             const Positioned(
               top: 0,

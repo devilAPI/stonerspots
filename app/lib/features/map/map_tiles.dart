@@ -88,3 +88,49 @@ TileLayer buildSatelliteTileLayer() => TileLayer(
   userAgentPackageName: 'de.stonerspots.app',
   maxNativeZoom: kSatelliteMaxNativeZoom,
 );
+
+/// Base layer for a map that can switch to satellite imagery.
+TileLayer buildBaseLayer(BuildContext context, {required bool satellite}) =>
+    satellite ? buildSatelliteTileLayer() : buildTileLayer(context);
+
+/// Credits for [buildBaseLayer]; Esri's stays visible, not behind a button.
+Widget buildBaseAttribution(BuildContext context, {required bool satellite}) =>
+    satellite
+    ? const Align(
+        alignment: Alignment.bottomRight,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(0, 0, 6, 4),
+          child: Text(
+            'Esri World Imagery',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 10,
+              shadows: [Shadow(blurRadius: 3, color: Colors.black)],
+            ),
+          ),
+        ),
+      )
+    : buildMapAttribution(context);
+
+/// Round button that switches a map between street map and satellite.
+class MapLayerToggle extends StatelessWidget {
+  const MapLayerToggle({
+    super.key,
+    required this.satellite,
+    required this.onChanged,
+    required this.streetsLabel,
+    required this.satelliteLabel,
+  });
+
+  final bool satellite;
+  final ValueChanged<bool> onChanged;
+  final String streetsLabel;
+  final String satelliteLabel;
+
+  @override
+  Widget build(BuildContext context) => IconButton.filledTonal(
+    tooltip: satellite ? streetsLabel : satelliteLabel,
+    onPressed: () => onChanged(!satellite),
+    icon: Icon(satellite ? Icons.map_outlined : Icons.satellite_alt),
+  );
+}

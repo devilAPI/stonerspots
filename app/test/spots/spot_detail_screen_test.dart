@@ -210,31 +210,37 @@ void main() {
     expect(find.text('Something went wrong'), findsOneWidget);
   });
 
-  testWidgets(
-    'wide windows and landscape phones get two panes with a satellite view',
-    (tester) async {
-      tester.view.physicalSize = const Size(844, 390);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      await _pump(tester, null);
-      expect(find.byKey(const Key('detailTwoPane')), findsOneWidget);
-      // no photos yet -> the left pane shows the spot from above
-      expect(find.byType(SatelliteThumb), findsOneWidget);
-      expect(find.text('Lake bench'), findsWidgets);
-      expect(find.byKey(const Key('like')), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets('phone portrait stays a single column', (tester) async {
-    tester.view.physicalSize = const Size(400, 800);
+  testWidgets('landscape phones get two panes with the map on the left', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(844, 390);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await _pump(tester, null);
+    expect(find.byKey(const Key('detailTwoPane')), findsOneWidget);
+    expect(find.byKey(const Key('spotLocationMap')), findsOneWidget);
+    expect(find.byType(SatelliteThumb), findsNothing); // the map replaces it
+    expect(
+      tester.getCenter(find.byKey(const Key('spotLocationMap'))).dx,
+      lessThan(tester.getCenter(find.byKey(const Key('like'))).dx),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('phone portrait without photos: the map is on top', (
+    tester,
+  ) async {
+    _portrait(tester);
+    await _pump(tester, null);
     expect(find.byKey(const Key('detailTwoPane')), findsNothing);
-    expect(find.byKey(const Key('like')), findsOneWidget);
-    // no user photos -> the spot is shown from above
-    expect(find.byType(SatelliteThumb), findsOneWidget);
+    expect(find.byKey(const Key('spotCarousel')), findsNothing);
+    expect(find.byType(SatelliteThumb), findsNothing);
+    final map = tester.getRect(find.byKey(const Key('spotLocationMap')));
+    expect(map.width, 400);
+    expect(
+      map.top,
+      lessThan(tester.getTopLeft(find.byKey(const Key('like'))).dy),
+    );
   });
 
   testWidgets('shows the rating next to the title', (tester) async {
@@ -380,68 +386,88 @@ void main() {
   testWidgets('an empty cover_url from the API does not break the spot page', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(400, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+    _portrait(tester);
     await _pump(tester, null, cover: '');
     expect(tester.takeException(), isNull);
-    expect(find.byKey(const Key('satelliteTile')), findsOneWidget);
     expect(find.byKey(const Key('galleryPhoto_0')), findsNothing);
+    expect(find.byKey(const Key('spotLocationMap')), findsOneWidget);
   });
 
-  testWidgets(
-    'single column: swipe from the user photos to the top-down view',
-    (tester) async {
-      tester.view.physicalSize = const Size(400, 800);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      await _pump(tester, null, cover: 'http://test/api/v1/media/a.jpg');
-      expect(find.byKey(const Key('detailTwoPane')), findsNothing);
-      // full-width picture on top
-      final photo = tester.getRect(find.byKey(const Key('galleryPhoto_0')));
-      expect(photo.width, 400);
-      expect(photo.top, lessThan(tester.getTopLeft(find.text('Like')).dy));
-      expect(find.text('1 / 2'), findsOneWidget);
-      expect(find.byKey(const Key('satelliteTile')), findsNothing);
-
-      await tester.fling(
-        find.byKey(const Key('spotCarousel')),
-        const Offset(-300, 0),
-        1000,
-      );
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('satelliteTile')), findsOneWidget);
-      expect(find.text('2 / 2'), findsOneWidget);
-    },
-  );
-
-  testWidgets('two panes: user photos first, then the top-down view', (
+  testWidgets('single column: swipeable photos on top, then the map', (
     tester,
   ) async {
+    _portrait(tester);
+    await _pump(tester, null, items: [photoItem]);
+    final photo = tester.getRect(find.byKey(const Key('galleryPhoto_0')));
+    expect(photo.width, 400);
+    expect(photo.top, lessThan(tester.getTopLeft(find.text('Like')).dy));
+    expect(find.text('1 / 2'), findsOneWidget);
+
+    await tester.fling(
+      find.byKey(const Key('spotCarousel')),
+      const Offset(-300, 0),
+      1000,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('2 / 2'), findsOneWidget);
+    expect(find.byType(SatelliteThumb), findsNothing);
+
+    // the map follows the details (positions in page coordinates)
+    final page = tester.state<ScrollableState>(
+      find
+          .byWidgetPredicate(
+            (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+          )
+          .first,
+    );
+    final likeY =
+        tester.getTopLeft(find.text('Like')).dy + page.position.pixels;
+    final map = find.byKey(const Key('spotLocationMap'));
+    await _scrollTo(tester, map);
+    expect(
+      tester.getTopLeft(map).dy + page.position.pixels,
+      greaterThan(likeY),
+    );
+  });
+
+  testWidgets('two panes: the map first, then the user photos', (tester) async {
     tester.view.physicalSize = const Size(1100, 700);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await _pump(tester, null, cover: 'http://test/api/v1/media/a.jpg');
+    final map = tester.getTopLeft(find.byKey(const Key('spotLocationMap')));
     final photo = tester.getTopLeft(find.byKey(const Key('galleryPhoto_0')));
-    final sat = tester.getTopLeft(find.byKey(const Key('satelliteTile')));
-    expect(photo.dy, lessThan(sat.dy));
+    expect(map.dy, lessThan(photo.dy));
+    expect(find.byType(SatelliteThumb), findsNothing);
     expect(find.byKey(const Key('detailTwoPane')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('side gallery: first picture large, the rest in a grid', (
+  testWidgets('side gallery: first photo large, the rest in a grid', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1250, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await _pump(tester, null, items: [photoItem]);
+    await _pump(
+      tester,
+      null,
+      items: [
+        feedItem(
+          photos: const [
+            PhotoRef(id: 1, url: 'http://x/1.jpg', thumbUrl: 'http://x/t1.jpg'),
+            PhotoRef(id: 2, url: 'http://x/2.jpg', thumbUrl: 'http://x/t2.jpg'),
+            PhotoRef(id: 3, url: 'http://x/3.jpg', thumbUrl: 'http://x/t3.jpg'),
+          ],
+        ),
+      ],
+    );
     final first = tester.getRect(find.byKey(const Key('galleryPhoto_0')));
     final second = tester.getRect(find.byKey(const Key('galleryPhoto_1')));
-    final sat = tester.getRect(find.byKey(const Key('satelliteTile')));
+    final third = tester.getRect(find.byKey(const Key('galleryPhoto_2')));
     expect(second.top, greaterThan(first.bottom));
-    expect(sat.top, second.top); // two columns side by side
-    expect(sat.left, greaterThan(second.right));
+    expect(third.top, second.top); // two columns side by side
+    expect(third.left, greaterThan(second.right));
     expect(first.width, greaterThan(second.width * 2));
     // the details beside it stay at a readable width
     expect(
@@ -522,19 +548,22 @@ void main() {
     expect(page.position.pixels, greaterThan(scrolledBefore));
   });
 
-  testWidgets('the location map switches between map and satellite', (
+  testWidgets('the location map opens on satellite and switches to the map', (
     tester,
   ) async {
     await _pump(tester, null);
     String url() =>
         tester.widget<TileLayer>(find.byType(TileLayer)).urlTemplate!;
+    // as close as the old top-down pictures
+    expect(camera(tester).zoom, 19);
+    expect(url(), contains('World_Imagery'));
+    expect(find.text('Esri World Imagery'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('spotMapLayer')));
+    await tester.pumpAndSettle();
     expect(url(), isNot(contains('World_Imagery')));
     await tester.tap(find.byKey(const Key('spotMapLayer')));
     await tester.pumpAndSettle();
     expect(url(), contains('World_Imagery'));
-    await tester.tap(find.byKey(const Key('spotMapLayer')));
-    await tester.pumpAndSettle();
-    expect(url(), isNot(contains('World_Imagery')));
   });
 
   for (final size in const [Size(844, 390), Size(1250, 800)]) {

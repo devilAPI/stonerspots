@@ -7,7 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../map/map_tiles.dart';
 
 /// Interactive map of a spot with its dot: drag and pinch to look around,
-/// switch between map and satellite, jump back to the spot. Inside a
+/// switch between satellite (the default) and map, jump back to the spot. Inside a
 /// scrolling page, drags that start on the map move the map (flutter_map's
 /// drag recognizers win over the page's).
 class SpotLocationMap extends StatefulWidget {
@@ -15,12 +15,16 @@ class SpotLocationMap extends StatefulWidget {
     super.key,
     required this.lat,
     required this.lon,
-    this.zoom = 17,
+    this.zoom = 19,
+    this.radius = 12,
   });
 
   final double lat;
   final double lon;
+
+  /// Starts as close as the old top-down pictures did.
   final double zoom;
+  final double radius;
 
   @override
   State<SpotLocationMap> createState() => _SpotLocationMapState();
@@ -28,7 +32,7 @@ class SpotLocationMap extends StatefulWidget {
 
 class _SpotLocationMapState extends State<SpotLocationMap> {
   final _controller = MapController();
-  bool _satellite = false;
+  bool _satellite = true;
 
   LatLng get _spot => LatLng(widget.lat, widget.lon);
 
@@ -42,7 +46,7 @@ class _SpotLocationMapState extends State<SpotLocationMap> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(widget.radius),
       child: Stack(
         children: [
           FlutterMap(
@@ -58,10 +62,7 @@ class _SpotLocationMapState extends State<SpotLocationMap> {
               ),
             ),
             children: [
-              if (_satellite)
-                buildSatelliteTileLayer()
-              else
-                buildTileLayer(context),
+              buildBaseLayer(context, satellite: _satellite),
               MarkerLayer(
                 markers: [
                   Marker(
@@ -82,13 +83,7 @@ class _SpotLocationMapState extends State<SpotLocationMap> {
                   ),
                 ],
               ),
-              if (_satellite)
-                const RichAttributionWidget(
-                  alignment: AttributionAlignment.bottomLeft,
-                  attributions: [TextSourceAttribution('Esri World Imagery')],
-                )
-              else
-                buildMapAttribution(context),
+              buildBaseAttribution(context, satellite: _satellite),
             ],
           ),
           Positioned(
@@ -96,13 +91,12 @@ class _SpotLocationMapState extends State<SpotLocationMap> {
             right: 8,
             child: Column(
               children: [
-                IconButton.filledTonal(
+                MapLayerToggle(
                   key: const Key('spotMapLayer'),
-                  tooltip: _satellite ? l.mapStreets : l.mapSatellite,
-                  onPressed: () => setState(() => _satellite = !_satellite),
-                  icon: Icon(
-                    _satellite ? Icons.map_outlined : Icons.satellite_alt,
-                  ),
+                  satellite: _satellite,
+                  onChanged: (v) => setState(() => _satellite = v),
+                  streetsLabel: l.mapStreets,
+                  satelliteLabel: l.mapSatellite,
                 ),
                 IconButton.filledTonal(
                   key: const Key('spotMapRecenter'),

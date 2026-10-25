@@ -347,9 +347,13 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
             onChanged: () => ref.invalidate(spotDetailProvider(widget.spotId)),
           );
 
-          Widget locationMap(double height) => SizedBox(
+          Widget locationMap(double height, {double radius = 12}) => SizedBox(
             height: height,
-            child: SpotLocationMap(lat: spot.lat, lon: spot.lon),
+            child: SpotLocationMap(
+              lat: spot.lat,
+              lon: spot.lon,
+              radius: radius,
+            ),
           );
 
           return LayoutBuilder(
@@ -357,7 +361,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
               final width = c.maxWidth;
               final landscapePhone = context.isPhoneLandscape;
               if (!landscapePhone && width < kTwoPaneBreakpoint) {
-                // Phone portrait: swipeable pictures on top, then details.
+                // Phone portrait: swipeable photos on top, then details and
+                // the map. Without photos the map takes the top spot.
                 final heroHeight = (width * 3 / 4).clamp(
                   160.0,
                   MediaQuery.sizeOf(context).height * 0.5,
@@ -365,18 +370,20 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                 return ListView(
                   padding: const EdgeInsets.only(bottom: 24),
                   children: [
-                    SpotHeroCarousel(
-                      photoUrls: urls,
-                      lat: spot.lat,
-                      lon: spot.lon,
-                      height: heroHeight,
-                      onPhotoTap: openPhoto,
-                    ),
+                    if (urls.isEmpty)
+                      locationMap(heroHeight, radius: 0)
+                    else
+                      SpotHeroCarousel(
+                        photoUrls: urls,
+                        height: heroHeight,
+                        onPhotoTap: openPhoto,
+                      ),
                     info,
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      child: locationMap((width * 0.6).clamp(200.0, 320.0)),
-                    ),
+                    if (urls.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: locationMap((width * 0.6).clamp(200.0, 320.0)),
+                      ),
                     const Divider(),
                     reviewsSection,
                     const Divider(),
@@ -385,8 +392,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                 );
               }
 
-              // Side by side: pictures stay visible on the left while the
-              // details scroll next to them.
+              // Side by side: map and photos stay visible on the left while
+              // the details scroll next to them.
               final mediaWidth = landscapePhone
                   ? (width * 0.4).clamp(220.0, 360.0)
                   : (width * 0.38).clamp(300.0, 560.0);
@@ -397,13 +404,10 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   children: [
                     // where it is first, then what it looks like
                     locationMap((mediaWidth - 24) * 0.75),
-                    const SizedBox(height: 8),
-                    SpotMediaGallery(
-                      photoUrls: urls,
-                      lat: spot.lat,
-                      lon: spot.lon,
-                      onPhotoTap: openPhoto,
-                    ),
+                    if (urls.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      SpotMediaGallery(photoUrls: urls, onPhotoTap: openPhoto),
+                    ],
                   ],
                 ),
               );
