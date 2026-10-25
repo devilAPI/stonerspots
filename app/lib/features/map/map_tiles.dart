@@ -81,3 +81,10 @@ String satelliteTileUrl(int z, int x, int y) => _satelliteTiles
     .replaceFirst('{z}', '$z')
     .replaceFirst('{x}', '$x')
     .replaceFirst('{y}', '$y');
+
+/// Satellite layer for interactive maps.
+TileLayer buildSatelliteTileLayer() => TileLayer(
+  urlTemplate: _satelliteTiles,
+  userAgentPackageName: 'de.stonerspots.app',
+  maxNativeZoom: kSatelliteMaxNativeZoom,
+);

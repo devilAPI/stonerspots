@@ -483,6 +483,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reviewNone => 'No reviews yet';
 
   @override
+  String get updatesTitle => 'Updates';
+
+  @override
+  String get updatesNone => 'No updates yet';
+
+  @override
+  String get mapStreets => 'Map';
+
+  @override
+  String get mapSatellite => 'Satellite';
+
+  @override
+  String get mapRecenter => 'Back to the spot';
+
+  @override
   String reviewCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

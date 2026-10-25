@@ -213,6 +213,11 @@
   },
   "reviewsTitle": "Bewertungen",
   "reviewNone": "Noch keine Bewertungen",
+  "updatesTitle": "Updates",
+  "updatesNone": "Noch keine Updates",
+  "mapStreets": "Karte",
+  "mapSatellite": "Satellit",
+  "mapRecenter": "Zurück zum Spot",
   "reviewCount": "{count, plural, =1{1 Bewertung} other{{count} Bewertungen}}",
   "@reviewCount": {
     "placeholders": {

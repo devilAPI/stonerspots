@@ -890,6 +890,36 @@ abstract class AppLocalizations {
   /// **'Noch keine Bewertungen'**
   String get reviewNone;
 
+  /// No description provided for @updatesTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Updates'**
+  String get updatesTitle;
+
+  /// No description provided for @updatesNone.
+  ///
+  /// In de, this message translates to:
+  /// **'Noch keine Updates'**
+  String get updatesNone;
+
+  /// No description provided for @mapStreets.
+  ///
+  /// In de, this message translates to:
+  /// **'Karte'**
+  String get mapStreets;
+
+  /// No description provided for @mapSatellite.
+  ///
+  /// In de, this message translates to:
+  /// **'Satellit'**
+  String get mapSatellite;
+
+  /// No description provided for @mapRecenter.
+  ///
+  /// In de, this message translates to:
+  /// **'Zurück zum Spot'**
+  String get mapRecenter;
+
   /// No description provided for @reviewCount.
   ///
   /// In de, this message translates to:

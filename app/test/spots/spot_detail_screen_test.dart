@@ -1,5 +1,6 @@
 import 'package:app/core/api_client.dart';
 import 'package:app/core/models.dart';
+import 'package:app/core/responsive.dart';
 import 'package:app/features/auth/auth_controller.dart';
 import 'package:app/features/feed/satellite_thumb.dart';
 import 'package:app/features/spots/maps_link.dart';
@@ -11,6 +12,7 @@ import 'package:app/features/spots/photo_viewer.dart';
 import 'package:app/features/spots/updates_repository.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -133,9 +135,26 @@ void _portrait(WidgetTester t) {
   addTearDown(t.view.reset);
 }
 
-/// The page is a lazy list: scroll the main (first) scrollable to [f].
-Future<void> _scrollTo(WidgetTester t, Finder f) =>
-    t.scrollUntilVisible(f, 300, scrollable: find.byType(Scrollable).first);
+/// The page is a lazy list: scroll the main (first vertical) scrollable
+/// until [f] is built, then fully into view. Scrolls in code rather than by
+/// dragging, since a drag over the location map moves the map instead.
+Future<void> _scrollTo(WidgetTester t, Finder f) async {
+  final list = t.state<ScrollableState>(
+    find
+        .byWidgetPredicate(
+          (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+        )
+        .first,
+  );
+  while (f.evaluate().isEmpty) {
+    final p = list.position;
+    if (p.pixels >= p.maxScrollExtent) break;
+    p.jumpTo((p.pixels + 300).clamp(0, p.maxScrollExtent));
+    await t.pump();
+  }
+  await t.ensureVisible(f);
+  await t.pumpAndSettle();
+}
 
 void main() {
   testWidgets('logged-out like goes to login with from', (tester) async {
@@ -332,7 +351,13 @@ void main() {
     expect(find.text('2 / 2'), findsOneWidget);
   });
 
-  for (final size in const [Size(400, 800), Size(844, 390), Size(1100, 700)]) {
+  for (final size in const [
+    Size(400, 800),
+    Size(640, 360),
+    Size(844, 390),
+    Size(1100, 700),
+    Size(1600, 1000),
+  ]) {
     testWidgets('full page lays out without overflow at $size', (tester) async {
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;
@@ -346,6 +371,7 @@ void main() {
         ],
       );
       expect(tester.takeException(), isNull);
+      await _scrollTo(tester, find.byKey(const Key('reviewSummary')));
       expect(find.byKey(const Key('reviewSummary')), findsOneWidget);
       expect(find.byKey(const Key('writeReview')), findsOneWidget);
     });
@@ -363,18 +389,31 @@ void main() {
     expect(find.byKey(const Key('galleryPhoto_0')), findsNothing);
   });
 
-  testWidgets('single column: user photos first, then the top-down view', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(400, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await _pump(tester, null, cover: 'http://test/api/v1/media/a.jpg');
-    final photo = tester.getTopLeft(find.byKey(const Key('galleryPhoto_0')));
-    final sat = tester.getTopLeft(find.byKey(const Key('satelliteTile')));
-    expect(photo.dx, lessThan(sat.dx));
-    expect(find.byType(SatelliteThumb), findsOneWidget);
-  });
+  testWidgets(
+    'single column: swipe from the user photos to the top-down view',
+    (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _pump(tester, null, cover: 'http://test/api/v1/media/a.jpg');
+      expect(find.byKey(const Key('detailTwoPane')), findsNothing);
+      // full-width picture on top
+      final photo = tester.getRect(find.byKey(const Key('galleryPhoto_0')));
+      expect(photo.width, 400);
+      expect(photo.top, lessThan(tester.getTopLeft(find.text('Like')).dy));
+      expect(find.text('1 / 2'), findsOneWidget);
+      expect(find.byKey(const Key('satelliteTile')), findsNothing);
+
+      await tester.fling(
+        find.byKey(const Key('spotCarousel')),
+        const Offset(-300, 0),
+        1000,
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('satelliteTile')), findsOneWidget);
+      expect(find.text('2 / 2'), findsOneWidget);
+    },
+  );
 
   testWidgets('two panes: user photos first, then the top-down view', (
     tester,
@@ -389,6 +428,130 @@ void main() {
     expect(find.byKey(const Key('detailTwoPane')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('side gallery: first picture large, the rest in a grid', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1250, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await _pump(tester, null, items: [photoItem]);
+    final first = tester.getRect(find.byKey(const Key('galleryPhoto_0')));
+    final second = tester.getRect(find.byKey(const Key('galleryPhoto_1')));
+    final sat = tester.getRect(find.byKey(const Key('satelliteTile')));
+    expect(second.top, greaterThan(first.bottom));
+    expect(sat.top, second.top); // two columns side by side
+    expect(sat.left, greaterThan(second.right));
+    expect(first.width, greaterThan(second.width * 2));
+    // the details beside it stay at a readable width
+    expect(
+      tester.getSize(find.byKey(const Key('reviewSummary'))).width,
+      lessThanOrEqualTo(kContentMaxWidth),
+    );
+  });
+
+  testWidgets('very wide windows give the updates their own column', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await _pump(tester, null, items: [feedItem(body: 'fresh paint')]);
+    expect(find.byKey(const Key('detailThreePane')), findsOneWidget);
+    final updates = tester.getTopLeft(find.text('Updates'));
+    final like = tester.getTopLeft(find.byKey(const Key('like')));
+    final reviews = tester.getTopLeft(find.text('Reviews'));
+    expect(updates.dx, greaterThan(like.dx));
+    expect(updates.dy, lessThan(reviews.dy)); // at the top, not below
+    expect(find.text('fresh paint'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('no updates yet says so', (tester) async {
+    _portrait(tester);
+    await _pump(tester, null, items: const []);
+    await _scrollTo(tester, find.text('No updates yet'));
+    expect(find.text('Updates'), findsOneWidget);
+  });
+
+  MapCamera camera(WidgetTester t) =>
+      MapCamera.of(t.element(find.byType(TileLayer)));
+
+  testWidgets('the location map shows the spot and moves with a finger', (
+    tester,
+  ) async {
+    _portrait(tester);
+    await _pump(tester, null);
+    final map = find.byKey(const Key('spotLocationMap'));
+    await _scrollTo(tester, map);
+    expect(find.byKey(const Key('spotLocationDot')), findsOneWidget);
+    expect(camera(tester).center.latitude, closeTo(1, 1e-9));
+    expect(camera(tester).center.longitude, closeTo(2, 1e-9));
+
+    final page = tester.state<ScrollableState>(
+      find
+          .byWidgetPredicate(
+            (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+          )
+          .first,
+    );
+    final scrolledBefore = page.position.pixels;
+    // a vertical swipe on the map pans the map, not the page
+    final g = await tester.startGesture(tester.getCenter(map));
+    await tester.pump();
+    for (var i = 0; i < 10; i++) {
+      await g.moveBy(const Offset(0, -15));
+      await tester.pump();
+    }
+    await g.up();
+    await tester.pumpAndSettle();
+    expect(page.position.pixels, scrolledBefore);
+    expect(camera(tester).center.latitude, isNot(closeTo(1, 1e-9)));
+
+    // and back to the spot
+    await tester.tap(find.byKey(const Key('spotMapRecenter')));
+    await tester.pumpAndSettle();
+    expect(camera(tester).center.latitude, closeTo(1, 1e-9));
+
+    // after letting go, the page scrolls normally again
+    await tester.drag(
+      find.byKey(const Key('reviewSummary')),
+      const Offset(0, -200),
+    );
+    await tester.pumpAndSettle();
+    expect(page.position.pixels, greaterThan(scrolledBefore));
+  });
+
+  testWidgets('the location map switches between map and satellite', (
+    tester,
+  ) async {
+    await _pump(tester, null);
+    String url() =>
+        tester.widget<TileLayer>(find.byType(TileLayer)).urlTemplate!;
+    expect(url(), isNot(contains('World_Imagery')));
+    await tester.tap(find.byKey(const Key('spotMapLayer')));
+    await tester.pumpAndSettle();
+    expect(url(), contains('World_Imagery'));
+    await tester.tap(find.byKey(const Key('spotMapLayer')));
+    await tester.pumpAndSettle();
+    expect(url(), isNot(contains('World_Imagery')));
+  });
+
+  for (final size in const [Size(844, 390), Size(1250, 800)]) {
+    testWidgets('side panes: the map comes first, above the pictures, $size', (
+      tester,
+    ) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _pump(tester, null, cover: 'http://test/api/v1/media/a.jpg');
+      final map = tester.getRect(find.byKey(const Key('spotLocationMap')));
+      final photo = tester.getRect(find.byKey(const Key('galleryPhoto_0')));
+      expect(map.bottom, lessThanOrEqualTo(photo.top));
+      expect(map.left, photo.left);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   const owner = User(id: 9, email: 'a@b.de', displayName: 'Ann');
   const stranger = User(id: 2, email: 'c@d.de', displayName: 'Cy');

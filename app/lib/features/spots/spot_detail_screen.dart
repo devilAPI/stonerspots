@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,13 +7,13 @@ import '../../core/responsive.dart';
 import '../../core/spot_tag_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
-import '../feed/satellite_thumb.dart';
 import '../reviews/rating_widgets.dart';
 import '../reviews/reviews_section.dart';
 import 'edit_tags_dialog.dart';
 import 'maps_link.dart';
 import 'photo_viewer.dart';
 import 'spot_api.dart';
+import 'spot_location_map.dart';
 import 'spot_media.dart';
 import 'update_composer.dart';
 import 'update_tile.dart';
@@ -219,13 +218,10 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
               for (final p in i.photos)
                 if (p.url != spot.coverUrl) p.url,
           ]);
-          // user photos first, then the spot seen from above
-          final gallery = SpotMediaStrip(
-            photoUrls: urls,
-            lat: spot.lat,
-            lon: spot.lon,
-            onPhotoTap: (i) => showPhotoViewer(context, urls, i),
-          );
+          void openPhoto(int i) => showPhotoViewer(context, urls, i);
+          final canEditTags =
+              me != null &&
+              (me.isAdmin || (spot.author != null && spot.author!.id == me.id));
           final info = Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -236,24 +232,16 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 4),
-                Wrap(
-                  spacing: 12,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    RatingBadge(
-                      key: const Key('spotRating'),
-                      avg: spot.ratingAvg,
-                      count: spot.ratingCount,
-                    ),
-                  ],
+                RatingBadge(
+                  key: const Key('spotRating'),
+                  avg: spot.ratingAvg,
+                  count: spot.ratingCount,
                 ),
                 if (spot.tags.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   SpotTagChips(tags: spot.tags),
                 ],
-                if (me != null &&
-                    (me.isAdmin ||
-                        (spot.author != null && spot.author!.id == me.id)))
+                if (canEditTags)
                   Align(
                     alignment: Alignment.centerLeft,
                     child: TextButton.icon(
@@ -263,64 +251,91 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                       label: Text(l.editTags),
                     ),
                   ),
-                if (spot.description.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Text(spot.description),
-                ],
                 const SizedBox(height: 12),
-                Row(
+                // Wraps onto further lines instead of overflowing.
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    FilledButton.tonalIcon(
-                      key: const Key('like'),
-                      onPressed: () => _gated(_toggleLike),
-                      icon: Icon(
-                        _liked ? Icons.favorite : Icons.favorite_border,
-                      ),
-                      label: Text(l.like),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FilledButton.tonalIcon(
+                          key: const Key('like'),
+                          onPressed: () => _gated(_toggleLike),
+                          icon: Icon(
+                            _liked ? Icons.favorite : Icons.favorite_border,
+                          ),
+                          label: Text(l.like),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(l.likesCount(_likeCount ?? spot.likeCount)),
+                        const SizedBox(width: 8),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Text(l.likesCount(_likeCount ?? spot.likeCount)),
+                    OutlinedButton.icon(
+                      key: const Key('postUpdate'),
+                      onPressed: () => _gated(_postUpdate),
+                      icon: const Icon(Icons.edit),
+                      label: Text(l.postUpdate),
+                    ),
+                    OutlinedButton.icon(
+                      key: const Key('openInMaps'),
+                      onPressed: () => _openInMaps(spot),
+                      icon: const Icon(Icons.map_outlined),
+                      label: Text(l.openInGoogleMaps),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  key: const Key('postUpdate'),
-                  onPressed: () => _gated(_postUpdate),
-                  icon: const Icon(Icons.edit),
-                  label: Text(l.postUpdate),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  key: const Key('openInMaps'),
-                  onPressed: () => _openInMaps(spot),
-                  icon: const Icon(Icons.map_outlined),
-                  label: Text(l.openInGoogleMaps),
-                ),
+                if (spot.description.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    spot.description,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ],
               ],
             ),
           );
-          final timeline = updates.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (_, _) => Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(l.errorGeneric),
-            ),
-            data: (list) => Column(
+          final timeline = Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final u in list)
-                  UpdateTile(
-                    item: u,
-                    isMine: myId != null && u.author.id == myId,
-                    onEdit: () => _editUpdate(u),
-                    onDelete: () => _deleteUpdate(u),
-                    onReport: () => _gated(() => _report('update', u.id)),
-                    onPhotoTap: (i) => showPhotoViewer(context, [
-                      for (final p in u.photos) p.url,
-                    ], i),
+                Text(
+                  l.updatesTitle,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 4),
+                updates.when(
+                  loading: () => const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(child: CircularProgressIndicator()),
                   ),
+                  error: (_, _) => Text(l.errorGeneric),
+                  data: (list) => list.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(l.updatesNone),
+                        )
+                      : Column(
+                          children: [
+                            for (final u in list)
+                              UpdateTile(
+                                item: u,
+                                isMine: myId != null && u.author.id == myId,
+                                onEdit: () => _editUpdate(u),
+                                onDelete: () => _deleteUpdate(u),
+                                onReport: () =>
+                                    _gated(() => _report('update', u.id)),
+                                onPhotoTap: (i) => showPhotoViewer(context, [
+                                  for (final p in u.photos) p.url,
+                                ], i),
+                              ),
+                          ],
+                        ),
+                ),
               ],
             ),
           );
@@ -332,74 +347,120 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
             onChanged: () => ref.invalidate(spotDetailProvider(widget.spotId)),
           );
 
-          if (context.twoPane) {
-            // Wide window / landscape phone: pictures stay visible on the left
-            // while details and updates scroll on the right.
-            return Row(
-              key: const Key('detailTwoPane'),
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: ListView(
-                    padding: const EdgeInsets.all(8),
-                    children: [
-                      for (var i = 0; i < urls.length; i++)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: InkWell(
-                            key: Key('galleryPhoto_$i'),
-                            borderRadius: BorderRadius.circular(8),
-                            onTap: () => showPhotoViewer(context, urls, i),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: AspectRatio(
-                                aspectRatio: 4 / 3,
-                                child: CachedNetworkImage(
-                                  imageUrl: urls[i],
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ClipRRect(
-                        key: const Key('satelliteTile'),
-                        borderRadius: BorderRadius.circular(8),
-                        child: SatelliteThumb(lat: spot.lat, lon: spot.lon),
+          Widget locationMap(double height) => SizedBox(
+            height: height,
+            child: SpotLocationMap(lat: spot.lat, lon: spot.lon),
+          );
+
+          return LayoutBuilder(
+            builder: (context, c) {
+              final width = c.maxWidth;
+              final landscapePhone = context.isPhoneLandscape;
+              if (!landscapePhone && width < kTwoPaneBreakpoint) {
+                // Phone portrait: swipeable pictures on top, then details.
+                final heroHeight = (width * 3 / 4).clamp(
+                  160.0,
+                  MediaQuery.sizeOf(context).height * 0.5,
+                );
+                return ListView(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  children: [
+                    SpotHeroCarousel(
+                      photoUrls: urls,
+                      lat: spot.lat,
+                      lon: spot.lon,
+                      height: heroHeight,
+                      onPhotoTap: openPhoto,
+                    ),
+                    info,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: locationMap((width * 0.6).clamp(200.0, 320.0)),
+                    ),
+                    const Divider(),
+                    reviewsSection,
+                    const Divider(),
+                    timeline,
+                  ],
+                );
+              }
+
+              // Side by side: pictures stay visible on the left while the
+              // details scroll next to them.
+              final mediaWidth = landscapePhone
+                  ? (width * 0.4).clamp(220.0, 360.0)
+                  : (width * 0.38).clamp(300.0, 560.0);
+              final media = SizedBox(
+                width: mediaWidth,
+                child: ListView(
+                  padding: const EdgeInsets.all(12),
+                  children: [
+                    // where it is first, then what it looks like
+                    locationMap((mediaWidth - 24) * 0.75),
+                    const SizedBox(height: 8),
+                    SpotMediaGallery(
+                      photoUrls: urls,
+                      lat: spot.lat,
+                      lon: spot.lon,
+                      onPhotoTap: openPhoto,
+                    ),
+                  ],
+                ),
+              );
+              // Very wide: updates get their own column.
+              final threePane = !context.isPhone && width >= 1280;
+              return Row(
+                key: Key(threePane ? 'detailThreePane' : 'detailTwoPane'),
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  media,
+                  const VerticalDivider(width: 1),
+                  Expanded(
+                    child: _ReadablePane(
+                      children: [
+                        info,
+                        const Divider(),
+                        reviewsSection,
+                        if (!threePane) ...[const Divider(), timeline],
+                      ],
+                    ),
+                  ),
+                  if (threePane) ...[
+                    const VerticalDivider(width: 1),
+                    SizedBox(
+                      width: (width * 0.28).clamp(360.0, 480.0),
+                      child: ListView(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        children: [timeline],
                       ),
-                    ],
-                  ),
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(
-                  flex: 6,
-                  child: ListView(
-                    padding: const EdgeInsets.only(bottom: 24),
-                    children: [
-                      info,
-                      const Divider(),
-                      reviewsSection,
-                      const Divider(),
-                      timeline,
-                    ],
-                  ),
-                ),
-              ],
-            );
-          }
-          return ListView(
-            padding: const EdgeInsets.only(bottom: 24),
-            children: [
-              gallery,
-              info,
-              const Divider(),
-              reviewsSection,
-              const Divider(),
-              timeline,
-            ],
+                    ),
+                  ],
+                ],
+              );
+            },
           );
         },
       ),
     );
   }
+}
+
+/// Scrolling pane whose content stays at a readable width, centred, while
+/// the scroll area (mouse wheel, scrollbar) spans the whole pane.
+class _ReadablePane extends StatelessWidget {
+  const _ReadablePane({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, c) => ListView(
+      padding: EdgeInsets.fromLTRB(
+        sideGutter(c.maxWidth),
+        0,
+        sideGutter(c.maxWidth),
+        24,
+      ),
+      children: children,
+    ),
+  );
 }
