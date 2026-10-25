@@ -51,7 +51,13 @@ curl -fsSL https://raw.githubusercontent.com/devilAPI/stonerspots/main/install-b
 curl -fsSL https://raw.githubusercontent.com/devilAPI/stonerspots/main/install-backend.sh | sudo bash -s -- --dev
 ```
 
-Or from a checkout: `sudo ./install-backend.sh [--dev]`.
+Or from a checkout: `sudo ./install-backend.sh [--dev | --release] [--force]`.
+
+Running it again updates an existing install: it stays on its channel (a dev
+install keeps taking dev builds, `--release` switches it), does nothing when
+already up to date (`--force` reinstalls), never touches `config.yaml` (it only
+lists settings that are new in `config.example.yaml`) and restarts the service
+only if it was running. The previous binary stays as `/opt/stonerspots/api.previous`.
 
 Binaries go to `/opt/stonerspots`, photos to `/var/lib/stonerspots/uploads`.
 The first run creates `/etc/stonerspots/config.yaml` with a random JWT secret;

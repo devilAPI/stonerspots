@@ -2,8 +2,14 @@
 # Installs or updates the Stonerspots backend as a systemd service.
 #
 #   curl -fsSL https://raw.githubusercontent.com/devilAPI/stonerspots/main/install-backend.sh | sudo bash
-#   sudo ./install-backend.sh          # newest release
-#   sudo ./install-backend.sh --dev    # newest dev build (dev-<n>)
+#   sudo ./install-backend.sh            # install, or update an existing install
+#   sudo ./install-backend.sh --dev      # newest dev build (dev-<n>)
+#   sudo ./install-backend.sh --release  # switch a dev install to releases
+#
+# An existing install is detected and updated in place: it stays on its
+# channel (release or dev), is skipped when already up to date, keeps
+# config.yaml and the uploads untouched, and is only restarted if it was
+# running. The previous api binary is kept as api.previous.
 #
 # Layout:
 #   /opt/stonerspots/                         api, makeadmin, migrations/ (replaced on update)
@@ -24,12 +30,15 @@ UNIT_FILE="/etc/systemd/system/${SERVICE}.service"
 
 usage() {
   cat <<EOF
-Usage: $0 [--dev]
+Usage: $0 [--dev | --release] [--force]
 
 Downloads the newest Stonerspots backend from github.com/${REPO} and installs
-it as the systemd service ${SERVICE}. Run it again to update.
+it as the systemd service ${SERVICE}. Run it again to update: an existing
+install keeps its channel and its config.yaml.
 
-  --dev       install the newest dev build instead of the newest release
+  --dev       use the newest dev build (default for installs that have one)
+  --release   use the newest release (default for new installs)
+  --force     reinstall even when that version is already installed
   -h, --help  show this help
 EOF
 }
@@ -37,10 +46,13 @@ EOF
 log() { printf '\033[1m==>\033[0m %s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
-dev=false
+channel=""
+force=false
 while [ $# -gt 0 ]; do
   case "$1" in
-    --dev) dev=true ;;
+    --dev) channel=dev ;;
+    --release) channel=release ;;
+    --force) force=true ;;
     -h | --help) usage; exit 0 ;;
     *) usage >&2; die "unknown option: $1" ;;
   esac
@@ -57,6 +69,22 @@ case "$(uname -m)" in
   aarch64 | arm64) arch=arm64 ;;
   *) die "unsupported architecture: $(uname -m) (builds exist for amd64 and arm64)" ;;
 esac
+
+# An existing install: its version, and its channel unless one was given.
+installed=""
+if [ -x "$INSTALL_DIR/api" ]; then
+  installed=$(cat "$INSTALL_DIR/VERSION" 2>/dev/null || echo unknown)
+  log "Found an existing install: ${installed} in ${INSTALL_DIR}"
+  if [ -z "$channel" ]; then
+    case "$installed" in
+      dev-*) channel=dev ;;
+      *) channel=release ;;
+    esac
+  fi
+fi
+[ -n "$channel" ] || channel=release
+dev=false
+[ "$channel" = dev ] && dev=true
 
 api() { curl -fsSL -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${REPO}/$1"; }
 
@@ -76,6 +104,11 @@ url=$(printf '%s' "$urls" | grep -oE '"browser_download_url": *"[^"]+"' | cut -d
 tag=$(basename "$(dirname "$url")")
 file=$(basename "$url")
 
+if [ "$installed" = "$tag" ] && ! $force; then
+  log "${tag} is already installed; nothing to do (use --force to reinstall)."
+  exit 0
+fi
+
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
@@ -94,8 +127,21 @@ if ! id "$SERVICE_USER" >/dev/null 2>&1; then
   useradd --system --home-dir "$DATA_DIR" --no-create-home --shell /usr/sbin/nologin "$SERVICE_USER"
 fi
 
-log "Installing ${tag} to ${INSTALL_DIR}"
+if [ -n "$installed" ]; then
+  log "Updating ${installed} -> ${tag} in ${INSTALL_DIR}"
+else
+  log "Installing ${tag} to ${INSTALL_DIR}"
+fi
 install -d -m 0755 "$INSTALL_DIR"
+# remember whether the service runs now: an update restarts only a running one
+was_running=false
+if command -v systemctl >/dev/null && [ -d /run/systemd/system ] && systemctl is-active --quiet "$SERVICE"; then
+  was_running=true
+fi
+# keep the old binary for a manual rollback
+if [ -x "$INSTALL_DIR/api" ]; then
+  cp -p "$INSTALL_DIR/api" "$INSTALL_DIR/api.previous"
+fi
 rm -rf "$INSTALL_DIR/migrations"
 cp -R "$src/migrations" "$INSTALL_DIR/"
 for f in config.example.yaml schema.example.sql; do
@@ -121,14 +167,27 @@ if [ ! -f "$CONFIG_DIR/config.yaml" ]; then
   # readable by the service, not by other users: holds the DB password and JWT secret
   chown root:"$SERVICE_USER" "$CONFIG_DIR/config.yaml"
   chmod 0640 "$CONFIG_DIR/config.yaml"
+else
+  log "Keeping ${CONFIG_DIR}/config.yaml"
+  # Settings added in newer versions: report them, never edit the file.
+  missing=""
+  while read -r key; do
+    grep -qE "^${key}" "$CONFIG_DIR/config.yaml" || missing="${missing} ${key%:}"
+  done < <(grep -oE '^[a-z_]+:' "$INSTALL_DIR/config.example.yaml" 2>/dev/null || true)
+  if [ -n "$missing" ]; then
+    log "Settings your config.yaml does not set (their defaults apply):${missing}"
+    echo "  see ${INSTALL_DIR}/config.example.yaml"
+  fi
 fi
 
 if ! command -v systemctl >/dev/null || [ ! -d /run/systemd/system ]; then
-  log "Installed ${tag}, but systemd is not running here; start it by hand:"
+  log "$([ -n "$installed" ] && echo Updated to || echo Installed) ${tag}, but systemd is not running here; start it by hand:"
   echo "  cd ${INSTALL_DIR} && sudo -u ${SERVICE_USER} CONFIG_FILE=${CONFIG_DIR}/config.yaml ./api"
   exit 0
 fi
 
+# The unit belongs to this script and is rewritten on every run; put local
+# changes into a drop-in (systemctl edit stonerspots-backend), which stays.
 log "Writing ${UNIT_FILE}"
 cat > "$UNIT_FILE" <<EOF
 [Unit]
@@ -161,7 +220,7 @@ EOF
 systemctl daemon-reload
 systemctl enable --quiet "$SERVICE"
 
-if $first_install; then
+if $first_install || [ -z "$installed" ]; then
   log "Installed ${tag}. Next steps:"
   cat <<EOF
   1. Edit ${CONFIG_DIR}/config.yaml: database, public_base_url, allowed_origins.
@@ -170,13 +229,17 @@ if $first_install; then
   3. Check it: systemctl status ${SERVICE}   /   journalctl -u ${SERVICE} -f
   Make a user admin: cd ${INSTALL_DIR} && sudo -u ${SERVICE_USER} CONFIG_FILE=${CONFIG_DIR}/config.yaml ./makeadmin -email you@example.com
 EOF
-else
+elif $was_running; then
   log "Restarting ${SERVICE}"
   systemctl restart "$SERVICE"
   sleep 2
   if systemctl is-active --quiet "$SERVICE"; then
     log "Updated to ${tag}; ${SERVICE} is running."
   else
+    echo "  the previous binary is ${INSTALL_DIR}/api.previous" >&2
     die "${SERVICE} did not start; see: journalctl -u ${SERVICE} -n 50"
   fi
+else
+  log "Updated to ${tag}. ${SERVICE} was not running, so it stays stopped:"
+  echo "  sudo systemctl start ${SERVICE}"
 fi
