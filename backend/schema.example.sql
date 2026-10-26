@@ -18,7 +18,7 @@ CREATE TABLE `photos` (
   `thumb_key` varchar(255) NOT NULL,
   `width` int(11) NOT NULL,
   `height` int(11) NOT NULL,
-  `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'approved',
   `update_id` bigint(20) unsigned DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
@@ -171,7 +171,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `uq_users_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (15, 0);
+INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (16, 0);
 
 INSERT INTO `tags` (`tag`, `name_de`, `name_en`, `icon`, `sort`) VALUES
   ('roof', 'Überdacht', 'Roof', 'roof', 10),

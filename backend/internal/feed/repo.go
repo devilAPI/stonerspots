@@ -349,7 +349,7 @@ func attachPhotos(ctx context.Context, db *sql.DB, base string, items []FeedItem
 	}
 	ph := strings.TrimSuffix(strings.Repeat("?,", len(args)), ",")
 	rows, err := db.QueryContext(ctx,
-		"SELECT id, update_id, `key`, thumb_key FROM photos WHERE update_id IN ("+ph+") ORDER BY id", args...)
+		"SELECT id, update_id, `key`, thumb_key FROM photos WHERE update_id IN ("+ph+") AND status = 'approved' ORDER BY id", args...)
 	if err != nil {
 		return err
 	}

@@ -20,7 +20,7 @@ const selectCols = `s.id, s.title, s.description, ST_Y(s.location), ST_X(s.locat
   s.like_count, s.created_at,
   COALESCE((SELECT CONCAT(?, '/api/v1/media/', p.` + "`key`" + `)
             FROM photos p JOIN spot_updates u ON u.id = p.update_id
-            WHERE u.spot_id = s.id AND u.status = 'active'
+            WHERE u.spot_id = s.id AND u.status = 'active' AND p.status = 'approved'
             ORDER BY p.id LIMIT 1), ''),
   (SELECT COALESCE(ROUND(AVG(rv.rating), 1), 0) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active'),
   (SELECT COUNT(*) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active')`

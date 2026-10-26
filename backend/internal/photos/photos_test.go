@@ -121,15 +121,20 @@ func TestUploadJPEGReturnsURLs(t *testing.T) {
 	if !strings.HasSuffix(key, ".jpg") || strings.Count(key, "/") != 2 {
 		t.Fatalf("key %q", key)
 	}
-	// Approve the photo for testing (normally done by admin)
-	if _, err := e.db.Exec("UPDATE photos SET status = 'approved' WHERE id = ?", r.ID); err != nil {
+	// served right away: photos are moderated after the fact
+	get := func() *httptest.ResponseRecorder {
+		g := httptest.NewRecorder()
+		e.h.ServeHTTP(g, httptest.NewRequest("GET", strings.TrimPrefix(r.URL, "http://test"), nil))
+		return g
+	}
+	if g := get(); g.Code != 200 || g.Body.Len() == 0 {
+		t.Fatalf("media get: %d", g.Code)
+	}
+	if _, err := e.db.Exec("UPDATE photos SET status = 'rejected' WHERE id = ?", r.ID); err != nil {
 		t.Fatal(err)
 	}
-	req := httptest.NewRequest("GET", strings.TrimPrefix(r.URL, "http://test"), nil)
-	g := httptest.NewRecorder()
-	e.h.ServeHTTP(g, req)
-	if g.Code != 200 || g.Body.Len() == 0 {
-		t.Fatalf("media get: %d", g.Code)
+	if g := get(); g.Code != 404 {
+		t.Fatalf("rejected photo served: %d", g.Code)
 	}
 	if _, err := os.Stat(filepath.Join(e.dir, filepath.FromSlash(thumb))); err != nil {
 		t.Fatal(err)

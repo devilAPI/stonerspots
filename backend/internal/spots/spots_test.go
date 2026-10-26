@@ -95,6 +95,14 @@ func TestCreateAndGetSpot(t *testing.T) {
 	if m["cover_url"] != "http://x.test/api/v1/media/a/b.jpg" {
 		t.Fatalf("cover_url %v", m["cover_url"])
 	}
+	// a rejected photo is not served, so it is no cover either
+	e.db.Exec("UPDATE photos SET status = 'rejected' WHERE `key` = 'a/b.jpg'")
+	rec = e.do("GET", fmt.Sprintf("/spots/%d", s.ID), "", false)
+	m = nil
+	json.Unmarshal(rec.Body.Bytes(), &m)
+	if c, _ := m["cover_url"].(string); c != "" {
+		t.Fatalf("rejected cover_url %v", m["cover_url"])
+	}
 	if _, ok := m["distance_m"]; ok {
 		t.Fatal("distance_m must be omitted")
 	}

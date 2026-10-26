@@ -138,6 +138,11 @@ func TestPostUpdateWithPhotos(t *testing.T) {
 	if len(fr.Items) != 1 || len(fr.Items[0].Photos) != 2 || fr.Items[0].Spot.Lat != 48 || fr.Items[0].Spot.Lon != 11 {
 		t.Fatalf("feed: %+v", fr)
 	}
+	// rejected photos are not served, so they are left out
+	db.Exec("UPDATE photos SET status = 'rejected' WHERE id = ?", p2)
+	if _, fr, _ = getFeed(t, h, url.Values{}); len(fr.Items[0].Photos) != 1 {
+		t.Fatalf("rejected photo listed: %+v", fr.Items[0].Photos)
+	}
 	// reattaching the same photos fails
 	if rec := post(t, h, u, s, map[string]any{"body": "again", "photo_ids": []uint64{p1}}); rec.Code != 400 {
 		t.Fatalf("reattach status %d", rec.Code)
