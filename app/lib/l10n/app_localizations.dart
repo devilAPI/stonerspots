@@ -554,6 +554,12 @@ abstract class AppLocalizations {
   /// **'Versteckt'**
   String get statusHidden;
 
+  /// No description provided for @statusLocked.
+  ///
+  /// In de, this message translates to:
+  /// **'Gesperrt'**
+  String get statusLocked;
+
   /// No description provided for @statusAll.
   ///
   /// In de, this message translates to:

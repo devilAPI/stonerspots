@@ -273,6 +273,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get statusHidden => 'Versteckt';
 
   @override
+  String get statusLocked => 'Gesperrt';
+
+  @override
   String get statusAll => 'Alle';
 
   @override

@@ -273,6 +273,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusHidden => 'Hidden';
 
   @override
+  String get statusLocked => 'Locked';
+
+  @override
   String get statusAll => 'All';
 
   @override

@@ -4,6 +4,7 @@ uploads/
 *.test
 *.out
 /backend/bin/
+/backend/api
 # Flutter
 .dart_tool/
 .flutter-plugins
