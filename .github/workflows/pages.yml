@@ -5,22 +5,22 @@ name: Publish web app
 #          while there is no release with a web build)
 #   /dev/  web build of the newest dev build (dev-<n>)
 # The web build is the *-web.zip asset of each release. Runs when a release is
-# published or changed, after every successful dev release run (releases
-# created with GITHUB_TOKEN do not fire release events), and by hand.
+# published or changed, and by hand. The dev build workflow also calls it
+# with its fresh web build (dev_web_artifact), so /dev/ is live before the
+# slower app builds and the dev-<n> release are done.
 #
 # Requires Settings -> Pages -> Source: "GitHub Actions".
 
 on:
   release:
     types: [published, edited, deleted, released, prereleased]
-  workflow_run:
-    workflows: ["Dev build & release"]
-    types: [completed]
   workflow_dispatch:
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
+  workflow_call:
+    inputs:
+      dev_web_artifact:
+        description: Artifact of the calling run with the dev *-web.zip; replaces the newest dev release's
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -28,17 +28,25 @@ permissions:
 jobs:
   build:
     name: Assemble site
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    concurrency:
+      group: pages-build
+      cancel-in-progress: true
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
       - id: pages
         uses: actions/configure-pages@v5
+      - if: inputs.dev_web_artifact != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.dev_web_artifact }}
+          path: fresh
       - name: Download newest web builds
         env:
           BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          FRESH: ${{ inputs.dev_web_artifact != '' }}
         run: |
           gh api --paginate --slurp "repos/${GH_REPO}/releases?per_page=100" | jq 'add' > releases.json
           # newest published release of a kind that has a web build attached
@@ -53,6 +61,7 @@ jobs:
           }
           stable="$(newest stable)"
           dev="$(newest dev)"
+          [ "$FRESH" = true ] && dev=fresh
           echo "stable: ${stable:-none}, dev: ${dev:-none}"
           if [ -z "$dev" ] && [ -z "$stable" ]; then
             echo "::error::No release has a *-web.zip asset yet"
@@ -62,7 +71,11 @@ jobs:
           # unpack <tag> into <dir> and point its base href at <href>
           unpack() {
             mkdir -p "$2" dl
-            gh release download "$1" --pattern '*-web.zip' --dir dl --clobber
+            if [ "$1" = fresh ]; then
+              cp fresh/*-web.zip dl/
+            else
+              gh release download "$1" --pattern '*-web.zip' --dir dl --clobber
+            fi
             unzip -qo dl/*-web.zip -d "$2"
             rm -f dl/*
             sed -i "s|<base href=\"/\">|<base href=\"$3\">|" "$2/index.html"
@@ -79,6 +92,9 @@ jobs:
     name: Deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-latest
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
     permissions:
       pages: write
       id-token: write
