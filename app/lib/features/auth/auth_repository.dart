@@ -10,7 +10,8 @@ class AuthSession {
 }
 
 abstract class AuthRepository {
-  Future<AuthSession> login(String email, String password);
+  /// [login] is an email or a display name.
+  Future<AuthSession> login(String login, String password);
 
   Future<AuthSession> register({
     required String email,
@@ -49,10 +50,11 @@ class ApiAuthRepository implements AuthRepository {
   );
 
   @override
-  Future<AuthSession> login(String email, String password) async => _session(
+  Future<AuthSession> login(String login, String password) async => _session(
     await _api.post<Map<String, dynamic>>(
       '/auth/login',
-      data: {'email': email, 'password': password},
+      // "email" too, for a server from before name logins
+      data: {'login': login, 'email': login, 'password': password},
     ),
   );
 

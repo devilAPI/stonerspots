@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/back_or_home.dart';
-import '../../core/api_client.dart';
 import '../../l10n/app_localizations.dart';
 import 'auth_controller.dart';
+import 'auth_errors.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key, this.redirectTo});
@@ -69,9 +69,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 TextFormField(
                   key: const Key('loginEmail'),
                   controller: _email,
-                  decoration: InputDecoration(labelText: l10n.email),
-                  keyboardType: TextInputType.emailAddress,
-                  autofillHints: const [AutofillHints.email],
+                  decoration: InputDecoration(labelText: l10n.loginId),
+                  autofillHints: const [
+                    AutofillHints.username,
+                    AutofillHints.email,
+                  ],
                   textInputAction: TextInputAction.next,
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? l10n.fieldRequired
@@ -95,7 +97,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 if (error != null) ...[
                   const SizedBox(height: 12),
                   Text(
-                    error is ApiException ? error.message : l10n.errorGeneric,
+                    authErrorText(l10n, error),
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error,
                     ),

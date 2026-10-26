@@ -25,8 +25,9 @@ class AuthController extends AsyncNotifier<User?> {
     }
   }
 
-  Future<void> login(String email, String password) => _authenticate(
-    () => ref.read(authRepositoryProvider).login(email.trim(), password),
+  /// [login] is an email or a display name.
+  Future<void> login(String login, String password) => _authenticate(
+    () => ref.read(authRepositoryProvider).login(login.trim(), password),
   );
 
   Future<void> register({

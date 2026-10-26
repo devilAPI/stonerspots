@@ -9,8 +9,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/mail"
+	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-sql-driver/mysql"
 	"golang.org/x/crypto/bcrypt"
@@ -26,6 +28,7 @@ const (
 
 var (
 	errEmailTaken     = errors.New("email taken")
+	errNameTaken      = errors.New("display name taken")
 	errBadCredentials = errors.New("invalid credentials")
 	errBadRefresh     = errors.New("invalid refresh token")
 )
@@ -66,6 +69,48 @@ func NormalizeEmail(e string) string { return normalizeEmail(e) }
 func ValidEmail(email string) bool {
 	a, err := mail.ParseAddress(email)
 	return err == nil && a.Address == email && len(email) <= 255
+}
+
+// ValidDisplayName trims a display name and reports whether it is
+// acceptable: 1 to 80 characters and no "@", since names double as login
+// names and anything with an "@" is looked up as an email.
+func ValidDisplayName(name string) (string, bool) {
+	name = strings.TrimSpace(name)
+	n := utf8.RuneCountInString(name)
+	return name, n >= 1 && n <= 80 && !strings.Contains(name, "@")
+}
+
+// DuplicateUserField names the users column whose unique key err violates
+// ("email" or "display_name"), or "" for any other error.
+func DuplicateUserField(err error) string {
+	var me *mysql.MySQLError
+	if !errors.As(err, &me) || me.Number != 1062 {
+		return ""
+	}
+	if strings.Contains(me.Message, "uq_users_display_name") {
+		return "display_name"
+	}
+	return "email"
+}
+
+// byLogin is the WHERE clause and argument finding a user by what they
+// typed to log in: an email when it has an "@", else their display name.
+func byLogin(login string) (string, string) {
+	if strings.Contains(login, "@") {
+		return "email = ?", normalizeEmail(login)
+	}
+	return "display_name = ?", strings.TrimSpace(login)
+}
+
+// failureKey is the key wrong passwords are counted under: the account
+// when it exists, so switching between email and name gains nothing.
+func (s *service) failureKey(ctx context.Context, login string) string {
+	where, arg := byLogin(login)
+	var id uint64
+	if err := s.db.QueryRowContext(ctx, `SELECT id FROM users WHERE `+where, arg).Scan(&id); err == nil {
+		return "user:" + strconv.FormatUint(id, 10)
+	}
+	return "login:" + strings.ToLower(arg)
 }
 
 func hashToken(tok string) string {
@@ -138,6 +183,9 @@ func (s *service) register(ctx context.Context, email, password, name string) (*
 	if err != nil {
 		var me *mysql.MySQLError
 		if errors.As(err, &me) && me.Number == 1062 {
+			if DuplicateUserField(err) == "display_name" {
+				return nil, errNameTaken
+			}
 			return nil, errEmailTaken
 		}
 		return nil, err
@@ -151,12 +199,15 @@ func (s *service) register(ctx context.Context, email, password, name string) (*
 	return s.session(ctx, user, "")
 }
 
-func (s *service) login(ctx context.Context, email, password string) (*Session, error) {
+// login checks the password of the user named by login (email or display
+// name, see byLogin).
+func (s *service) login(ctx context.Context, login, password string) (*Session, error) {
 	var u User
 	var hash string
 	var verified sql.NullBool
+	where, arg := byLogin(login)
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, email, display_name, is_admin, password_hash, email_verified FROM users WHERE email = ?`, email,
+		`SELECT id, email, display_name, is_admin, password_hash, email_verified FROM users WHERE `+where, arg,
 	).Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin, &hash, &verified)
 	if errors.Is(err, sql.ErrNoRows) {
 		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))

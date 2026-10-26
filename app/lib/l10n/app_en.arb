@@ -168,7 +168,7 @@
   "adminCoordsInvalid": "Could not read these coordinates. Use e.g. 48.137, 11.575 or a map link.",
   "adminUserSaved": "User updated",
   "adminSpotSaved": "Spot updated",
-  "adminErrInvalidDisplayName": "Invalid display name",
+  "adminErrInvalidDisplayName": "Invalid display name (1 to 80 characters, no @)",
   "adminErrInvalidEmail": "Invalid email address",
   "adminErrEmailTaken": "This email is already in use",
   "adminErrCannotDemoteSelf": "You can't remove your own admin rights",
@@ -339,5 +339,10 @@
   "transitShow": "Show public transport map",
   "transitHide": "Hide public transport map",
   "backToHome": "Back to the map",
-  "mapMyLocation": "My location"
+  "mapMyLocation": "My location",
+  "loginId": "Email or name",
+  "displayNameHelp": "You can also log in with it; no @",
+  "authErrInvalidCredentials": "Wrong name, email or password",
+  "authErrNameTaken": "This name is already taken",
+  "authErrInvalidName": "The name must be 1 to 80 characters without @"
 }

@@ -29,4 +29,23 @@ void main() {
     );
     expect(authRedirect(loggedIn: true, location: '/feed'), isNull);
   });
+
+  test(
+    'the redirects re-run on restore, logout and admin changes, not login',
+    () {
+      expect(redirectsMayChange(null, 'out'), isTrue); // restored, logged out
+      expect(
+        redirectsMayChange(null, '1:false'),
+        isTrue,
+      ); // restored, logged in
+      expect(redirectsMayChange('1:false', 'out'), isTrue); // logout
+      expect(redirectsMayChange('1:true', '1:false'), isTrue); // admin removed
+      expect(redirectsMayChange('1:false', '2:false'), isTrue); // other user
+      expect(redirectsMayChange('out', '1:false'), isFalse); // login
+      expect(redirectsMayChange('out', '1:true'), isFalse);
+      expect(redirectsMayChange('out', 'out'), isFalse); // failed login
+      expect(redirectsMayChange('1:false', '1:false'), isFalse);
+      expect(authAccess(null), 'out');
+    },
+  );
 }

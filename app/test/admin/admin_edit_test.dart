@@ -302,7 +302,7 @@ void main() {
         });
 
         const errors = {
-          'invalid_display_name': 'Invalid display name',
+          'invalid_display_name': 'Invalid display name (1 to 80 characters, no @)',
           'invalid_email': 'Invalid email address',
           'email_taken': 'This email is already in use',
           'cannot_demote_self': "You can't remove your own admin rights",

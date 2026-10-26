@@ -707,7 +707,7 @@ abstract class AppLocalizations {
   /// No description provided for @adminErrInvalidDisplayName.
   ///
   /// In de, this message translates to:
-  /// **'Ungültiger Anzeigename'**
+  /// **'Ungültiger Anzeigename (1 bis 80 Zeichen, kein @)'**
   String get adminErrInvalidDisplayName;
 
   /// No description provided for @adminErrInvalidEmail.
@@ -1447,6 +1447,36 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Mein Standort'**
   String get mapMyLocation;
+
+  /// No description provided for @loginId.
+  ///
+  /// In de, this message translates to:
+  /// **'E-Mail oder Name'**
+  String get loginId;
+
+  /// No description provided for @displayNameHelp.
+  ///
+  /// In de, this message translates to:
+  /// **'Damit kannst du dich auch anmelden; ohne @'**
+  String get displayNameHelp;
+
+  /// No description provided for @authErrInvalidCredentials.
+  ///
+  /// In de, this message translates to:
+  /// **'Name, E-Mail oder Passwort stimmt nicht'**
+  String get authErrInvalidCredentials;
+
+  /// No description provided for @authErrNameTaken.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieser Name ist schon vergeben'**
+  String get authErrNameTaken;
+
+  /// No description provided for @authErrInvalidName.
+  ///
+  /// In de, this message translates to:
+  /// **'Der Name muss 1 bis 80 Zeichen lang sein und darf kein @ enthalten'**
+  String get authErrInvalidName;
 }
 
 class _AppLocalizationsDelegate

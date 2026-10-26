@@ -23,6 +23,8 @@ String adminUserErrorText(AppLocalizations l, Object e) {
         return l.adminErrInvalidEmail;
       case 'email_taken':
         return l.adminErrEmailTaken;
+      case 'display_name_taken':
+        return l.authErrNameTaken;
       case 'cannot_demote_self':
         return l.adminErrCannotDemoteSelf;
       case 'last_admin':

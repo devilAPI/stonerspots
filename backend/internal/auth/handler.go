@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -71,9 +72,9 @@ func (h *handler) register(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_password", "password must be 10 to 72 bytes long")
 		return
 	}
-	name := in.DisplayName
-	if n := utf8.RuneCountInString(name); n < 1 || n > 80 {
-		httpx.Error(w, http.StatusBadRequest, "invalid_display_name", "display name must be 1 to 80 characters")
+	name, ok := ValidDisplayName(in.DisplayName)
+	if !ok {
+		httpx.Error(w, http.StatusBadRequest, "invalid_display_name", "display name must be 1 to 80 characters without @")
 		return
 	}
 	// Verify proof-of-work if configured
@@ -106,6 +107,8 @@ func (h *handler) register(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case errors.Is(err, errEmailTaken):
 		httpx.Error(w, http.StatusConflict, "email_taken", "email is already registered")
+	case errors.Is(err, errNameTaken):
+		httpx.Error(w, http.StatusConflict, "display_name_taken", "this name is already taken")
 	case err != nil:
 		serverError(w)
 	default:
@@ -115,21 +118,26 @@ func (h *handler) register(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) login(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		Email    string `json:"email"`
+		Login    string `json:"login"` // email or display name
+		Email    string `json:"email"` // older apps send only this
 		Password string `json:"password"`
 	}
 	if !decodeBody(w, r, &in) {
 		return
 	}
-	email := normalizeEmail(in.Email)
-	if h.passwordBlocked(w, "email:"+email) {
+	login := in.Login
+	if strings.TrimSpace(login) == "" {
+		login = in.Email
+	}
+	key := h.svc.failureKey(r.Context(), login)
+	if h.passwordBlocked(w, key) {
 		return
 	}
-	s, err := h.svc.login(r.Context(), email, in.Password)
+	s, err := h.svc.login(r.Context(), login, in.Password)
 	switch {
 	case errors.Is(err, errBadCredentials):
-		h.failures.Allow("email:" + email)
-		httpx.Error(w, http.StatusUnauthorized, "invalid_credentials", "invalid email or password")
+		h.failures.Allow(key)
+		httpx.Error(w, http.StatusUnauthorized, "invalid_credentials", "invalid login or password")
 	case err != nil:
 		serverError(w)
 	default:

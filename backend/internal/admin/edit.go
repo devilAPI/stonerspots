@@ -12,7 +12,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-sql-driver/mysql"
 
 	"stonerspots/backend/internal/auth"
 	"stonerspots/backend/internal/feed"
@@ -24,6 +23,7 @@ import (
 
 var (
 	errEmailTaken   = errors.New("email taken")
+	errNameTaken    = errors.New("display name taken")
 	errCannotDemote = errors.New("cannot demote self")
 	errLastAdmin    = errors.New("last admin")
 )
@@ -103,12 +103,12 @@ func (h handler) patchUser(w http.ResponseWriter, r *http.Request) {
 		badBody(w)
 		return
 	} else if present {
-		s = strings.TrimSpace(s)
-		if n := utf8.RuneCountInString(s); n < 1 || n > 80 {
-			httpx.Error(w, http.StatusBadRequest, "invalid_display_name", "display name must be 1 to 80 characters")
+		name, ok := auth.ValidDisplayName(s)
+		if !ok {
+			httpx.Error(w, http.StatusBadRequest, "invalid_display_name", "display name must be 1 to 80 characters without @")
 			return
 		}
-		up.displayName = &s
+		up.displayName = &name
 	}
 	var e string
 	if present, good := field(p, "email", &e); !good {
@@ -134,6 +134,8 @@ func (h handler) patchUser(w http.ResponseWriter, r *http.Request) {
 		notFound(w, "user")
 	case errors.Is(err, errEmailTaken):
 		httpx.Error(w, http.StatusConflict, "email_taken", "email is already registered")
+	case errors.Is(err, errNameTaken):
+		httpx.Error(w, http.StatusConflict, "display_name_taken", "this name is already taken")
 	case errors.Is(err, errCannotDemote):
 		httpx.Error(w, http.StatusBadRequest, "cannot_demote_self", "you cannot remove your own admin flag")
 	case errors.Is(err, errLastAdmin):
@@ -194,8 +196,10 @@ func (r repo) patchUser(ctx context.Context, id, caller uint64, p userPatch) (us
 		sets, args = append(sets, "is_admin = ?"), append(args, *p.isAdmin)
 	}
 	if _, err := tx.ExecContext(ctx, "UPDATE users SET "+strings.Join(sets, ", ")+" WHERE id = ?", append(args, id)...); err != nil {
-		var me *mysql.MySQLError
-		if errors.As(err, &me) && me.Number == 1062 {
+		switch auth.DuplicateUserField(err) {
+		case "display_name":
+			return userItem{}, errNameTaken
+		case "email":
 			return userItem{}, errEmailTaken
 		}
 		return userItem{}, err

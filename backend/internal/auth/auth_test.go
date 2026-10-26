@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -62,7 +63,8 @@ func decode[T any](t *testing.T, rec *httptest.ResponseRecorder) T {
 func register(t *testing.T, h http.Handler, email string) authResp {
 	t.Helper()
 	rec := do(t, h, "POST", "/auth/register", "", map[string]any{
-		"email": email, "password": "correct-horse-1", "display_name": "Hanf", "adult": true})
+		// names are unique: one per email
+		"email": email, "password": "correct-horse-1", "display_name": "Hanf " + strings.TrimSpace(strings.Split(email, "@")[0]), "adult": true})
 	if rec.Code != 201 {
 		t.Fatalf("register: %d %s", rec.Code, rec.Body)
 	}

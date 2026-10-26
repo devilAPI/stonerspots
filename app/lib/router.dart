@@ -9,6 +9,7 @@ import 'features/auth/profile_screen.dart';
 import 'features/auth/register_screen.dart';
 import 'features/feed/feed_screen.dart';
 import 'core/adaptive_nav.dart';
+import 'core/models.dart' show User;
 import 'core/back_or_home.dart';
 import 'features/map/map_screen.dart';
 import 'features/spots/add_spot_screen.dart';
@@ -31,6 +32,17 @@ String? authRedirect({
   if (loggedIn && !isAdmin && location == '/admin') return '/';
   return null;
 }
+
+/// What the redirects depend on: `out`, or `<id>:<admin>`.
+String authAccess(User? u) => u == null ? 'out' : '${u.id}:${u.isAdmin}';
+
+/// Whether the router must re-run its redirects when the settled login
+/// state goes from [before] (null: still restoring) to [now]. Not on
+/// login: no page a logged-out user can be on becomes forbidden, and the
+/// refresh would re-apply the route list from before the login page closed
+/// itself, opening it again.
+bool redirectsMayChange(String? before, String now) =>
+    now != before && !(before == 'out' && now != 'out');
 
 class _ScaffoldWithNav extends StatelessWidget {
   const _ScaffoldWithNav({required this.shell});
@@ -55,7 +67,13 @@ class _ScaffoldWithNav extends StatelessWidget {
 
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
-  ref.listen(authControllerProvider, (_, _) => refresh.value++);
+  String? settled; // null while the stored session is restored
+  ref.listen(authControllerProvider, (_, next) {
+    if (next.isLoading) return;
+    final now = authAccess(next.value);
+    if (redirectsMayChange(settled, now)) refresh.value++;
+    settled = now;
+  });
   ref.onDispose(refresh.dispose);
 
   final router = GoRouter(

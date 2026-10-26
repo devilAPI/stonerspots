@@ -168,7 +168,7 @@
   "adminCoordsInvalid": "Diese Koordinaten konnten nicht gelesen werden. Nutze z. B. 48.137, 11.575 oder einen Kartenlink.",
   "adminUserSaved": "Nutzer aktualisiert",
   "adminSpotSaved": "Spot aktualisiert",
-  "adminErrInvalidDisplayName": "Ungültiger Anzeigename",
+  "adminErrInvalidDisplayName": "Ungültiger Anzeigename (1 bis 80 Zeichen, kein @)",
   "adminErrInvalidEmail": "Ungültige E-Mail-Adresse",
   "adminErrEmailTaken": "Diese E-Mail-Adresse wird bereits verwendet",
   "adminErrCannotDemoteSelf": "Du kannst dir die Admin-Rechte nicht selbst entziehen",
@@ -339,5 +339,10 @@
   "transitShow": "ÖPNV-Karte einblenden",
   "transitHide": "ÖPNV-Karte ausblenden",
   "backToHome": "Zur Startseite",
-  "mapMyLocation": "Mein Standort"
+  "mapMyLocation": "Mein Standort",
+  "loginId": "E-Mail oder Name",
+  "displayNameHelp": "Damit kannst du dich auch anmelden; ohne @",
+  "authErrInvalidCredentials": "Name, E-Mail oder Passwort stimmt nicht",
+  "authErrNameTaken": "Dieser Name ist schon vergeben",
+  "authErrInvalidName": "Der Name muss 1 bis 80 Zeichen lang sein und darf kein @ enthalten"
 }

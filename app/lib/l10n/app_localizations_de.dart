@@ -372,7 +372,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get adminSpotSaved => 'Spot aktualisiert';
 
   @override
-  String get adminErrInvalidDisplayName => 'Ungültiger Anzeigename';
+  String get adminErrInvalidDisplayName =>
+      'Ungültiger Anzeigename (1 bis 80 Zeichen, kein @)';
 
   @override
   String get adminErrInvalidEmail => 'Ungültige E-Mail-Adresse';
@@ -813,4 +814,21 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get mapMyLocation => 'Mein Standort';
+
+  @override
+  String get loginId => 'E-Mail oder Name';
+
+  @override
+  String get displayNameHelp => 'Damit kannst du dich auch anmelden; ohne @';
+
+  @override
+  String get authErrInvalidCredentials =>
+      'Name, E-Mail oder Passwort stimmt nicht';
+
+  @override
+  String get authErrNameTaken => 'Dieser Name ist schon vergeben';
+
+  @override
+  String get authErrInvalidName =>
+      'Der Name muss 1 bis 80 Zeichen lang sein und darf kein @ enthalten';
 }

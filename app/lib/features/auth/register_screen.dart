@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/back_or_home.dart';
-import '../../core/api_client.dart';
 import '../../l10n/app_localizations.dart';
 import 'auth_controller.dart';
+import 'auth_errors.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -66,7 +66,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               children: [
                 TextFormField(
                   controller: _name,
-                  decoration: InputDecoration(labelText: l10n.displayName),
+                  decoration: InputDecoration(
+                    labelText: l10n.displayName,
+                    helperText: l10n.displayNameHelp,
+                  ),
+                  autofillHints: const [AutofillHints.username],
                   textInputAction: TextInputAction.next,
                   validator: required,
                 ),
@@ -103,7 +107,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 if (error != null)
                   Text(
-                    error is ApiException ? error.message : l10n.errorGeneric,
+                    authErrorText(l10n, error),
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error,
                     ),
