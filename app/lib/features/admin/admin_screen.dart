@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/back_or_home.dart';
+import '../../core/tab_keys.dart';
 import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
@@ -33,22 +34,42 @@ class AdminScreen extends ConsumerWidget {
     ref.listen(adminSpotsProvider, (_, _) {});
     return DefaultTabController(
       length: 4,
-      child: Scaffold(
-        appBar: AppBar(
-          leading: const BackOrHomeButton(),
-          title: Text(l10n.adminTitle),
-          bottom: TabBar(
-            tabs: [
-              Tab(text: l10n.adminReports),
-              Tab(text: l10n.adminUsers),
-              Tab(text: l10n.adminSpots),
-              Tab(text: l10n.adminTags),
-            ],
-          ),
-        ),
-        body: const TabBarView(
-          children: [_ReportsTab(), _UsersTab(), _SpotsTab(), AdminTagsTab()],
-        ),
+      child: Builder(
+        // the controller only exists below DefaultTabController
+        builder: (context) {
+          final tabs = DefaultTabController.of(context);
+          return ListenableBuilder(
+            listenable: tabs,
+            builder: (context, child) => TabKeys(
+              count: 4,
+              index: tabs.index,
+              onSelect: tabs.animateTo,
+              child: child!,
+            ),
+            child: Scaffold(
+              appBar: AppBar(
+                leading: const BackOrHomeButton(),
+                title: Text(l10n.adminTitle),
+                bottom: TabBar(
+                  tabs: [
+                    Tab(text: l10n.adminReports),
+                    Tab(text: l10n.adminUsers),
+                    Tab(text: l10n.adminSpots),
+                    Tab(text: l10n.adminTags),
+                  ],
+                ),
+              ),
+              body: const TabBarView(
+                children: [
+                  _ReportsTab(),
+                  _UsersTab(),
+                  _SpotsTab(),
+                  AdminTagsTab(),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

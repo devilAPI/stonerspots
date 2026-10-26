@@ -69,6 +69,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 TextFormField(
                   key: const Key('loginEmail'),
                   controller: _email,
+                  // type right away; Tab then goes on to the password
+                  autofocus: true,
                   decoration: InputDecoration(labelText: l10n.loginId),
                   autofillHints: const [
                     AutofillHints.username,

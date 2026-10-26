@@ -66,6 +66,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               children: [
                 TextFormField(
                   controller: _name,
+                  autofocus: true,
                   decoration: InputDecoration(
                     labelText: l10n.displayName,
                     helperText: l10n.displayNameHelp,

@@ -11,6 +11,7 @@ import 'features/feed/feed_screen.dart';
 import 'core/adaptive_nav.dart';
 import 'core/models.dart' show User;
 import 'core/back_or_home.dart';
+import 'core/tab_keys.dart';
 import 'features/map/map_screen.dart';
 import 'features/spots/add_spot_screen.dart';
 import 'features/spots/spot_detail_screen.dart';
@@ -51,16 +52,21 @@ class _ScaffoldWithNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AdaptiveNavScaffold(
-      selectedIndex: shell.currentIndex,
-      onSelected: (i) =>
-          shell.goBranch(i, initialLocation: i == shell.currentIndex),
-      items: [
-        NavItem(Icons.map_outlined, l10n.navMap),
-        NavItem(Icons.dynamic_feed_outlined, l10n.navFeed),
-        NavItem(Icons.person_outline, l10n.navProfile),
-      ],
-      body: shell,
+    return TabKeys(
+      count: 3,
+      index: shell.currentIndex,
+      onSelect: shell.goBranch,
+      child: AdaptiveNavScaffold(
+        selectedIndex: shell.currentIndex,
+        onSelected: (i) =>
+            shell.goBranch(i, initialLocation: i == shell.currentIndex),
+        items: [
+          NavItem(Icons.map_outlined, l10n.navMap),
+          NavItem(Icons.dynamic_feed_outlined, l10n.navFeed),
+          NavItem(Icons.person_outline, l10n.navProfile),
+        ],
+        body: shell,
+      ),
     );
   }
 }
