@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
@@ -5,7 +6,8 @@ import 'package:latlong2/latlong.dart';
 import '../../core/api_client.dart';
 import '../../core/coordinates.dart';
 import '../../l10n/app_localizations.dart';
-import '../../core/models.dart' show Author, FeedItem, SpotTag, UpdateTag;
+import '../../core/models.dart'
+    show Author, FeedItem, PhotoRef, SpotTag, UpdateTag;
 import '../spots/update_tile.dart' show updateTagLabel;
 import '../../core/spot_tag_widgets.dart';
 import 'admin_models.dart';
@@ -523,6 +525,7 @@ String adminUpdateErrorText(AppLocalizations l, Object e) {
   if (e is ApiException) {
     switch (e.code) {
       case 'invalid_body':
+      case 'last_photo':
         return l.updateErrorInvalidBody;
       case 'invalid_tag':
         return l.updateErrorInvalidTag;
@@ -531,8 +534,8 @@ String adminUpdateErrorText(AppLocalizations l, Object e) {
   return l.errorGeneric;
 }
 
-/// Admin edit of anyone's update (text and status tag); resolves to true
-/// when saved. Photos stay as they are.
+/// Admin edit of anyone's update (text, status tag, and its photos: rotate
+/// by 90° or remove); resolves to true when anything was saved.
 Future<bool?> showAdminUpdateDialog(BuildContext context, FeedItem item) =>
     showDialog<bool>(
       context: context,
@@ -550,8 +553,30 @@ class _AdminUpdateDialog extends ConsumerStatefulWidget {
 class _AdminUpdateDialogState extends ConsumerState<_AdminUpdateDialog> {
   late final _body = TextEditingController(text: widget.item.body);
   late UpdateTag _tag = widget.item.tag;
+  // What the server has; moves forward as each step of a save succeeds, so
+  // a retry after a partial failure never applies a step twice.
+  late String _savedBody = widget.item.body;
+  late UpdateTag _savedTag = widget.item.tag;
+  late final List<PhotoRef> _photos = [...widget.item.photos];
+  // Pending clockwise quarter turns (1-3) and removals, by photo id.
+  final Map<int, int> _turns = {};
+  final Set<int> _removed = {};
+  bool _saved = false;
   bool _busy = false;
   String? _error;
+
+  void _turn(int id, int quarters) => setState(() {
+    final t = ((_turns[id] ?? 0) + quarters) % 4;
+    if (t == 0) {
+      _turns.remove(id);
+    } else {
+      _turns[id] = t;
+    }
+  });
+
+  void _toggleRemoved(int id) => setState(() {
+    if (!_removed.remove(id)) _removed.add(id);
+  });
 
   @override
   void dispose() {
@@ -563,21 +588,47 @@ class _AdminUpdateDialogState extends ConsumerState<_AdminUpdateDialog> {
     final l10n = AppLocalizations.of(context);
     final body = _body.text.trim();
     final patch = AdminUpdatePatch(
-      body: body != widget.item.body ? body : null,
-      tag: _tag != widget.item.tag ? _tag : null,
+      body: body != _savedBody ? body : null,
+      tag: _tag != _savedTag ? _tag : null,
     );
-    if (patch.isEmpty) {
-      Navigator.pop(context);
+    if (patch.isEmpty && _turns.isEmpty && _removed.isEmpty) {
+      Navigator.pop(context, _saved);
+      return;
+    }
+    // An update needs text or photos.
+    if (body.isEmpty && _removed.length == _photos.length) {
+      setState(() => _error = l10n.updateErrorInvalidBody);
       return;
     }
     setState(() {
       _busy = true;
       _error = null;
     });
+    final repo = ref.read(adminRepositoryProvider);
     try {
-      await ref
-          .read(adminRepositoryProvider)
-          .updateUpdate(widget.item.id, patch);
+      if (!patch.isEmpty) {
+        await repo.updateUpdate(widget.item.id, patch);
+        _saved = true;
+        _savedBody = body;
+        _savedTag = _tag;
+      }
+      for (final id in [..._turns.keys]) {
+        if (_removed.contains(id)) continue;
+        await repo.rotatePhoto(id, _turns[id]! * 90);
+        _saved = true;
+        _turns.remove(id);
+      }
+      for (final id in [..._removed]) {
+        try {
+          await repo.deletePhoto(id);
+        } on ApiException catch (e) {
+          if (e.code != 'not_found') rethrow;
+        }
+        _saved = true;
+        _removed.remove(id);
+        _turns.remove(id);
+        _photos.removeWhere((p) => p.id == id);
+      }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
@@ -624,17 +675,82 @@ class _AdminUpdateDialogState extends ConsumerState<_AdminUpdateDialog> {
               ),
           ],
         ),
+        if (_photos.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Text(l10n.adminPhotos, style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [for (final p in _photos) _photoTile(l10n, p)],
+          ),
+        ],
         _ErrorText(fieldKey: const Key('admin-update-error'), text: _error),
       ]),
       actions: [
         TextButton(
-          onPressed: _busy ? null : () => Navigator.pop(context),
+          onPressed: _busy ? null : () => Navigator.pop(context, _saved),
           child: Text(l10n.cancel),
         ),
         FilledButton(
           key: const Key('admin-update-save'),
           onPressed: _busy ? null : _save,
           child: Text(l10n.save),
+        ),
+      ],
+    );
+  }
+
+  Widget _photoTile(AppLocalizations l10n, PhotoRef p) {
+    final removed = _removed.contains(p.id);
+    return Column(
+      key: Key('admin-photo-${p.id}'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Opacity(
+          opacity: removed ? 0.3 : 1,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              width: 96,
+              height: 96,
+              child: RotatedBox(
+                quarterTurns: _turns[p.id] ?? 0,
+                child: CachedNetworkImage(
+                  imageUrl: p.thumbUrl,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, _, _) =>
+                      const Center(child: Icon(Icons.broken_image_outlined)),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              key: Key('admin-photo-${p.id}-left'),
+              tooltip: l10n.adminPhotoRotateLeft,
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.rotate_left, size: 20),
+              onPressed: _busy || removed ? null : () => _turn(p.id, 3),
+            ),
+            IconButton(
+              key: Key('admin-photo-${p.id}-right'),
+              tooltip: l10n.adminPhotoRotateRight,
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.rotate_right, size: 20),
+              onPressed: _busy || removed ? null : () => _turn(p.id, 1),
+            ),
+            IconButton(
+              key: Key('admin-photo-${p.id}-remove'),
+              tooltip: removed ? l10n.adminPhotoRestore : l10n.adminPhotoRemove,
+              visualDensity: VisualDensity.compact,
+              icon: Icon(removed ? Icons.undo : Icons.delete_outline, size: 20),
+              onPressed: _busy ? null : () => _toggleRemoved(p.id),
+            ),
+          ],
         ),
       ],
     );

@@ -43,6 +43,15 @@ abstract class AdminRepository {
   /// Edits any update (text, tag, visibility), whoever wrote it.
   Future<void> updateUpdate(int id, AdminUpdatePatch patch);
 
+  /// Turns a photo clockwise by [degrees] (90, 180 or 270). The photo gets
+  /// new URLs, so callers reload what shows it.
+  Future<void> rotatePhoto(int id, int degrees);
+
+  /// Deletes a photo with its files. 404 `not_found` is thrown as
+  /// [ApiException] for the caller to treat as success; 409 `last_photo`
+  /// when its update has no text left.
+  Future<void> deletePhoto(int id);
+
   /// The tag catalog with usage counts, in canonical order.
   Future<List<AdminTag>> tags();
 
@@ -155,6 +164,19 @@ class ApiAdminRepository implements AdminRepository {
   @override
   Future<void> updateUpdate(int id, AdminUpdatePatch patch) async {
     await _api.patch<dynamic>('/admin/updates/$id', data: patch.toJson());
+  }
+
+  @override
+  Future<void> rotatePhoto(int id, int degrees) async {
+    await _api.post<dynamic>(
+      '/admin/photos/$id/rotate',
+      data: {'degrees': degrees},
+    );
+  }
+
+  @override
+  Future<void> deletePhoto(int id) async {
+    await _api.delete<dynamic>('/admin/photos/$id');
   }
 
   @override

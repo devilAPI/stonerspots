@@ -1274,6 +1274,36 @@ abstract class AppLocalizations {
   /// **'Update ausblenden'**
   String get adminHideUpdate;
 
+  /// No description provided for @adminPhotos.
+  ///
+  /// In de, this message translates to:
+  /// **'Fotos'**
+  String get adminPhotos;
+
+  /// No description provided for @adminPhotoRotateLeft.
+  ///
+  /// In de, this message translates to:
+  /// **'Nach links drehen'**
+  String get adminPhotoRotateLeft;
+
+  /// No description provided for @adminPhotoRotateRight.
+  ///
+  /// In de, this message translates to:
+  /// **'Nach rechts drehen'**
+  String get adminPhotoRotateRight;
+
+  /// No description provided for @adminPhotoRemove.
+  ///
+  /// In de, this message translates to:
+  /// **'Foto entfernen'**
+  String get adminPhotoRemove;
+
+  /// No description provided for @adminPhotoRestore.
+  ///
+  /// In de, this message translates to:
+  /// **'Foto behalten'**
+  String get adminPhotoRestore;
+
   /// No description provided for @adminUpdateHidden.
   ///
   /// In de, this message translates to:

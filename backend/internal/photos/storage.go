@@ -13,6 +13,7 @@ import (
 // Storage abstracts where processed photo files live.
 type Storage interface {
 	Put(ctx context.Context, key string, r io.Reader) error
+	Open(ctx context.Context, key string) (io.ReadCloser, error)
 	Delete(ctx context.Context, key string) error
 	URL(key string) string
 }
@@ -59,6 +60,14 @@ func (s *localStorage) Put(ctx context.Context, key string, r io.Reader) error {
 		return err
 	}
 	return os.Rename(tmp.Name(), p)
+}
+
+func (s *localStorage) Open(ctx context.Context, key string) (io.ReadCloser, error) {
+	p, err := s.path(key)
+	if err != nil {
+		return nil, err
+	}
+	return os.Open(p)
 }
 
 func (s *localStorage) Delete(ctx context.Context, key string) error {

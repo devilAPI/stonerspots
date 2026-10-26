@@ -13,10 +13,14 @@ import (
 
 	"stonerspots/backend/internal/auth"
 	"stonerspots/backend/internal/httpx"
+	"stonerspots/backend/internal/photos"
 	"stonerspots/backend/internal/totp"
 )
 
-type handler struct{ repo repo }
+type handler struct {
+	repo   repo
+	photos photos.Storage
+}
 
 const (
 	defaultLimit = 20
@@ -381,4 +385,53 @@ func (h handler) patchPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// rotatePhoto turns a photo clockwise: {"degrees": 90 | 180 | 270}. It
+// answers the photo's new URLs, which change with every rotation.
+func (h handler) rotatePhoto(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(r)
+	if !ok {
+		notFound(w, "photo")
+		return
+	}
+	p, ok := readPatch(w, r, "degrees")
+	if !ok {
+		return
+	}
+	var degrees int
+	if _, good := field(p, "degrees", &degrees); !good {
+		badBody(w)
+		return
+	}
+	res, err := photos.Rotate(r.Context(), h.repo.db, h.photos, id, degrees)
+	switch {
+	case errors.Is(err, photos.ErrNotFound):
+		notFound(w, "photo")
+	case errors.Is(err, photos.ErrInvalidRotation):
+		httpx.Error(w, http.StatusBadRequest, "invalid_rotation", "degrees must be 90, 180 or 270")
+	case err != nil:
+		serverError(w)
+	default:
+		httpx.JSON(w, http.StatusOK, res)
+	}
+}
+
+// deletePhoto removes a photo with its files.
+func (h handler) deletePhoto(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(r)
+	if !ok {
+		notFound(w, "photo")
+		return
+	}
+	switch err := photos.Remove(r.Context(), h.repo.db, h.photos, id); {
+	case errors.Is(err, photos.ErrNotFound):
+		notFound(w, "photo")
+	case errors.Is(err, photos.ErrLastPhoto):
+		httpx.Error(w, http.StatusConflict, "last_photo", "the update has no text; delete the update instead of its last photo")
+	case err != nil:
+		serverError(w)
+	default:
+		w.WriteHeader(http.StatusNoContent)
+	}
 }

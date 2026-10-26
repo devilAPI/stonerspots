@@ -7,11 +7,12 @@ import (
 
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/auth"
+	"stonerspots/backend/internal/photos"
 )
 
 // Mount registers the admin routes on the /api/v1 router.
 func Mount(r chi.Router, d app.Deps) {
-	h := handler{repo: repo{db: d.DB, uploadDir: d.Cfg.UploadDir}}
+	h := handler{repo: repo{db: d.DB, uploadDir: d.Cfg.UploadDir}, photos: photos.StorageFor(d)}
 	g := r.With(auth.Middleware(d.Cfg.JWTSecret), auth.RequireAdmin(d.DB))
 	g.Get("/admin/reports", h.reports)
 	g.Get("/admin/users", h.users)
@@ -32,6 +33,8 @@ func Mount(r chi.Router, d app.Deps) {
 	// Photo moderation
 	g.Get("/admin/photos", h.listPhotos)
 	g.Patch("/admin/photos/{id}", h.patchPhoto)
+	g.Post("/admin/photos/{id}/rotate", h.rotatePhoto)
+	g.Delete("/admin/photos/{id}", h.deletePhoto)
 
 	// TOTP 2FA for admins (require admin + 2FA if enabled)
 	g.Get("/admin/2fa", h.totpStatus)

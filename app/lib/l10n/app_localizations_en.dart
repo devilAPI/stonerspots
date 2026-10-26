@@ -699,6 +699,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminHideUpdate => 'Hide update';
 
   @override
+  String get adminPhotos => 'Photos';
+
+  @override
+  String get adminPhotoRotateLeft => 'Rotate left';
+
+  @override
+  String get adminPhotoRotateRight => 'Rotate right';
+
+  @override
+  String get adminPhotoRemove => 'Remove photo';
+
+  @override
+  String get adminPhotoRestore => 'Keep photo';
+
+  @override
   String get adminUpdateHidden => 'Update hidden';
 
   @override
