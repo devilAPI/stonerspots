@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/api_client.dart';
 import '../../core/providers.dart' show apiClientProvider;
+import 'image_compressor.dart';
 
 class UploadedPhoto {
   const UploadedPhoto({
@@ -32,11 +33,13 @@ class ApiPhotoUploader implements PhotoUploader {
     XFile file, {
     void Function(double)? onProgress,
   }) async {
-    final bytes = await file.readAsBytes();
+    final photo = await prepareForUpload(await file.readAsBytes());
     final form = FormData.fromMap({
       'file': MultipartFile.fromBytes(
-        bytes,
-        filename: file.name.isEmpty ? 'photo.jpg' : file.name,
+        photo.bytes,
+        filename: photo.compressed || file.name.isEmpty
+            ? 'photo.jpg'
+            : file.name,
       ),
     });
     final json = await _api.post<Map<String, dynamic>>(
