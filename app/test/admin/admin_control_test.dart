@@ -168,7 +168,7 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('User2'), findsOneWidget);
 
-    await t.tap(find.byKey(const Key('edit-spot-locked')));
+    await t.tap(find.byKey(const Key('edit-spot-status-locked')));
     await t.pump();
     await t.tap(find.byKey(const Key('edit-spot-save')));
     await t.pumpAndSettle();

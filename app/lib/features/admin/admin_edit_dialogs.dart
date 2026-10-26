@@ -222,10 +222,15 @@ class _EditSpotDialogState extends ConsumerState<_EditSpotDialog> {
   late final _coords = TextEditingController(
     text: formatLatLon(widget.spot.lat, widget.spot.lon),
   );
-  late String _status = widget.spot.status == 'hidden' ? 'hidden' : 'active';
+  // The chips show one choice, but "locked" is stored as an active spot
+  // with locked set; spots.status itself is only active or hidden.
+  late String _status = widget.spot.status == 'hidden'
+      ? 'hidden'
+      : widget.spot.locked
+      ? 'locked'
+      : 'active';
   late List<SpotTag> _tags = SpotTag.sorted(widget.spot.tags);
   late Author _owner = widget.spot.author;
-  late bool _locked = widget.spot.locked;
   bool _busy = false;
   String? _error;
 
@@ -265,15 +270,18 @@ class _EditSpotDialogState extends ConsumerState<_EditSpotDialog> {
 
     final title = _title.text.trim();
     final description = _description.text.trim();
+    final status = _status == 'hidden' ? 'hidden' : 'active';
+    // Hiding keeps the lock as it was.
+    final locked = _status == 'hidden' ? s.locked : _status == 'locked';
     final patch = AdminSpotPatch(
       title: title != s.title ? title : null,
       description: description != s.description ? description : null,
-      status: _status != s.status ? _status : null,
+      status: status != s.status ? status : null,
       lat: point?.latitude,
       lon: point?.longitude,
       tags: _sameTags(_tags, s.tags) ? null : _tags,
       ownerId: _owner.id != s.author.id ? _owner.id : null,
-      locked: _locked != s.locked ? _locked : null,
+      locked: locked != s.locked ? locked : null,
     );
     if (patch.isEmpty) {
       Navigator.pop(context);

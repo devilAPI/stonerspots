@@ -45,7 +45,8 @@ func TestParseChallenge(t *testing.T) {
 
 func TestVerifyValidSolution(t *testing.T) {
 	c := NewChallenge("register", 16) // Low difficulty for testing
-	nonce := c.Solve(100000)
+	// ~65k tries on average; a tight cap made this fail about 1 run in 5.
+	nonce := c.Solve(10_000_000)
 	if nonce == "" {
 		t.Fatal("could not solve challenge")
 	}
