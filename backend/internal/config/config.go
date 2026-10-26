@@ -43,6 +43,9 @@ type Config struct {
 	PublicBaseURL string
 	// GeocoderURL is the base URL of a Nominatim-compatible geocoder.
 	GeocoderURL string
+	// OverpassURL is the Overpass API interpreter endpoint for the public
+	// transport stops on the map.
+	OverpassURL string
 	// AllowedOrigins are the browser origins (e.g. "https://devilapi.github.io")
 	// the web app may call this API from (CORS). Empty: no cross-origin access.
 	AllowedOrigins []string
@@ -120,6 +123,7 @@ type file struct {
 	UploadDir      string   `yaml:"upload_dir"`
 	MigrationsDir  string   `yaml:"migrations_dir"`
 	GeocoderURL    string   `yaml:"geocoder_url"`
+	OverpassURL    string   `yaml:"overpass_url"`
 	TrustedProxies []string `yaml:"trusted_proxies"`
 	Database       database `yaml:"database"`
 	Limits         fileLimits `yaml:"limits"`
@@ -283,6 +287,7 @@ func Read() (Config, error) {
 		MigrationsDir:  getenv("MIGRATIONS_DIR", or(f.MigrationsDir, "migrations")),
 		PublicBaseURL:  strings.TrimRight(getenv("PUBLIC_BASE_URL", or(f.PublicBaseURL, "http://localhost:8080")), "/"),
 		GeocoderURL:    getenv("GEOCODER_URL", or(f.GeocoderURL, "https://nominatim.openstreetmap.org")),
+		OverpassURL:    getenv("OVERPASS_URL", or(f.OverpassURL, "https://overpass-api.de/api/interpreter")),
 		AllowedOrigins: origins,
 		TrustedProxies: proxies,
 		MaxBodyBytes:   getenvInt64("MAX_BODY_BYTES", f.MaxBodyBytes, 10<<20),

@@ -31,6 +31,9 @@ migrations_dir: "./migrations"
 # Nominatim-compatible geocoder [GEOCODER_URL]
 geocoder_url: "https://nominatim.openstreetmap.org"
 
+# Overpass API for public transport stops on the map [OVERPASS_URL]
+overpass_url: "https://overpass-api.de/api/interpreter"
+
 # Reverse proxies (IPs or CIDR ranges) whose X-Forwarded-For header is
 # trusted to name the client, e.g. ["127.0.0.1", "::1"] when Caddy or nginx
 # runs on the same machine. Empty: the connection address is the client,

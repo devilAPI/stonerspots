@@ -335,5 +335,12 @@
   "adminTagSaved": "Tag saved",
   "adminErrTagTaken": "A tag with this key already exists",
   "adminErrTagKey": "2 to 16 characters: a-z, 0-9 and _, starting with a letter",
-  "adminErrTagName": "Names must be 1 to 40 characters"
+  "adminErrTagName": "Names must be 1 to 40 characters",
+  "transitShow": "Show public transport stops",
+  "transitHide": "Hide public transport stops",
+  "transitTrain": "Train",
+  "transitSubway": "Subway",
+  "transitTram": "Tram",
+  "transitBus": "Bus",
+  "transitFerry": "Ferry"
 }

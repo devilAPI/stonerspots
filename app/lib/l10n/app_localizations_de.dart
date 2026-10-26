@@ -801,4 +801,25 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get adminErrTagName => 'Namen müssen 1 bis 40 Zeichen lang sein';
+
+  @override
+  String get transitShow => 'ÖPNV-Haltestellen einblenden';
+
+  @override
+  String get transitHide => 'ÖPNV-Haltestellen ausblenden';
+
+  @override
+  String get transitTrain => 'Bahn';
+
+  @override
+  String get transitSubway => 'U-Bahn';
+
+  @override
+  String get transitTram => 'Tram';
+
+  @override
+  String get transitBus => 'Bus';
+
+  @override
+  String get transitFerry => 'Fähre';
 }

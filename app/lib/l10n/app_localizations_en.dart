@@ -794,4 +794,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminErrTagName => 'Names must be 1 to 40 characters';
+
+  @override
+  String get transitShow => 'Show public transport stops';
+
+  @override
+  String get transitHide => 'Hide public transport stops';
+
+  @override
+  String get transitTrain => 'Train';
+
+  @override
+  String get transitSubway => 'Subway';
+
+  @override
+  String get transitTram => 'Tram';
+
+  @override
+  String get transitBus => 'Bus';
+
+  @override
+  String get transitFerry => 'Ferry';
 }

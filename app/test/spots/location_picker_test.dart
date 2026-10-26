@@ -6,9 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 
 void main() {
-  testWidgets('the add-spot map switches between map and satellite', (
-    t,
-  ) async {
+  testWidgets('the add-spot map switches between map and satellite', (t) async {
     LatLng? picked;
     await t.pumpWidget(
       MaterialApp(

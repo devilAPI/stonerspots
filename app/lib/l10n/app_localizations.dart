@@ -1423,6 +1423,48 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Namen müssen 1 bis 40 Zeichen lang sein'**
   String get adminErrTagName;
+
+  /// No description provided for @transitShow.
+  ///
+  /// In de, this message translates to:
+  /// **'ÖPNV-Haltestellen einblenden'**
+  String get transitShow;
+
+  /// No description provided for @transitHide.
+  ///
+  /// In de, this message translates to:
+  /// **'ÖPNV-Haltestellen ausblenden'**
+  String get transitHide;
+
+  /// No description provided for @transitTrain.
+  ///
+  /// In de, this message translates to:
+  /// **'Bahn'**
+  String get transitTrain;
+
+  /// No description provided for @transitSubway.
+  ///
+  /// In de, this message translates to:
+  /// **'U-Bahn'**
+  String get transitSubway;
+
+  /// No description provided for @transitTram.
+  ///
+  /// In de, this message translates to:
+  /// **'Tram'**
+  String get transitTram;
+
+  /// No description provided for @transitBus.
+  ///
+  /// In de, this message translates to:
+  /// **'Bus'**
+  String get transitBus;
+
+  /// No description provided for @transitFerry.
+  ///
+  /// In de, this message translates to:
+  /// **'Fähre'**
+  String get transitFerry;
 }
 
 class _AppLocalizationsDelegate
