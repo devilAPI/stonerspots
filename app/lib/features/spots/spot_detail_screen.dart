@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/back_or_home.dart';
 import '../../core/api_client.dart';
 import '../../core/models.dart';
 import '../../core/responsive.dart';
@@ -59,8 +60,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
   /// Runs [action] if logged in, otherwise sends the user to the login page.
   void _gated(VoidCallback action) {
     if (ref.read(authControllerProvider).value == null) {
-      final here = GoRouterState.of(context).uri.toString();
-      context.push('/login?from=${Uri.encodeComponent(here)}');
+      // pushed: after logging in it pops back to this spot
+      context.push('/login');
       return;
     }
     action();
@@ -259,6 +260,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const BackOrHomeButton(),
         title: Text(spotAsync.value?.title ?? l.spotDetailTitle),
         actions: [
           PopupMenuButton<String>(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/back_or_home.dart';
 import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
@@ -34,6 +35,7 @@ class AdminScreen extends ConsumerWidget {
       length: 4,
       child: Scaffold(
         appBar: AppBar(
+          leading: const BackOrHomeButton(),
           title: Text(l10n.adminTitle),
           bottom: TabBar(
             tabs: [

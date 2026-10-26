@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../core/back_or_home.dart';
 import '../../core/location_service.dart';
 import '../../core/responsive.dart';
 import '../../core/spot_tag_widgets.dart';
@@ -54,7 +55,9 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
 
     ref.listen(addSpotControllerProvider, (prev, next) {
       if (next.createdSpotId != null && prev?.createdSpotId == null) {
-        context.go('/spot/${next.createdSpotId}');
+        // replace the form, so back leads to where the user came from
+        final to = '/spot/${next.createdSpotId}';
+        context.canPop() ? context.pushReplacement(to) : context.go(to);
       }
     });
 
@@ -180,7 +183,10 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.addSpotTitle)),
+      appBar: AppBar(
+        leading: const BackOrHomeButton(),
+        title: Text(l.addSpotTitle),
+      ),
       body: context.twoPane
           ? Row(
               key: const Key('addSpotTwoPane'),

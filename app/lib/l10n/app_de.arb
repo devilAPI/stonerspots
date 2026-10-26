@@ -337,5 +337,6 @@
   "adminErrTagKey": "2 bis 16 Zeichen: a-z, 0-9 und _, mit einem Buchstaben am Anfang",
   "adminErrTagName": "Namen müssen 1 bis 40 Zeichen lang sein",
   "transitShow": "ÖPNV-Karte einblenden",
-  "transitHide": "ÖPNV-Karte ausblenden"
+  "transitHide": "ÖPNV-Karte ausblenden",
+  "backToHome": "Zur Startseite"
 }

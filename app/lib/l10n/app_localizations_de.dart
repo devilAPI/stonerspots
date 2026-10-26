@@ -807,4 +807,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get transitHide => 'ÖPNV-Karte ausblenden';
+
+  @override
+  String get backToHome => 'Zur Startseite';
 }

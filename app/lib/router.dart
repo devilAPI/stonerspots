@@ -9,6 +9,7 @@ import 'features/auth/profile_screen.dart';
 import 'features/auth/register_screen.dart';
 import 'features/feed/feed_screen.dart';
 import 'core/adaptive_nav.dart';
+import 'core/back_or_home.dart';
 import 'features/map/map_screen.dart';
 import 'features/spots/add_spot_screen.dart';
 import 'features/spots/spot_detail_screen.dart';
@@ -92,19 +93,34 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       // '/spot/new' must come before '/spot/:id'.
-      GoRoute(path: '/spot/new', builder: (_, _) => const AddSpotScreen()),
+      // Pages outside the shell can be alone on the stack; system back then
+      // goes home (their app bars do the same, see BackOrHomeButton).
+      GoRoute(
+        path: '/spot/new',
+        builder: (_, _) => const BackToHomeScope(child: AddSpotScreen()),
+      ),
       GoRoute(
         path: '/spot/:id',
-        builder: (_, state) =>
-            SpotDetailScreen(spotId: int.parse(state.pathParameters['id']!)),
+        builder: (_, state) => BackToHomeScope(
+          child: SpotDetailScreen(
+            spotId: int.parse(state.pathParameters['id']!),
+          ),
+        ),
       ),
       GoRoute(
         path: '/login',
-        builder: (_, state) =>
-            LoginScreen(redirectTo: state.uri.queryParameters['from']),
+        builder: (_, state) => BackToHomeScope(
+          child: LoginScreen(redirectTo: state.uri.queryParameters['from']),
+        ),
       ),
-      GoRoute(path: '/admin', builder: (_, _) => const AdminScreen()),
-      GoRoute(path: '/register', builder: (_, _) => const RegisterScreen()),
+      GoRoute(
+        path: '/admin',
+        builder: (_, _) => const BackToHomeScope(child: AdminScreen()),
+      ),
+      GoRoute(
+        path: '/register',
+        builder: (_, _) => const BackToHomeScope(child: RegisterScreen()),
+      ),
     ],
   );
   ref.onDispose(router.dispose);

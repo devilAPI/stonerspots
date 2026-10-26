@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/back_or_home.dart';
 import '../../core/api_client.dart';
 import '../../l10n/app_localizations.dart';
 import 'auth_controller.dart';
@@ -50,7 +51,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     String? required(String? v) =>
         (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.register)),
+      appBar: AppBar(
+        leading: const BackOrHomeButton(),
+        title: Text(l10n.register),
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
@@ -101,7 +105,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   child: Text(l10n.register),
                 ),
                 TextButton(
-                  onPressed: () => context.go('/login'),
+                  onPressed: () => context.pushReplacement('/login'),
                   child: Text(l10n.haveAccount),
                 ),
               ],

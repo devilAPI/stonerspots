@@ -800,4 +800,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transitHide => 'Hide public transport map';
+
+  @override
+  String get backToHome => 'Back to the map';
 }

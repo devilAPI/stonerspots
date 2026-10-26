@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/back_or_home.dart';
 import '../../core/api_client.dart';
 import '../../l10n/app_localizations.dart';
 import 'auth_controller.dart';
@@ -35,7 +36,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         .login(_email.text, _password.text);
     if (!mounted) return;
     if (ref.read(authControllerProvider).value != null) {
-      context.go(widget.redirectTo ?? '/');
+      final to = widget.redirectTo;
+      if (to != null) {
+        // sent here by the auth redirect: on to the page that was asked for
+        context.canPop() ? context.pushReplacement(to) : context.go(to);
+      } else {
+        // opened from a page: back to it
+        context.canPop() ? context.pop() : context.go('/');
+      }
     }
   }
 
@@ -45,7 +53,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final auth = ref.watch(authControllerProvider);
     final error = auth.error;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.login)),
+      appBar: AppBar(
+        leading: const BackOrHomeButton(),
+        title: Text(l10n.login),
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
@@ -86,7 +97,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Text(l10n.login),
                 ),
                 TextButton(
-                  onPressed: () => context.go('/register'),
+                  onPressed: () => context.pushReplacement('/register'),
                   child: Text(l10n.noAccountYet),
                 ),
               ],

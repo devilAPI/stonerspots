@@ -1435,6 +1435,12 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'ÖPNV-Karte ausblenden'**
   String get transitHide;
+
+  /// No description provided for @backToHome.
+  ///
+  /// In de, this message translates to:
+  /// **'Zur Startseite'**
+  String get backToHome;
 }
 
 class _AppLocalizationsDelegate

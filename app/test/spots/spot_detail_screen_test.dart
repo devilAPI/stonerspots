@@ -195,13 +195,19 @@ Future<void> _scrollTo(WidgetTester t, Finder f) async {
 }
 
 void main() {
-  testWidgets('logged-out like goes to login with from', (tester) async {
+  testWidgets('logged-out like pushes login, which pops back to the spot', (
+    tester,
+  ) async {
     final api = await _pump(tester, null);
     expect(find.text('3 likes'), findsOneWidget);
     await tester.tap(find.byKey(const Key('like')));
     await tester.pumpAndSettle();
-    expect(find.text('login from /spot/5'), findsOneWidget);
+    // pushed, not a redirect: no from, back leads to the spot
+    expect(find.text('login from null'), findsOneWidget);
     expect(api.likes, 0);
+    tester.state<NavigatorState>(find.byType(Navigator).last).pop();
+    await tester.pumpAndSettle();
+    expect(find.text('3 likes'), findsOneWidget);
   });
 
   testWidgets('logged-in like updates the count', (tester) async {
@@ -298,7 +304,7 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('writeReview')));
     await tester.tap(find.byKey(const Key('writeReview')));
     await tester.pumpAndSettle();
-    expect(find.text('login from /spot/5'), findsOneWidget);
+    expect(find.text('login from null'), findsOneWidget);
   });
 
   testWidgets('saving a review refreshes the spot header', (tester) async {
