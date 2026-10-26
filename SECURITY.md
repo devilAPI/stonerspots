@@ -1,4 +1,4 @@
-# Security Policy
+# Security
 
 ## Supported Versions
 
@@ -7,12 +7,11 @@ We release security patches for the latest version of the `main` branch. Older v
 ## Reporting a Vulnerability
 **Use GitHub Issues**
 
+Please include:
 - A description of the vulnerability
 - Steps to reproduce
 - Impact assessment
 - Any suggested fixes
-
-We will acknowledge receipt within 48 hours and provide a timeline for a fix. We aim to patch critical vulnerabilities within 7 days.
 
 ## Security Architecture
 
