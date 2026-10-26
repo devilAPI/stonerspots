@@ -39,6 +39,9 @@ func TestAdminSpotOwnerAndLock(t *testing.T) {
 	e.expect(t, e.patchSpot(t, id, `{"owner_id":999999}`), 400, "invalid_owner")
 	e.expect(t, e.patchSpot(t, id, `{"owner_id":"x"}`), 400, "invalid_body")
 	e.expect(t, e.patchSpot(t, id, `{"locked":"yes"}`), 400, "invalid_body")
+	// locking is the locked field; status can't hold "locked"
+	e.expect(t, e.patchSpot(t, id, `{"status":"locked"}`), 400, "invalid_status")
+	e.expect(t, e.do(t, "GET", "/admin/spots?status=locked", e.tok), 400, "invalid_status")
 	// a failed owner change leaves the other fields alone too
 	e.expect(t, e.patchSpot(t, id, `{"title":"Never","owner_id":999999}`), 400, "invalid_owner")
 	if n := count(t, e.db, `SELECT COUNT(*) FROM spots WHERE id=? AND title='Bench'`, id); n != 1 {
@@ -90,6 +93,7 @@ func TestAdminEditUpdate(t *testing.T) {
 
 	e.expect(t, e.patchUpdate(t, up, `{"tag":"bogus"}`), 400, "invalid_tag")
 	e.expect(t, e.patchUpdate(t, up, `{"status":"gone"}`), 400, "invalid_status")
+	e.expect(t, e.patchUpdate(t, up, `{"status":"locked"}`), 400, "invalid_status")
 	e.expect(t, e.patchUpdate(t, up, `{"body":"   "}`), 400, "invalid_body")
 	e.expect(t, e.patchUpdate(t, up, `{}`), 400, "empty_patch")
 	e.expect(t, e.patchUpdate(t, 999999, `{"body":"x"}`), 404, "not_found")

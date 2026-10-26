@@ -17,7 +17,7 @@ func DeleteUpdateByID(ctx context.Context, db *sql.DB, uploadDir string, id uint
 	return removeUpdate(ctx, db, uploadDir, id, nil)
 }
 
-// ErrInvalidStatus: an update status other than active, hidden or locked.
+// ErrInvalidStatus: an update status other than active or hidden.
 var ErrInvalidStatus = errors.New("feed: invalid status")
 
 // AdminEditUpdate changes any update, whoever wrote it and whatever its
@@ -33,7 +33,7 @@ func AdminEditUpdateWithPhotos(ctx context.Context, db *sql.DB, id uint64, body,
 	if tag != nil && !ValidTag(*tag) {
 		return ErrInvalidTag
 	}
-	if status != nil && *status != "active" && *status != "hidden" && *status != "locked" {
+	if status != nil && *status != "active" && *status != "hidden" {
 		return ErrInvalidStatus
 	}
 	tx, err := db.BeginTx(ctx, nil)
