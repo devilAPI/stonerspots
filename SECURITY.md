@@ -5,10 +5,7 @@
 We release security patches for the latest version of the `main` branch. Older versions are not supported.
 
 ## Reporting a Vulnerability
-
-**Please do not report security vulnerabilities through public GitHub issues.**
-
-Instead, send an email to **security@stonerspots.example** (replace with actual contact) with:
+**Use GitHub Issues**
 
 - A description of the vulnerability
 - Steps to reproduce
