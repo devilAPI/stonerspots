@@ -60,11 +60,21 @@ class ApiClient {
   Future<T> get<T>(String path, {Map<String, dynamic>? query}) =>
       _send<T>('GET', path, query: query);
 
+  /// [receiveTimeout] overrides the client's 30 s for slow endpoints. On the
+  /// web it bounds the whole request, upload included (dio sets the XHR
+  /// timeout to connect + receive), so uploads need a long one.
   Future<T> post<T>(
     String path, {
     Object? data,
     void Function(int sent, int total)? onSendProgress,
-  }) => _send<T>('POST', path, data: data, onSendProgress: onSendProgress);
+    Duration? receiveTimeout,
+  }) => _send<T>(
+    'POST',
+    path,
+    data: data,
+    onSendProgress: onSendProgress,
+    receiveTimeout: receiveTimeout,
+  );
 
   Future<T> put<T>(String path, {Object? data}) =>
       _send<T>('PUT', path, data: data);
@@ -81,6 +91,7 @@ class ApiClient {
     Object? data,
     Map<String, dynamic>? query,
     void Function(int, int)? onSendProgress,
+    Duration? receiveTimeout,
   }) async {
     Future<Response<dynamic>> attempt() async {
       final tokens = await tokenStore.read();
@@ -91,6 +102,7 @@ class ApiClient {
         onSendProgress: onSendProgress,
         options: Options(
           method: method,
+          receiveTimeout: receiveTimeout,
           headers: {
             if (tokens != null) 'Authorization': 'Bearer ${tokens.accessToken}',
           },

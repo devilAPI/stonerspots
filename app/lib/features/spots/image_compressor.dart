@@ -3,6 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 
+import 'browser_image_codec_stub.dart'
+    if (dart.library.js_interop) 'browser_image_codec_web.dart';
+
 /// Files at or below this size are uploaded as they are.
 const kCompressAboveBytes = 1536 * 1024;
 
@@ -33,13 +36,23 @@ class PreparedPhoto {
 
 /// Shrinks a photo over [kCompressAboveBytes]: applies its EXIF
 /// orientation, scales the long edge down to [kCompressMaxEdge] and
-/// re-encodes it as JPEG without metadata (no GPS leaves the device). Runs
-/// in a background isolate where the platform has them.
+/// re-encodes it as JPEG without metadata (no GPS leaves the device). On
+/// the web the browser's native codec does it; elsewhere [compressImage]
+/// runs in a background isolate.
 Future<PreparedPhoto> prepareForUpload(Uint8List bytes) async {
   if (bytes.length <= kCompressAboveBytes) {
     return PreparedPhoto(bytes, compressed: false);
   }
-  final out = await compute(compressImage, bytes);
+  var out = kIsWeb
+      ? await compressInBrowser(
+          bytes,
+          maxEdge: kCompressMaxEdge,
+          maxPixels: _maxPixels,
+          maxBytes: kUploadMaxBytes,
+          qualities: _qualities,
+        )
+      : await compute(compressImage, bytes);
+  if (out != null && out.length >= bytes.length) out = null;
   return out == null
       ? PreparedPhoto(bytes, compressed: false)
       : PreparedPhoto(out, compressed: true);

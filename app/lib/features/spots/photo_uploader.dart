@@ -48,6 +48,8 @@ class ApiPhotoUploader implements PhotoUploader {
       onSendProgress: (sent, total) {
         if (total > 0) onProgress?.call(sent / total);
       },
+      // a few MB on a slow mobile uplink; see ApiClient.post
+      receiveTimeout: const Duration(minutes: 5),
     );
     return UploadedPhoto(
       id: json['id'] as int,
