@@ -1441,6 +1441,12 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Zur Startseite'**
   String get backToHome;
+
+  /// No description provided for @mapMyLocation.
+  ///
+  /// In de, this message translates to:
+  /// **'Mein Standort'**
+  String get mapMyLocation;
 }
 
 class _AppLocalizationsDelegate

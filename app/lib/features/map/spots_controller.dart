@@ -26,10 +26,15 @@ final mapLocationTimeoutProvider = Provider<Duration>(
 );
 
 class MapView {
-  const MapView(this.centre, this.zoom, {this.located = false});
+  const MapView(this.centre, this.zoom, {this.located = false, this.later});
   final LatLng centre;
   final double zoom;
   final bool located;
+
+  /// Set when the lookup outlasted the timeout (e.g. the browser's
+  /// permission prompt is still open): the same lookup, still running.
+  /// Null in it means denied or unavailable.
+  final Future<LatLng?>? later;
 }
 
 class SpotsState {
@@ -77,15 +82,20 @@ class SpotsController extends Notifier<SpotsState> {
     return const SpotsState();
   }
 
-  /// Location if granted, else the DACH region centre.
+  /// Location if granted, else the DACH region centre. A lookup that takes
+  /// longer than the timeout is not given up: see [MapView.later].
   Future<MapView> resolveInitialView() async {
-    final pos = await ref
-        .read(locationServiceProvider)
-        .currentPosition()
-        .timeout(ref.read(mapLocationTimeoutProvider), onTimeout: () => null);
-    return pos == null
-        ? const MapView(kRegionCentre, kRegionZoom)
-        : MapView(pos, kUserZoom, located: true);
+    final lookup = ref.read(locationServiceProvider).currentPosition();
+    var timedOut = false;
+    final pos = await lookup.timeout(
+      ref.read(mapLocationTimeoutProvider),
+      onTimeout: () {
+        timedOut = true;
+        return null;
+      },
+    );
+    if (pos != null) return MapView(pos, kUserZoom, located: true);
+    return MapView(kRegionCentre, kRegionZoom, later: timedOut ? lookup : null);
   }
 
   /// Called on every camera move; fetches after the debounce delay.

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 
+import '../../core/location_service.dart';
 import '../../core/models.dart';
 import '../../l10n/app_localizations.dart';
 import 'map_filter_bar.dart';
@@ -22,6 +24,7 @@ class MapScreen extends ConsumerStatefulWidget {
 class _MapScreenState extends ConsumerState<MapScreen> {
   final _mapController = MapController();
   bool _deniedShown = false;
+  bool _locating = false;
   bool _satellite = false;
   bool _transit = false;
 
@@ -47,13 +50,43 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         .resolveInitialView();
     if (!mounted) return;
     if (!_userMoved) _mapController.move(view.centre, view.zoom);
-    if (!view.located && !_deniedShown) {
-      _deniedShown = true;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).locationDenied)),
-      );
-    }
     _notifyBounds();
+    final later = view.later;
+    if (later != null) {
+      // Still waiting for an answer (the browser asks the user): an allow
+      // that comes later still brings the map to them.
+      _goTo(await later);
+    } else if (!view.located) {
+      _showDenied();
+    }
+  }
+
+  /// "My location" button: asks again, e.g. after allowing it in the
+  /// browser's site settings.
+  Future<void> _locateMe() async {
+    setState(() => _locating = true);
+    final pos = await ref.read(locationServiceProvider).currentPosition();
+    if (!mounted) return;
+    setState(() => _locating = false);
+    _goTo(pos, always: true);
+  }
+
+  void _goTo(LatLng? pos, {bool always = false}) {
+    if (!mounted) return;
+    if (pos == null) {
+      _showDenied(always: always);
+      return;
+    }
+    _mapController.move(pos, kUserZoom);
+    _notifyBounds();
+  }
+
+  void _showDenied({bool always = false}) {
+    if (_deniedShown && !always) return;
+    _deniedShown = true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context).locationDenied)),
+    );
   }
 
   void _notifyBounds() {
@@ -140,33 +173,45 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           Positioned(
             top: 64,
             right: 12,
-            child: MapLayerToggle(
-              key: const Key('mapLayer'),
-              satellite: _satellite,
-              onChanged: (v) => setState(() {
-                _satellite = v;
-                if (v) _transit = false;
-              }),
-              streetsLabel: l10n.mapStreets,
-              satelliteLabel: l10n.mapSatellite,
+            child: Column(
+              spacing: 4,
+              children: [
+                MapLayerToggle(
+                  key: const Key('mapLayer'),
+                  satellite: _satellite,
+                  onChanged: (v) => setState(() {
+                    _satellite = v;
+                    if (v) _transit = false;
+                  }),
+                  streetsLabel: l10n.mapStreets,
+                  satelliteLabel: l10n.mapSatellite,
+                ),
+                if (hasTransitMap(key: transitKey))
+                  IconButton.filledTonal(
+                    key: const Key('mapTransit'),
+                    isSelected: _transit,
+                    tooltip: _transit ? l10n.transitHide : l10n.transitShow,
+                    onPressed: () => setState(() {
+                      _transit = !_transit;
+                      if (_transit) _satellite = false;
+                    }),
+                    icon: const Icon(Icons.directions_transit_outlined),
+                    selectedIcon: const Icon(Icons.directions_transit),
+                  ),
+                IconButton.filledTonal(
+                  key: const Key('mapLocateMe'),
+                  tooltip: l10n.mapMyLocation,
+                  onPressed: _locating ? null : _locateMe,
+                  icon: _locating
+                      ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.my_location),
+                ),
+              ],
             ),
           ),
-          if (hasTransitMap(key: transitKey))
-            Positioned(
-              top: 116,
-              right: 12,
-              child: IconButton.filledTonal(
-                key: const Key('mapTransit'),
-                isSelected: _transit,
-                tooltip: _transit ? l10n.transitHide : l10n.transitShow,
-                onPressed: () => setState(() {
-                  _transit = !_transit;
-                  if (_transit) _satellite = false;
-                }),
-                icon: const Icon(Icons.directions_transit_outlined),
-                selectedIcon: const Icon(Icons.directions_transit),
-              ),
-            ),
           if (state.loading)
             const Positioned(
               top: 0,

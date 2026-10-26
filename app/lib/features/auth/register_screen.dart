@@ -67,6 +67,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 TextFormField(
                   controller: _name,
                   decoration: InputDecoration(labelText: l10n.displayName),
+                  textInputAction: TextInputAction.next,
                   validator: required,
                 ),
                 const SizedBox(height: 12),
@@ -74,6 +75,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   controller: _email,
                   decoration: InputDecoration(labelText: l10n.email),
                   keyboardType: TextInputType.emailAddress,
+                  autofillHints: const [AutofillHints.email],
+                  textInputAction: TextInputAction.next,
                   validator: required,
                 ),
                 const SizedBox(height: 12),
@@ -81,6 +84,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   controller: _password,
                   decoration: InputDecoration(labelText: l10n.password),
                   obscureText: true,
+                  autofillHints: const [AutofillHints.newPassword],
+                  // Enter registers once the age box is ticked
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) {
+                    if (_adult && !auth.isLoading) _submit();
+                  },
                   validator: (v) => (v == null || v.length < 10)
                       ? l10n.passwordTooShort
                       : null,

@@ -67,18 +67,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               shrinkWrap: true,
               children: [
                 TextFormField(
+                  key: const Key('loginEmail'),
                   controller: _email,
                   decoration: InputDecoration(labelText: l10n.email),
                   keyboardType: TextInputType.emailAddress,
+                  autofillHints: const [AutofillHints.email],
+                  textInputAction: TextInputAction.next,
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? l10n.fieldRequired
                       : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
+                  key: const Key('loginPassword'),
                   controller: _password,
                   decoration: InputDecoration(labelText: l10n.password),
                   obscureText: true,
+                  autofillHints: const [AutofillHints.password],
+                  // Enter logs in
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) {
+                    if (!auth.isLoading) _submit();
+                  },
                   validator: (v) =>
                       (v == null || v.isEmpty) ? l10n.fieldRequired : null,
                 ),

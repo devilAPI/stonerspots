@@ -338,5 +338,6 @@
   "adminErrTagName": "Namen müssen 1 bis 40 Zeichen lang sein",
   "transitShow": "ÖPNV-Karte einblenden",
   "transitHide": "ÖPNV-Karte ausblenden",
-  "backToHome": "Zur Startseite"
+  "backToHome": "Zur Startseite",
+  "mapMyLocation": "Mein Standort"
 }

@@ -338,5 +338,6 @@
   "adminErrTagName": "Names must be 1 to 40 characters",
   "transitShow": "Show public transport map",
   "transitHide": "Hide public transport map",
-  "backToHome": "Back to the map"
+  "backToHome": "Back to the map",
+  "mapMyLocation": "My location"
 }

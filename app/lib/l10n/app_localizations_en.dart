@@ -803,4 +803,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backToHome => 'Back to the map';
+
+  @override
+  String get mapMyLocation => 'My location';
 }

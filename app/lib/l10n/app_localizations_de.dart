@@ -810,4 +810,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get backToHome => 'Zur Startseite';
+
+  @override
+  String get mapMyLocation => 'Mein Standort';
 }
