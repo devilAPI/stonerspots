@@ -64,4 +64,33 @@ void main() {
     expect(kMapMaxZoom, lessThanOrEqualTo(20));
     expect(kMapMaxZoom, greaterThanOrEqualTo(19));
   });
+
+  testWidgets('the transport map follows the theme and carries the key', (
+    t,
+  ) async {
+    for (final (b, style) in [
+      (Brightness.dark, 'transport-dark'),
+      (Brightness.light, 'transport'),
+    ]) {
+      late TileLayer l;
+      await t.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(brightness: b),
+          home: Builder(
+            builder: (c) {
+              l = buildTransitTileLayer(c, key: 'tf1');
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+      await t.pumpAndSettle(); // the theme change animates
+      expect(
+        l.urlTemplate,
+        'https://tile.thunderforest.com/$style/{z}/{x}/{y}{r}.png?apikey=tf1',
+      );
+    }
+    expect(hasTransitMap(key: ''), isFalse);
+    expect(hasTransitMap(key: 'tf1'), isTrue);
+  });
 }

@@ -1,4 +1,5 @@
 {
   "API_URL": "http://localhost:8080/api/v1",
-  "CARTO_KEY": "your-carto-basemaps-key (free: https://carto.com/basemaps/apikey)"
+  "CARTO_KEY": "your-carto-basemaps-key (free: https://carto.com/basemaps/apikey)",
+  "THUNDERFOREST_KEY": "your-thunderforest-key for the transport map (free hobby plan: https://manage.thunderforest.com)"
 }

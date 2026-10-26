@@ -1,8 +1,8 @@
 import 'package:app/core/location_service.dart';
 import 'package:app/core/models.dart';
 import 'package:app/features/map/map_screen.dart';
+import 'package:app/features/map/map_tiles.dart';
 import 'package:app/features/map/spots_controller.dart';
-import 'package:app/features/map/transit.dart';
 import 'package:app/features/spots/spots_repository.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -17,15 +17,6 @@ class _Repo implements SpotsRepository {
     LatLngBounds bounds, {
     List<SpotTag> tags = const [],
   }) async => const [];
-}
-
-class _Transit implements TransitRepository {
-  int calls = 0;
-  @override
-  Future<List<TransitStop>> stops(LatLngBounds area) async {
-    calls++;
-    return const [];
-  }
 }
 
 class _Location implements LocationService {
@@ -43,8 +34,6 @@ void main() {
           mapSpotsRepositoryProvider.overrideWithValue(_Repo()),
           locationServiceProvider.overrideWithValue(_Location()),
           mapDebounceProvider.overrideWithValue(Duration.zero),
-          transitRepositoryProvider.overrideWithValue(_Transit()),
-          transitDebounceProvider.overrideWithValue(Duration.zero),
         ],
         child: const MaterialApp(
           locale: Locale('en'),
@@ -73,15 +62,14 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
-  testWidgets('the transit button switches the stops off and on', (t) async {
+  Future<void> pumpMap(WidgetTester t, String key) async {
     await t.pumpWidget(
       ProviderScope(
         overrides: [
           mapSpotsRepositoryProvider.overrideWithValue(_Repo()),
           locationServiceProvider.overrideWithValue(_Location()),
           mapDebounceProvider.overrideWithValue(Duration.zero),
-          transitRepositoryProvider.overrideWithValue(_Transit()),
-          transitDebounceProvider.overrideWithValue(Duration.zero),
+          thunderforestKeyProvider.overrideWithValue(key),
         ],
         child: const MaterialApp(
           locale: Locale('en'),
@@ -92,9 +80,33 @@ void main() {
       ),
     );
     await t.pumpAndSettle();
-    expect(find.byTooltip('Hide public transport stops'), findsOneWidget);
+  }
+
+  testWidgets('the transport map is not offered without a key', (t) async {
+    await pumpMap(t, '');
+    expect(find.byKey(const Key('mapTransit')), findsNothing);
+  });
+
+  testWidgets('the transport map and satellite switch each other off', (
+    t,
+  ) async {
+    await pumpMap(t, 'tf1');
+    String url() => t.widget<TileLayer>(find.byType(TileLayer)).urlTemplate!;
+    expect(url(), isNot(contains('thunderforest')));
+
     await t.tap(find.byKey(const Key('mapTransit')));
     await t.pumpAndSettle();
-    expect(find.byTooltip('Show public transport stops'), findsOneWidget);
+    expect(url(), contains('tile.thunderforest.com/'));
+    expect(find.byTooltip('Hide public transport map'), findsOneWidget);
+
+    await t.tap(find.byKey(const Key('mapLayer')));
+    await t.pumpAndSettle();
+    expect(url(), contains('World_Imagery'));
+    expect(find.byTooltip('Show public transport map'), findsOneWidget);
+
+    await t.tap(find.byKey(const Key('mapTransit')));
+    await t.pumpAndSettle();
+    expect(url(), contains('tile.thunderforest.com/'));
+    expect(find.byTooltip('Satellite'), findsOneWidget);
   });
 }

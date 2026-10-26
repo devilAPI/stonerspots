@@ -87,6 +87,11 @@ The database credentials are only ever set on the backend server (its
   <https://carto.com/basemaps/apikey>, passed as `CARTO_KEY`. Without a key the
   app falls back to the OpenStreetMap tiles. The key is visible in the built app;
   restrict it in CARTO's dashboard.
+- Public transport map (lines and stops, switched on with the button on the
+  map): Thunderforest Transport, needs a key from
+  <https://manage.thunderforest.com> (free hobby plan: 150,000 tiles a month),
+  passed as `THUNDERFOREST_KEY`. Without a key the button is hidden. Like the
+  CARTO key it is visible in the built app.
 - Satellite previews: Esri World Imagery. Check CARTO's and Esri's terms before
   a commercial launch.
 

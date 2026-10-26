@@ -11,7 +11,6 @@ import 'spot_cluster_layer.dart';
 import 'spot_marker.dart';
 import 'spot_preview_sheet.dart';
 import 'spots_controller.dart';
-import 'transit.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -24,6 +23,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final _mapController = MapController();
   bool _deniedShown = false;
   bool _satellite = false;
+  bool _transit = false;
 
   /// Set once the user drags/zooms; the late location result must then not
   /// yank the camera away from where they are looking.
@@ -57,13 +57,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   void _notifyBounds() {
-    final camera = _mapController.camera;
     ref
         .read(spotsControllerProvider.notifier)
-        .onCameraMoved(camera.visibleBounds);
-    ref
-        .read(transitControllerProvider.notifier)
-        .onCameraMoved(camera.visibleBounds, camera.zoom);
+        .onCameraMoved(_mapController.camera.visibleBounds);
   }
 
   void _showPreview(Spot spot) {
@@ -87,9 +83,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final state = ref.watch(spotsControllerProvider);
-    final transit = ref.watch(
-      transitControllerProvider.select((s) => s.enabled),
-    );
+    final transitKey = ref.watch(thunderforestKeyProvider);
     if (!identical(_markerSource, state.spots)) {
       _markerSource = state.spots;
       final top = state.spots.take(kTopSpots).map((s) => s.id).toSet();
@@ -124,16 +118,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 ref
                     .read(spotsControllerProvider.notifier)
                     .onCameraMoved(camera.visibleBounds);
-                ref
-                    .read(transitControllerProvider.notifier)
-                    .onCameraMoved(camera.visibleBounds, camera.zoom);
               },
             ),
             children: [
-              buildBaseLayer(context, satellite: _satellite),
-              const TransitStopsLayer(),
+              buildBaseLayer(
+                context,
+                satellite: _satellite,
+                transit: _transit,
+                transitKey: transitKey,
+              ),
               SpotClusterLayer(markers: _markers),
-              buildBaseAttribution(context, satellite: _satellite),
+              buildBaseAttribution(
+                context,
+                satellite: _satellite,
+                transit: _transit,
+              ),
             ],
           ),
           Positioned(top: 8, left: 0, right: 0, child: const MapFilterBar()),
@@ -144,25 +143,30 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             child: MapLayerToggle(
               key: const Key('mapLayer'),
               satellite: _satellite,
-              onChanged: (v) => setState(() => _satellite = v),
+              onChanged: (v) => setState(() {
+                _satellite = v;
+                if (v) _transit = false;
+              }),
               streetsLabel: l10n.mapStreets,
               satelliteLabel: l10n.mapSatellite,
             ),
           ),
-          Positioned(
-            top: 116,
-            right: 12,
-            child: IconButton.filledTonal(
-              key: const Key('mapTransit'),
-              isSelected: transit,
-              tooltip: transit ? l10n.transitHide : l10n.transitShow,
-              onPressed: () => ref
-                  .read(transitControllerProvider.notifier)
-                  .setEnabled(!transit),
-              icon: const Icon(Icons.directions_transit_outlined),
-              selectedIcon: const Icon(Icons.directions_transit),
+          if (hasTransitMap(key: transitKey))
+            Positioned(
+              top: 116,
+              right: 12,
+              child: IconButton.filledTonal(
+                key: const Key('mapTransit'),
+                isSelected: _transit,
+                tooltip: _transit ? l10n.transitHide : l10n.transitShow,
+                onPressed: () => setState(() {
+                  _transit = !_transit;
+                  if (_transit) _satellite = false;
+                }),
+                icon: const Icon(Icons.directions_transit_outlined),
+                selectedIcon: const Icon(Icons.directions_transit),
+              ),
             ),
-          ),
           if (state.loading)
             const Positioned(
               top: 0,

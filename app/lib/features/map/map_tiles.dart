@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Overrides both tile styles (e.g. a self-hosted or paid provider):
 /// `--dart-define=TILE_URL=https://.../{z}/{x}/{y}.png`
@@ -66,6 +67,37 @@ Widget buildMapAttribution(
   );
 }
 
+/// Thunderforest API key for the public transport map (lines and stops):
+/// `--dart-define=THUNDERFOREST_KEY=...`. Like the CARTO key it is public
+/// in every tile request; without one the transport map is not offered.
+const String kThunderforestKey = String.fromEnvironment('THUNDERFOREST_KEY');
+
+/// [kThunderforestKey], overridable in tests.
+final thunderforestKeyProvider = Provider<String>((ref) => kThunderforestKey);
+
+/// Whether the transport map can be offered.
+bool hasTransitMap({String key = kThunderforestKey}) =>
+    key.isNotEmpty && kTileUrlOverride.isEmpty;
+
+/// Thunderforest's Transport map, dark or light like the theme, with every
+/// line and stop drawn in. Its free plan counts tiles per month, so it is
+/// only loaded while switched on.
+TileLayer buildTransitTileLayer(
+  BuildContext context, {
+  String key = kThunderforestKey,
+}) {
+  final style = Theme.of(context).brightness == Brightness.dark
+      ? 'transport-dark'
+      : 'transport';
+  return TileLayer(
+    urlTemplate:
+        'https://tile.thunderforest.com/$style/{z}/{x}/{y}{r}.png?apikey=$key',
+    retinaMode: RetinaMode.isHighDensity(context),
+    userAgentPackageName: 'de.stonerspots.app',
+    maxNativeZoom: 20,
+  );
+}
+
 /// Esri World Imagery (top-down satellite). Credit "Esri World Imagery" must
 /// stay visible wherever it is shown; check Esri's terms before a commercial
 /// launch.
@@ -89,13 +121,25 @@ TileLayer buildSatelliteTileLayer() => TileLayer(
   maxNativeZoom: kSatelliteMaxNativeZoom,
 );
 
-/// Base layer for a map that can switch to satellite imagery.
-TileLayer buildBaseLayer(BuildContext context, {required bool satellite}) =>
-    satellite ? buildSatelliteTileLayer() : buildTileLayer(context);
+/// Base layer for a map that can switch to satellite imagery or the
+/// transport map.
+TileLayer buildBaseLayer(
+  BuildContext context, {
+  required bool satellite,
+  bool transit = false,
+  String transitKey = kThunderforestKey,
+}) => satellite
+    ? buildSatelliteTileLayer()
+    : transit
+    ? buildTransitTileLayer(context, key: transitKey)
+    : buildTileLayer(context);
 
 /// Credits for [buildBaseLayer]; Esri's stays visible, not behind a button.
-Widget buildBaseAttribution(BuildContext context, {required bool satellite}) =>
-    satellite
+Widget buildBaseAttribution(
+  BuildContext context, {
+  required bool satellite,
+  bool transit = false,
+}) => satellite
     ? const Align(
         alignment: Alignment.bottomRight,
         child: Padding(
@@ -109,6 +153,14 @@ Widget buildBaseAttribution(BuildContext context, {required bool satellite}) =>
             ),
           ),
         ),
+      )
+    : transit
+    ? const RichAttributionWidget(
+        alignment: AttributionAlignment.bottomLeft,
+        attributions: [
+          TextSourceAttribution('Thunderforest'),
+          TextSourceAttribution('OpenStreetMap contributors'),
+        ],
       )
     : buildMapAttribution(context);
 

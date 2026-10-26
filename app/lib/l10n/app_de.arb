@@ -336,11 +336,6 @@
   "adminErrTagTaken": "Einen Tag mit diesem Schlüssel gibt es schon",
   "adminErrTagKey": "2 bis 16 Zeichen: a-z, 0-9 und _, mit einem Buchstaben am Anfang",
   "adminErrTagName": "Namen müssen 1 bis 40 Zeichen lang sein",
-  "transitShow": "ÖPNV-Haltestellen einblenden",
-  "transitHide": "ÖPNV-Haltestellen ausblenden",
-  "transitTrain": "Bahn",
-  "transitSubway": "U-Bahn",
-  "transitTram": "Tram",
-  "transitBus": "Bus",
-  "transitFerry": "Fähre"
+  "transitShow": "ÖPNV-Karte einblenden",
+  "transitHide": "ÖPNV-Karte ausblenden"
 }

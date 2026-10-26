@@ -14,6 +14,8 @@ name: Dev build & release
 #                      Database credentials never go here: only the backend uses them.
 #   secret   CARTO_KEY CARTO basemaps key for the dark map (without it the app falls
 #                      back to OpenStreetMap tiles). The key is compiled into the app.
+#   secret   THUNDERFOREST_KEY  Thunderforest key for the public transport map
+#                      (without it the app does not offer that map). Compiled in too.
 
 on:
   push:
@@ -102,12 +104,14 @@ jobs:
         working-directory: app
         env:
           CARTO_KEY: ${{ secrets.CARTO_KEY }}
+          THUNDERFOREST_KEY: ${{ secrets.THUNDERFOREST_KEY }}
         run: |
           flutter pub get
           flutter build apk --release \
             --build-number="$BUILD_NUMBER" \
             --dart-define=API_URL="$API_URL" \
-            --dart-define=CARTO_KEY="$CARTO_KEY"
+            --dart-define=CARTO_KEY="$CARTO_KEY" \
+            --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY"
           mkdir -p ../dist
           cp build/app/outputs/flutter-apk/app-release.apk "../dist/stonerspots-${TAG}-android.apk"
       - uses: actions/upload-artifact@v4
@@ -136,13 +140,15 @@ jobs:
         working-directory: app
         env:
           CARTO_KEY: ${{ secrets.CARTO_KEY }}
+          THUNDERFOREST_KEY: ${{ secrets.THUNDERFOREST_KEY }}
         run: |
           flutter config --enable-linux-desktop
           flutter pub get
           flutter build linux --release \
             --build-number="$BUILD_NUMBER" \
             --dart-define=API_URL="$API_URL" \
-            --dart-define=CARTO_KEY="$CARTO_KEY"
+            --dart-define=CARTO_KEY="$CARTO_KEY" \
+            --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY"
           mkdir -p ../dist
           tar -czf "../dist/stonerspots-${TAG}-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
       - uses: actions/upload-artifact@v4
@@ -199,13 +205,15 @@ jobs:
         working-directory: app
         env:
           CARTO_KEY: ${{ secrets.CARTO_KEY }}
+          THUNDERFOREST_KEY: ${{ secrets.THUNDERFOREST_KEY }}
         run: |
           # base href stays "/"; the Pages workflow rewrites it for its sub-path
           flutter pub get
           flutter build web --release \
             --build-number="$BUILD_NUMBER" \
             --dart-define=API_URL="$API_URL" \
-            --dart-define=CARTO_KEY="$CARTO_KEY"
+            --dart-define=CARTO_KEY="$CARTO_KEY" \
+            --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY"
           mkdir -p ../dist
           (cd build/web && zip -qr "../../../dist/stonerspots-${TAG}-web.zip" .)
       - uses: actions/upload-artifact@v4
@@ -229,12 +237,14 @@ jobs:
         working-directory: app
         env:
           CARTO_KEY: ${{ secrets.CARTO_KEY }}
+          THUNDERFOREST_KEY: ${{ secrets.THUNDERFOREST_KEY }}
         run: |
           flutter pub get
           flutter build ios --release --no-codesign \
             --build-number="$BUILD_NUMBER" \
             --dart-define=API_URL="$API_URL" \
-            --dart-define=CARTO_KEY="$CARTO_KEY"
+            --dart-define=CARTO_KEY="$CARTO_KEY" \
+            --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY"
           mkdir -p Payload ../dist
           cp -R build/ios/iphoneos/Runner.app Payload/
           zip -qry "../dist/stonerspots-${TAG}-ios-unsigned.ipa" Payload

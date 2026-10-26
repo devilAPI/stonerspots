@@ -57,11 +57,8 @@ class ApiClient {
   final Dio _dio;
   Future<bool>? _refreshing;
 
-  Future<T> get<T>(
-    String path, {
-    Map<String, dynamic>? query,
-    Duration? receiveTimeout,
-  }) => _send<T>('GET', path, query: query, receiveTimeout: receiveTimeout);
+  Future<T> get<T>(String path, {Map<String, dynamic>? query}) =>
+      _send<T>('GET', path, query: query);
 
   /// [receiveTimeout] overrides the client's 30 s for slow endpoints. On the
   /// web it bounds the whole request, upload included (dio sets the XHR
