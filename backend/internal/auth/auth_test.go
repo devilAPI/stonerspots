@@ -2,9 +2,12 @@ package auth_test
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
+	"math/bits"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -177,4 +180,46 @@ func TestMeReturnsCurrentUser(t *testing.T) {
 	if rec := do(t, h, "GET", "/me", "", nil); rec.Code != 401 {
 		t.Fatalf("anon: %d", rec.Code)
 	}
+}
+
+// TestRegisterWithPoW is the real flow: fetch a challenge, solve it, register.
+func TestRegisterWithPoW(t *testing.T) {
+	d := app.Deps{DB: testutil.NewDB(t), Cfg: config.Config{JWTSecret: []byte(testutil.JWTSecret)}}
+	r := chi.NewRouter()
+	r.Route("/api/v1", func(r chi.Router) { auth.Mount(r, d) })
+	body := map[string]any{"email": "pow@example.com", "password": "correct-horse-1", "display_name": "Pow", "adult": true}
+
+	if rec := do(t, r, "POST", "/auth/register", "", body); rec.Code != 400 || !bytes.Contains(rec.Body.Bytes(), []byte("pow_required")) {
+		t.Fatalf("without pow: %d %s", rec.Code, rec.Body)
+	}
+	tok := decode[struct{ Challenge string }](t, do(t, r, "GET", "/auth/pow-challenge", "", nil)).Challenge
+	body["pow_challenge"] = tok
+	body["pow"] = solve(t, tok, 18)
+	if rec := do(t, r, "POST", "/auth/register", "", body); rec.Code != 201 {
+		t.Fatalf("with pow: %d %s", rec.Code, rec.Body)
+	}
+	body["email"], body["display_name"] = "pow2@example.com", "Pow2"
+	if rec := do(t, r, "POST", "/auth/register", "", body); rec.Code != 400 || !bytes.Contains(rec.Body.Bytes(), []byte("pow_invalid")) {
+		t.Fatalf("replay: %d %s", rec.Code, rec.Body)
+	}
+}
+
+func solve(t *testing.T, token string, difficulty int) string {
+	t.Helper()
+	for i := 0; i < 1<<28; i++ {
+		nonce := strconv.FormatInt(int64(i), 16)
+		h := sha256.Sum256([]byte(token + ":" + nonce))
+		zeros := 0
+		for _, b := range h {
+			zeros += bits.LeadingZeros8(b)
+			if b != 0 {
+				break
+			}
+		}
+		if zeros >= difficulty {
+			return nonce
+		}
+	}
+	t.Fatal("unsolved")
+	return ""
 }

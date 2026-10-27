@@ -19,10 +19,10 @@ import (
 )
 
 type handler struct {
-	svc    *service
-	hibp   *hibp.Client
+	svc      *service
+	hibp     *hibp.Client
 	failures *ratelimit.Limiter
-	pow    *pow.Challenge
+	pow      *pow.Issuer
 }
 
 // passwordBlocked writes the 429 and reports true when key has no wrong
@@ -54,7 +54,8 @@ func (h *handler) register(w http.ResponseWriter, r *http.Request) {
 		Password    string `json:"password"`
 		DisplayName string `json:"display_name"`
 		Adult       bool   `json:"adult"`
-		Pow         string `json:"pow"` // Proof-of-work solution
+		PowToken    string `json:"pow_challenge"` // from GET /auth/pow-challenge
+		Pow         string `json:"pow"`           // nonce solving it
 	}
 	if !decodeBody(w, r, &in) {
 		return
@@ -79,17 +80,11 @@ func (h *handler) register(w http.ResponseWriter, r *http.Request) {
 	}
 	// Verify proof-of-work if configured
 	if h.pow != nil {
-		if in.Pow == "" {
+		if in.PowToken == "" || in.Pow == "" {
 			httpx.Error(w, http.StatusBadRequest, "pow_required", "proof-of-work solution required")
 			return
 		}
-		challenge, err := pow.ParseChallenge(h.pow.String())
-		if err != nil {
-			serverError(w)
-			return
-		}
-		sol := &pow.Solution{Challenge: challenge.String(), Nonce: in.Pow}
-		if !challenge.Verify(sol) {
+		if err := h.pow.Check(in.PowToken, in.Pow); err != nil {
 			httpx.Error(w, http.StatusBadRequest, "pow_invalid", "invalid or expired proof-of-work solution")
 			return
 		}
@@ -284,9 +279,5 @@ func (h *handler) powChallenge(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusNotImplemented, "not_implemented", "proof-of-work not configured")
 		return
 	}
-	// Return a fresh challenge each time
-	challenge := pow.NewChallenge("register", 18)
-	httpx.JSON(w, http.StatusOK, map[string]string{
-		"challenge": challenge.String(),
-	})
+	httpx.JSON(w, http.StatusOK, map[string]string{"challenge": h.pow.Issue()})
 }

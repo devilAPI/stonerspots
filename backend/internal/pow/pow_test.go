@@ -1,6 +1,8 @@
 package pow
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -74,5 +76,52 @@ func TestVerifyWrongChallenge(t *testing.T) {
 	sol := &Solution{Challenge: c2.String(), Nonce: nonce}
 	if c2.Verify(sol) {
 		t.Fatal("solution for wrong challenge accepted")
+	}
+}
+func solveToken(t *testing.T, token string, difficulty int) string {
+	t.Helper()
+	for i := 0; i < 50_000_000; i++ {
+		nonce := fmt.Sprintf("%x", i)
+		h := sha256.Sum256([]byte(token + ":" + nonce))
+		if leadingZeroBits(h[:]) >= difficulty {
+			return nonce
+		}
+	}
+	t.Fatal("could not solve token")
+	return ""
+}
+
+func TestIssuerAcceptsSolutionOnce(t *testing.T) {
+	iss := NewIssuer([]byte("secret"), "register", 12)
+	tok := iss.Issue()
+	nonce := solveToken(t, tok, 12)
+	if err := iss.Check(tok, nonce); err != nil {
+		t.Fatalf("valid solution rejected: %v", err)
+	}
+	if err := iss.Check(tok, nonce); err == nil {
+		t.Fatal("replayed solution accepted")
+	}
+}
+
+func TestIssuerRejectsForgedToken(t *testing.T) {
+	iss := NewIssuer([]byte("secret"), "register", 12)
+	// Self-made easy challenge signed with another key.
+	forged := NewIssuer([]byte("other"), "register", 1).Issue()
+	if err := iss.Check(forged, solveToken(t, forged, 1)); err == nil {
+		t.Fatal("forged token accepted")
+	}
+	tok := iss.Issue()
+	if err := iss.Check(tok, "nope"); err == nil {
+		t.Fatal("wrong nonce accepted")
+	}
+}
+
+func TestIssuerRejectsExpired(t *testing.T) {
+	iss := NewIssuer([]byte("secret"), "register", 1)
+	c := NewChallenge("register", 1)
+	c.Created -= int64(c.MaxAge) + 1
+	tok := c.String() + ":" + iss.sign(c.String())
+	if err := iss.Check(tok, solveToken(t, tok, 1)); err != ErrExpired {
+		t.Fatalf("err = %v, want ErrExpired", err)
 	}
 }

@@ -1,5 +1,6 @@
 import '../../core/api_client.dart';
 import '../../core/models.dart';
+import '../../core/pow.dart';
 import '../../core/token_store.dart';
 
 class AuthSession {
@@ -64,17 +65,35 @@ class ApiAuthRepository implements AuthRepository {
     required String password,
     required String displayName,
     required bool adult,
-  }) async => _session(
-    await _api.post<Map<String, dynamic>>(
-      '/auth/register',
-      data: {
-        'email': email,
-        'password': password,
-        'display_name': displayName,
-        'adult': adult,
-      },
-    ),
-  );
+  }) async {
+    final pow = await _solvePowChallenge();
+    return _session(
+      await _api.post<Map<String, dynamic>>(
+        '/auth/register',
+        data: {
+          'email': email,
+          'password': password,
+          'display_name': displayName,
+          'adult': adult,
+          ...?pow,
+        },
+      ),
+    );
+  }
+
+  /// The proof-of-work fields for registration, or null when the server
+  /// has proof-of-work turned off (501).
+  Future<Map<String, String>?> _solvePowChallenge() async {
+    final Map<String, dynamic> j;
+    try {
+      j = await _api.get<Map<String, dynamic>>('/auth/pow-challenge');
+    } on ApiException catch (e) {
+      if (e.status == 501) return null;
+      rethrow;
+    }
+    final challenge = j['challenge'] as String;
+    return {'pow_challenge': challenge, 'pow': await solvePow(challenge)};
+  }
 
   @override
   Future<User?> me() async {

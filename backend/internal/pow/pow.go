@@ -2,12 +2,16 @@
 package pow
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"math/bits"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -115,4 +119,89 @@ func (c *Challenge) Solve(maxIterations int) string {
 		}
 	}
 	return ""
+}
+
+// Issuer hands out signed challenges and checks solutions to them without
+// keeping state per challenge, except for the salts already used.
+type Issuer struct {
+	secret     []byte
+	resource   string
+	difficulty int
+
+	mu   sync.Mutex
+	used map[string]int64 // salt -> expiry (Unix time)
+}
+
+// NewIssuer returns an issuer whose challenges are signed with secret.
+func NewIssuer(secret []byte, resource string, difficulty int) *Issuer {
+	return &Issuer{secret: secret, resource: resource, difficulty: difficulty, used: map[string]int64{}}
+}
+
+// Errors returned by Issuer.Check.
+var (
+	ErrInvalid = errors.New("invalid proof-of-work")
+	ErrExpired = errors.New("proof-of-work challenge expired")
+)
+
+// Issue returns a fresh challenge token: the challenge string followed by
+// ":" and its HMAC. The client finds a nonce such that
+// SHA-256(token + ":" + nonce) has Difficulty leading zero bits.
+func (i *Issuer) Issue() string {
+	c := NewChallenge(i.resource, i.difficulty).String()
+	return c + ":" + i.sign(c)
+}
+
+func (i *Issuer) sign(c string) string {
+	m := hmac.New(sha256.New, i.secret)
+	m.Write([]byte(c))
+	return hex.EncodeToString(m.Sum(nil))
+}
+
+// Check verifies a solution for a token from Issue. Each token is accepted
+// once.
+func (i *Issuer) Check(token, nonce string) error {
+	cut := strings.LastIndexByte(token, ':')
+	if cut < 0 || nonce == "" || len(nonce) > 64 {
+		return ErrInvalid
+	}
+	cs, sig := token[:cut], token[cut+1:]
+	if !hmac.Equal([]byte(sig), []byte(i.sign(cs))) {
+		return ErrInvalid
+	}
+	c, err := ParseChallenge(cs)
+	if err != nil || c.Resource != i.resource || c.Difficulty < i.difficulty {
+		return ErrInvalid
+	}
+	now := time.Now().Unix()
+	if now-c.Created > int64(c.MaxAge) {
+		return ErrExpired
+	}
+	hash := sha256.Sum256([]byte(token + ":" + nonce))
+	if leadingZeroBits(hash[:]) < c.Difficulty {
+		return ErrInvalid
+	}
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	for s, exp := range i.used {
+		if exp < now {
+			delete(i.used, s)
+		}
+	}
+	if _, seen := i.used[c.Salt]; seen {
+		return ErrInvalid
+	}
+	i.used[c.Salt] = c.Created + int64(c.MaxAge)
+	return nil
+}
+
+func leadingZeroBits(b []byte) int {
+	n := 0
+	for _, x := range b {
+		if x == 0 {
+			n += 8
+			continue
+		}
+		return n + bits.LeadingZeros8(x)
+	}
+	return n
 }

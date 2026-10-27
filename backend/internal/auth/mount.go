@@ -38,15 +38,15 @@ func MountWithOptions(r chi.Router, d app.Deps, opts MountOptions) {
 		Password: d.Cfg.Mail.Password,
 		From:     d.Cfg.Mail.From,
 	})
-	var powChallenge *pow.Challenge
+	var powIssuer *pow.Issuer
 	if !opts.DisablePoW {
-		powChallenge = pow.NewChallenge("register", 18) // Difficulty 18 ~ 2^18 iterations
+		powIssuer = pow.NewIssuer(d.Cfg.JWTSecret, "register", 18) // Difficulty 18 ~ 2^18 iterations
 	}
 	h := &handler{
 		svc:      &service{db: d.DB, secret: d.Cfg.JWTSecret, uploadDir: d.Cfg.UploadDir, mail: mc},
 		hibp:     hibp.NewClient(),
 		failures: ratelimit.New(lim.LoginFailures),
-		pow:      powChallenge,
+		pow:      powIssuer,
 	}
 	r.With(ratelimit.ByIP(ratelimit.New(lim.Register))).Post("/auth/register", h.register)
 	r.Get("/auth/pow-challenge", h.powChallenge)
