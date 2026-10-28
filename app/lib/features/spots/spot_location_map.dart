@@ -7,8 +7,8 @@ import '../../l10n/app_localizations.dart';
 import '../map/map_tiles.dart';
 
 /// Interactive map of a spot with its dot: drag and pinch to look around,
-/// switch between satellite (the default) and map, jump back to the spot. Inside a
-/// scrolling page, drags that start on the map move the map (flutter_map's
+/// cycle satellite (the default), map and transport map, jump back to the
+/// spot. Inside a scrolling page, drags that start on the map move the map (flutter_map's
 /// drag recognizers win over the page's).
 class SpotLocationMap extends StatefulWidget {
   const SpotLocationMap({
@@ -32,7 +32,7 @@ class SpotLocationMap extends StatefulWidget {
 
 class _SpotLocationMapState extends State<SpotLocationMap> {
   final _controller = MapController();
-  bool _satellite = true;
+  MapBase _base = MapBase.satellite;
 
   LatLng get _spot => LatLng(widget.lat, widget.lon);
 
@@ -62,7 +62,7 @@ class _SpotLocationMapState extends State<SpotLocationMap> {
               ),
             ),
             children: [
-              buildBaseLayer(context, satellite: _satellite),
+              buildBaseLayer(context, base: _base),
               MarkerLayer(
                 markers: [
                   Marker(
@@ -83,7 +83,7 @@ class _SpotLocationMapState extends State<SpotLocationMap> {
                   ),
                 ],
               ),
-              buildBaseAttribution(context, satellite: _satellite),
+              buildBaseAttribution(context, base: _base),
             ],
           ),
           Positioned(
@@ -91,12 +91,10 @@ class _SpotLocationMapState extends State<SpotLocationMap> {
             right: 8,
             child: Column(
               children: [
-                MapLayerToggle(
+                MapLayerButton(
                   key: const Key('spotMapLayer'),
-                  satellite: _satellite,
-                  onChanged: (v) => setState(() => _satellite = v),
-                  streetsLabel: l.mapStreets,
-                  satelliteLabel: l.mapSatellite,
+                  base: _base,
+                  onChanged: (b) => setState(() => _base = b),
                 ),
                 IconButton.filledTonal(
                   key: const Key('spotMapRecenter'),

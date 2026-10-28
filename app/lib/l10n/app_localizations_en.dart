@@ -499,6 +499,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapSatellite => 'Satellite';
 
   @override
+  String get mapTransit => 'Public transport';
+
+  @override
   String get mapRecenter => 'Back to the spot';
 
   @override
@@ -795,12 +798,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminErrTagName => 'Names must be 1 to 40 characters';
-
-  @override
-  String get transitShow => 'Show public transport map';
-
-  @override
-  String get transitHide => 'Hide public transport map';
 
   @override
   String get backToHome => 'Back to the map';

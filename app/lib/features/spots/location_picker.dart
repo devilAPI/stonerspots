@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../../l10n/app_localizations.dart';
 import '../map/map_tiles.dart';
 
 const LatLng kFallbackCenter = LatLng(49.5, 10.5);
@@ -41,7 +40,7 @@ class LocationPicker extends StatefulWidget {
 
 class _LocationPickerState extends State<LocationPicker> {
   final MapController _controller = MapController();
-  bool _satellite = false;
+  MapBase _base = MapBase.streets;
 
   @override
   void didUpdateWidget(LocationPicker old) {
@@ -63,7 +62,6 @@ class _LocationPickerState extends State<LocationPicker> {
     final point = widget.point;
     final focus = widget.focus;
     final center = focus?.center ?? point ?? widget.initialCenter;
-    final l = AppLocalizations.of(context);
     final map = FlutterMap(
       mapController: _controller,
       options: MapOptions(
@@ -75,7 +73,7 @@ class _LocationPickerState extends State<LocationPicker> {
         onTap: (_, latLng) => widget.onChanged(latLng),
       ),
       children: [
-        buildBaseLayer(context, satellite: _satellite),
+        buildBaseLayer(context, base: _base),
         if (point != null)
           MarkerLayer(
             markers: [
@@ -92,7 +90,7 @@ class _LocationPickerState extends State<LocationPicker> {
               ),
             ],
           ),
-        buildBaseAttribution(context, satellite: _satellite),
+        buildBaseAttribution(context, base: _base),
       ],
     );
     return Stack(
@@ -101,12 +99,10 @@ class _LocationPickerState extends State<LocationPicker> {
         Positioned(
           top: 8,
           right: 8,
-          child: MapLayerToggle(
+          child: MapLayerButton(
             key: const Key('pickerMapLayer'),
-            satellite: _satellite,
-            onChanged: (v) => setState(() => _satellite = v),
-            streetsLabel: l.mapStreets,
-            satelliteLabel: l.mapSatellite,
+            base: _base,
+            onChanged: (b) => setState(() => _base = b),
           ),
         ),
       ],

@@ -920,6 +920,12 @@ abstract class AppLocalizations {
   /// **'Satellit'**
   String get mapSatellite;
 
+  /// No description provided for @mapTransit.
+  ///
+  /// In de, this message translates to:
+  /// **'ÖPNV'**
+  String get mapTransit;
+
   /// No description provided for @mapRecenter.
   ///
   /// In de, this message translates to:
@@ -1423,18 +1429,6 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Namen müssen 1 bis 40 Zeichen lang sein'**
   String get adminErrTagName;
-
-  /// No description provided for @transitShow.
-  ///
-  /// In de, this message translates to:
-  /// **'ÖPNV-Karte einblenden'**
-  String get transitShow;
-
-  /// No description provided for @transitHide.
-  ///
-  /// In de, this message translates to:
-  /// **'ÖPNV-Karte ausblenden'**
-  String get transitHide;
 
   /// No description provided for @backToHome.
   ///

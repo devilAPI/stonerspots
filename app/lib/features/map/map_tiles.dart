@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Overrides both tile styles (e.g. a self-hosted or paid provider):
 /// `--dart-define=TILE_URL=https://.../{z}/{x}/{y}.png`
 const String kTileUrlOverride = String.fromEnvironment('TILE_URL');
@@ -121,26 +123,36 @@ TileLayer buildSatelliteTileLayer() => TileLayer(
   maxNativeZoom: kSatelliteMaxNativeZoom,
 );
 
+/// The kinds of base map the map-type button cycles through.
+enum MapBase { streets, satellite, transit }
+
+/// The base map after [current]: street map, satellite, then the transport
+/// map (only with a key), then back to the street map.
+MapBase nextMapBase(MapBase current, {String transitKey = kThunderforestKey}) =>
+    switch (current) {
+      MapBase.streets => MapBase.satellite,
+      MapBase.satellite =>
+        hasTransitMap(key: transitKey) ? MapBase.transit : MapBase.streets,
+      MapBase.transit => MapBase.streets,
+    };
+
 /// Base layer for a map that can switch to satellite imagery or the
 /// transport map.
 TileLayer buildBaseLayer(
   BuildContext context, {
-  required bool satellite,
-  bool transit = false,
+  required MapBase base,
   String transitKey = kThunderforestKey,
-}) => satellite
-    ? buildSatelliteTileLayer()
-    : transit
-    ? buildTransitTileLayer(context, key: transitKey)
-    : buildTileLayer(context);
+}) => switch (base) {
+  MapBase.streets => buildTileLayer(context),
+  MapBase.satellite => buildSatelliteTileLayer(),
+  MapBase.transit => buildTransitTileLayer(context, key: transitKey),
+};
 
 /// Credits for [buildBaseLayer]; Esri's stays visible, not behind a button.
-Widget buildBaseAttribution(
-  BuildContext context, {
-  required bool satellite,
-  bool transit = false,
-}) => satellite
-    ? const Align(
+Widget buildBaseAttribution(BuildContext context, {required MapBase base}) =>
+    switch (base) {
+      MapBase.streets => buildMapAttribution(context),
+      MapBase.satellite => const Align(
         alignment: Alignment.bottomRight,
         child: Padding(
           padding: EdgeInsets.fromLTRB(0, 0, 6, 4),
@@ -153,36 +165,42 @@ Widget buildBaseAttribution(
             ),
           ),
         ),
-      )
-    : transit
-    ? const RichAttributionWidget(
+      ),
+      MapBase.transit => const RichAttributionWidget(
         alignment: AttributionAlignment.bottomLeft,
         attributions: [
           TextSourceAttribution('Thunderforest'),
           TextSourceAttribution('OpenStreetMap contributors'),
         ],
-      )
-    : buildMapAttribution(context);
+      ),
+    };
 
-/// Round button that switches a map between street map and satellite.
-class MapLayerToggle extends StatelessWidget {
-  const MapLayerToggle({
+/// Round button showing the base map on screen; a tap switches to the next
+/// one ([nextMapBase]).
+class MapLayerButton extends StatelessWidget {
+  const MapLayerButton({
     super.key,
-    required this.satellite,
+    required this.base,
     required this.onChanged,
-    required this.streetsLabel,
-    required this.satelliteLabel,
+    this.transitKey = kThunderforestKey,
   });
 
-  final bool satellite;
-  final ValueChanged<bool> onChanged;
-  final String streetsLabel;
-  final String satelliteLabel;
+  final MapBase base;
+  final ValueChanged<MapBase> onChanged;
+  final String transitKey;
 
   @override
-  Widget build(BuildContext context) => IconButton.filledTonal(
-    tooltip: satellite ? streetsLabel : satelliteLabel,
-    onPressed: () => onChanged(!satellite),
-    icon: Icon(satellite ? Icons.map_outlined : Icons.satellite_alt),
-  );
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final (icon, label) = switch (base) {
+      MapBase.streets => (Icons.map_outlined, l.mapStreets),
+      MapBase.satellite => (Icons.satellite_alt, l.mapSatellite),
+      MapBase.transit => (Icons.directions_transit, l.mapTransit),
+    };
+    return IconButton.filledTonal(
+      tooltip: label,
+      onPressed: () => onChanged(nextMapBase(base, transitKey: transitKey)),
+      icon: Icon(icon),
+    );
+  }
 }

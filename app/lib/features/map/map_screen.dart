@@ -25,8 +25,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final _mapController = MapController();
   bool _deniedShown = false;
   bool _locating = false;
-  bool _satellite = false;
-  bool _transit = false;
+  MapBase _base = MapBase.streets;
 
   /// Set once the user drags/zooms; the late location result must then not
   /// yank the camera away from where they are looking.
@@ -154,18 +153,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               },
             ),
             children: [
-              buildBaseLayer(
-                context,
-                satellite: _satellite,
-                transit: _transit,
-                transitKey: transitKey,
-              ),
+              buildBaseLayer(context, base: _base, transitKey: transitKey),
               SpotClusterLayer(markers: _markers),
-              buildBaseAttribution(
-                context,
-                satellite: _satellite,
-                transit: _transit,
-              ),
+              buildBaseAttribution(context, base: _base),
             ],
           ),
           Positioned(top: 8, left: 0, right: 0, child: const MapFilterBar()),
@@ -176,28 +166,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             child: Column(
               spacing: 4,
               children: [
-                MapLayerToggle(
+                MapLayerButton(
                   key: const Key('mapLayer'),
-                  satellite: _satellite,
-                  onChanged: (v) => setState(() {
-                    _satellite = v;
-                    if (v) _transit = false;
-                  }),
-                  streetsLabel: l10n.mapStreets,
-                  satelliteLabel: l10n.mapSatellite,
+                  base: _base,
+                  transitKey: transitKey,
+                  onChanged: (b) => setState(() => _base = b),
                 ),
-                if (hasTransitMap(key: transitKey))
-                  IconButton.filledTonal(
-                    key: const Key('mapTransit'),
-                    isSelected: _transit,
-                    tooltip: _transit ? l10n.transitHide : l10n.transitShow,
-                    onPressed: () => setState(() {
-                      _transit = !_transit;
-                      if (_transit) _satellite = false;
-                    }),
-                    icon: const Icon(Icons.directions_transit_outlined),
-                    selectedIcon: const Icon(Icons.directions_transit),
-                  ),
                 IconButton.filledTonal(
                   key: const Key('mapLocateMe'),
                   tooltip: l10n.mapMyLocation,

@@ -503,6 +503,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mapSatellite => 'Satellit';
 
   @override
+  String get mapTransit => 'ÖPNV';
+
+  @override
   String get mapRecenter => 'Zurück zum Spot';
 
   @override
@@ -802,12 +805,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get adminErrTagName => 'Namen müssen 1 bis 40 Zeichen lang sein';
-
-  @override
-  String get transitShow => 'ÖPNV-Karte einblenden';
-
-  @override
-  String get transitHide => 'ÖPNV-Karte ausblenden';
 
   @override
   String get backToHome => 'Zur Startseite';

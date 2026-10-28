@@ -218,6 +218,7 @@
   "updatesNone": "No updates yet",
   "mapStreets": "Map",
   "mapSatellite": "Satellite",
+  "mapTransit": "Public transport",
   "mapRecenter": "Back to the spot",
   "reviewCount": "{count, plural, =1{1 review} other{{count} reviews}}",
   "@reviewCount": {
@@ -336,8 +337,6 @@
   "adminErrTagTaken": "A tag with this key already exists",
   "adminErrTagKey": "2 to 16 characters: a-z, 0-9 and _, starting with a letter",
   "adminErrTagName": "Names must be 1 to 40 characters",
-  "transitShow": "Show public transport map",
-  "transitHide": "Hide public transport map",
   "backToHome": "Back to the map",
   "mapMyLocation": "My location",
   "loginId": "Email or name",

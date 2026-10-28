@@ -51,13 +51,13 @@ void main() {
 
     // street map by default on the map page
     expect(url(), isNot(contains('World_Imagery')));
-    expect(find.byTooltip('Satellite'), findsOneWidget);
+    expect(find.byTooltip('Map'), findsOneWidget);
 
     await t.tap(find.byKey(const Key('mapLayer')));
     await t.pumpAndSettle();
     expect(url(), contains('World_Imagery'));
     expect(find.text('Esri World Imagery'), findsOneWidget);
-    expect(find.byTooltip('Map'), findsOneWidget);
+    expect(find.byTooltip('Satellite'), findsOneWidget);
 
     await t.tap(find.byKey(const Key('mapLayer')));
     await t.pumpAndSettle();
@@ -85,32 +85,43 @@ void main() {
     await t.pumpAndSettle();
   }
 
-  testWidgets('the transport map is not offered without a key', (t) async {
+  testWidgets('without a key the button skips the transport map', (t) async {
     await pumpMap(t, '');
-    expect(find.byKey(const Key('mapTransit')), findsNothing);
-  });
-
-  testWidgets('the transport map and satellite switch each other off', (
-    t,
-  ) async {
-    await pumpMap(t, 'tf1');
     String url() => t.widget<TileLayer>(find.byType(TileLayer)).urlTemplate!;
-    expect(url(), isNot(contains('thunderforest')));
-
-    await t.tap(find.byKey(const Key('mapTransit')));
-    await t.pumpAndSettle();
-    expect(url(), contains('tile.thunderforest.com/'));
-    expect(find.byTooltip('Hide public transport map'), findsOneWidget);
-
     await t.tap(find.byKey(const Key('mapLayer')));
     await t.pumpAndSettle();
     expect(url(), contains('World_Imagery'));
-    expect(find.byTooltip('Show public transport map'), findsOneWidget);
-
-    await t.tap(find.byKey(const Key('mapTransit')));
+    await t.tap(find.byKey(const Key('mapLayer')));
     await t.pumpAndSettle();
+    expect(url(), isNot(contains('World_Imagery')));
+    expect(url(), isNot(contains('thunderforest')));
+  });
+
+  testWidgets('one button cycles map, satellite and transport map', (t) async {
+    await pumpMap(t, 'tf1');
+    String url() => t.widget<TileLayer>(find.byType(TileLayer)).urlTemplate!;
+    Future<void> next() async {
+      await t.tap(find.byKey(const Key('mapLayer')));
+      await t.pumpAndSettle();
+    }
+
+    expect(find.byKey(const Key('mapTransit')), findsNothing);
+    expect(url(), isNot(contains('thunderforest')));
+    expect(find.byIcon(Icons.map_outlined), findsOneWidget);
+
+    await next();
+    expect(url(), contains('World_Imagery'));
+    expect(find.byIcon(Icons.satellite_alt), findsOneWidget);
+
+    await next();
     expect(url(), contains('tile.thunderforest.com/'));
-    expect(find.byTooltip('Satellite'), findsOneWidget);
+    expect(find.byTooltip('Public transport'), findsOneWidget);
+    expect(find.byIcon(Icons.directions_transit), findsOneWidget);
+
+    await next();
+    expect(url(), isNot(contains('thunderforest')));
+    expect(url(), isNot(contains('World_Imagery')));
+    expect(find.byTooltip('Map'), findsOneWidget);
   });
 
   group('location', () {
