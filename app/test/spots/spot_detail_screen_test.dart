@@ -8,12 +8,14 @@ import 'package:app/features/feed/satellite_thumb.dart';
 import 'package:app/features/spots/maps_link.dart';
 import 'package:app/features/spots/spot_api.dart';
 import 'package:app/features/spots/spot_detail_screen.dart';
+import 'package:app/features/spots/spot_link.dart';
 import 'package:app/features/reviews/review_models.dart';
 import 'package:app/features/reviews/reviews_repository.dart';
 import 'package:app/features/spots/photo_viewer.dart';
 import 'package:app/features/spots/updates_repository.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -241,6 +243,31 @@ void main() {
     expect(launched.single, googleMapsUri(1, 2));
     // no login needed for this one
     expect(find.textContaining('login from'), findsNothing);
+  });
+
+  testWidgets('the link button copies the spot link', (tester) async {
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    await _pump(tester, null);
+    await tester.tap(find.byKey(const Key('copySpotLink')));
+    await tester.pumpAndSettle();
+    expect(copied, spotLink(5).toString());
+    expect(copied, endsWith('#/spot/5'));
+    expect(find.text('Link copied'), findsOneWidget);
   });
 
   testWidgets('a failing launch shows an error instead of crashing', (

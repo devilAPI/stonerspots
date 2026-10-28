@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -18,6 +19,7 @@ import 'edit_tags_dialog.dart';
 import 'maps_link.dart';
 import 'photo_viewer.dart';
 import 'spot_api.dart';
+import 'spot_link.dart';
 import 'spot_location_map.dart';
 import 'spot_media.dart';
 import 'update_composer.dart';
@@ -92,6 +94,14 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
       initial: spot.tags,
     );
     if (saved != null) ref.invalidate(spotDetailProvider(widget.spotId));
+  }
+
+  Future<void> _copyLink() async {
+    final copied = AppLocalizations.of(context).linkCopied;
+    await Clipboard.setData(
+      ClipboardData(text: spotLink(widget.spotId).toString()),
+    );
+    _snack(copied);
   }
 
   void _snack(String m) {
@@ -263,6 +273,12 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
         leading: const BackOrHomeButton(),
         title: Text(spotAsync.value?.title ?? l.spotDetailTitle),
         actions: [
+          IconButton(
+            key: const Key('copySpotLink'),
+            tooltip: l.spotCopyLink,
+            icon: const Icon(Icons.link),
+            onPressed: _copyLink,
+          ),
           PopupMenuButton<String>(
             key: const Key('menu'),
             onSelected: (v) {

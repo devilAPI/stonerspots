@@ -506,6 +506,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mapTransit => 'ÖPNV';
 
   @override
+  String get spotCopyLink => 'Link kopieren';
+
+  @override
+  String get linkCopied => 'Link kopiert';
+
+  @override
   String get mapRecenter => 'Zurück zum Spot';
 
   @override

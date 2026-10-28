@@ -502,6 +502,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapTransit => 'Public transport';
 
   @override
+  String get spotCopyLink => 'Copy link';
+
+  @override
+  String get linkCopied => 'Link copied';
+
+  @override
   String get mapRecenter => 'Back to the spot';
 
   @override

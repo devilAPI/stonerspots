@@ -926,6 +926,18 @@ abstract class AppLocalizations {
   /// **'ÖPNV'**
   String get mapTransit;
 
+  /// No description provided for @spotCopyLink.
+  ///
+  /// In de, this message translates to:
+  /// **'Link kopieren'**
+  String get spotCopyLink;
+
+  /// No description provided for @linkCopied.
+  ///
+  /// In de, this message translates to:
+  /// **'Link kopiert'**
+  String get linkCopied;
+
   /// No description provided for @mapRecenter.
   ///
   /// In de, this message translates to:
