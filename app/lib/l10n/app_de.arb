@@ -219,7 +219,7 @@
   "mapStreets": "Karte",
   "mapSatellite": "Satellit",
   "mapTransit": "ÖPNV",
-  "spotCopyLink": "Link kopieren",
+  "spotShare": "Teilen",
   "linkCopied": "Link kopiert",
   "mapRecenter": "Zurück zum Spot",
   "reviewCount": "{count, plural, =1{1 Bewertung} other{{count} Bewertungen}}",

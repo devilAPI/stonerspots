@@ -119,6 +119,7 @@ Future<_Api> _pump(
   _Api? withApi,
   bool locked = false,
   AdminRepository? admin,
+  LinkSharer? sharer,
 }) async {
   final api =
       withApi ??
@@ -156,6 +157,7 @@ Future<_Api> _pump(
         authControllerProvider.overrideWith(() => _Auth(user)),
         if (launcher != null) urlLauncherProvider.overrideWithValue(launcher),
         if (admin != null) adminRepositoryProvider.overrideWithValue(admin),
+        if (sharer != null) linkSharerProvider.overrideWithValue(sharer),
       ],
       child: MaterialApp.router(
         routerConfig: router,
@@ -245,30 +247,57 @@ void main() {
     expect(find.textContaining('login from'), findsNothing);
   });
 
-  testWidgets('the link button copies the spot link', (tester) async {
-    String? copied;
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      SystemChannels.platform,
-      (call) async {
-        if (call.method == 'Clipboard.setData') {
-          copied = (call.arguments as Map)['text'] as String;
-        }
-        return null;
+  testWidgets('share opens the share sheet with the spot link', (tester) async {
+    final shared = <(Uri, String?, Rect?)>[];
+    await _pump(
+      tester,
+      null,
+      sharer: (uri, {title, origin}) async {
+        shared.add((uri, title, origin));
+        return true;
       },
     );
-    addTearDown(
-      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.platform,
-        null,
-      ),
-    );
-    await _pump(tester, null);
-    await tester.tap(find.byKey(const Key('copySpotLink')));
+    await tester.tap(find.byKey(const Key('shareSpot')));
     await tester.pumpAndSettle();
-    expect(copied, spotLink(5).toString());
-    expect(copied, endsWith('#/spot/5'));
-    expect(find.text('Link copied'), findsOneWidget);
+    final (uri, title, origin) = shared.single;
+    expect(uri, spotLink(5));
+    expect(title, isNotEmpty);
+    expect(origin, tester.getRect(find.byKey(const Key('shareSpot'))));
+    expect(find.text('Link copied'), findsNothing);
   });
+
+  for (final fails in [false, true]) {
+    testWidgets('without a share sheet the link is copied (throws: $fails)', (
+      tester,
+    ) async {
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied = (call.arguments as Map)['text'] as String;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      await _pump(
+        tester,
+        null,
+        sharer: (_, {title, origin}) async =>
+            fails ? throw StateError('no sheet') : false,
+      );
+      await tester.tap(find.byKey(const Key('shareSpot')));
+      await tester.pumpAndSettle();
+      expect(copied, spotLink(5).toString());
+      expect(find.text('Link copied'), findsOneWidget);
+    });
+  }
 
   testWidgets('a failing launch shows an error instead of crashing', (
     tester,

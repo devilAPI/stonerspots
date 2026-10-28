@@ -926,11 +926,11 @@ abstract class AppLocalizations {
   /// **'ÖPNV'**
   String get mapTransit;
 
-  /// No description provided for @spotCopyLink.
+  /// No description provided for @spotShare.
   ///
   /// In de, this message translates to:
-  /// **'Link kopieren'**
-  String get spotCopyLink;
+  /// **'Teilen'**
+  String get spotShare;
 
   /// No description provided for @linkCopied.
   ///

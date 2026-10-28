@@ -219,7 +219,7 @@
   "mapStreets": "Map",
   "mapSatellite": "Satellite",
   "mapTransit": "Public transport",
-  "spotCopyLink": "Copy link",
+  "spotShare": "Share",
   "linkCopied": "Link copied",
   "mapRecenter": "Back to the spot",
   "reviewCount": "{count, plural, =1{1 review} other{{count} reviews}}",

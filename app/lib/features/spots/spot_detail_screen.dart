@@ -96,11 +96,24 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
     if (saved != null) ref.invalidate(spotDetailProvider(widget.spotId));
   }
 
-  Future<void> _copyLink() async {
+  /// Share sheet where the platform has one, otherwise the link is copied.
+  Future<void> _share(BuildContext button, String? title) async {
     final copied = AppLocalizations.of(context).linkCopied;
-    await Clipboard.setData(
-      ClipboardData(text: spotLink(widget.spotId).toString()),
-    );
+    final link = spotLink(widget.spotId);
+    final box = button.findRenderObject() as RenderBox?;
+    final origin = box == null
+        ? null
+        : box.localToGlobal(Offset.zero) & box.size;
+    var shared = false;
+    try {
+      shared = await ref.read(linkSharerProvider)(
+        link,
+        title: title,
+        origin: origin,
+      );
+    } catch (_) {}
+    if (shared) return;
+    await Clipboard.setData(ClipboardData(text: link.toString()));
     _snack(copied);
   }
 
@@ -273,11 +286,13 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
         leading: const BackOrHomeButton(),
         title: Text(spotAsync.value?.title ?? l.spotDetailTitle),
         actions: [
-          IconButton(
-            key: const Key('copySpotLink'),
-            tooltip: l.spotCopyLink,
-            icon: const Icon(Icons.link),
-            onPressed: _copyLink,
+          Builder(
+            builder: (button) => IconButton(
+              key: const Key('shareSpot'),
+              tooltip: l.spotShare,
+              icon: const Icon(Icons.share),
+              onPressed: () => _share(button, spotAsync.value?.title),
+            ),
           ),
           PopupMenuButton<String>(
             key: const Key('menu'),

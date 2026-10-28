@@ -506,7 +506,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mapTransit => 'ÖPNV';
 
   @override
-  String get spotCopyLink => 'Link kopieren';
+  String get spotShare => 'Teilen';
 
   @override
   String get linkCopied => 'Link kopiert';
