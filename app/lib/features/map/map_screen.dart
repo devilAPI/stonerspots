@@ -114,13 +114,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final state = ref.watch(spotsControllerProvider);
+    // Only the spots: loading/error have their own small widgets, so a fetch
+    // does not rebuild the map itself.
+    final spots = ref.watch(spotsControllerProvider.select((s) => s.spots));
     final transitKey = ref.watch(thunderforestKeyProvider);
-    if (!identical(_markerSource, state.spots)) {
-      _markerSource = state.spots;
-      final top = state.spots.take(kTopSpots).map((s) => s.id).toSet();
+    if (!identical(_markerSource, spots)) {
+      _markerSource = spots;
+      final top = spots.take(kTopSpots).map((s) => s.id).toSet();
       _markers = [
-        for (final s in state.spots)
+        for (final s in spots)
           buildSpotMarker(
             s,
             large: top.contains(s.id),
@@ -186,39 +188,58 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ],
             ),
           ),
-          if (state.loading)
-            const Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: LinearProgressIndicator(minHeight: 2),
-            ),
-          if (state.error)
-            Positioned(
-              bottom: 88,
-              left: 16,
-              right: 16,
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 480),
-                  child: Material(
-                    borderRadius: BorderRadius.circular(8),
-                    color: Theme.of(context).colorScheme.errorContainer,
-                    child: ListTile(
-                      title: Text(l10n.errorGeneric),
-                      trailing: TextButton(
-                        onPressed: ref
-                            .read(spotsControllerProvider.notifier)
-                            .retry,
-                        child: Text(l10n.retry),
-                      ),
-                    ),
-                  ),
-                ),
+          const _LoadingBar(),
+          const _ErrorBanner(),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoadingBar extends ConsumerWidget {
+  const _LoadingBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) =>
+      ref.watch(spotsControllerProvider.select((s) => s.loading))
+      ? const Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: LinearProgressIndicator(minHeight: 2),
+        )
+      : const SizedBox.shrink();
+}
+
+class _ErrorBanner extends ConsumerWidget {
+  const _ErrorBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(spotsControllerProvider.select((s) => s.error))) {
+      return const SizedBox.shrink();
+    }
+    final l10n = AppLocalizations.of(context);
+    return Positioned(
+      bottom: 88,
+      left: 16,
+      right: 16,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Material(
+            borderRadius: BorderRadius.circular(8),
+            color: Theme.of(context).colorScheme.errorContainer,
+            child: ListTile(
+              title: Text(l10n.errorGeneric),
+              trailing: TextButton(
+                onPressed: ref.read(spotsControllerProvider.notifier).retry,
+                child: Text(l10n.retry),
               ),
             ),
-        ],
+          ),
+        ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:app/features/map/spot_cluster_layer.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,6 +34,27 @@ double zoom(WidgetTester t) =>
     MapCamera.of(t.element(find.byType(SpotClusterLayer))).zoom;
 
 void main() {
+  test('points within the radius group around the first one', () {
+    final groups = clusterIndices(const [
+      Offset(0, 0),
+      Offset(100, 0), // far from 0
+      Offset(30, 30), // near 0
+      Offset(130, 10), // near 1
+      Offset(500, 500),
+    ], 60);
+    expect(groups, [
+      [0, 2],
+      [1, 3],
+      [4],
+    ]);
+  });
+
+  test('neighbours across a grid cell edge still join', () {
+    expect(clusterIndices(const [Offset(59, 59), Offset(61, 61)], 60), [
+      [0, 1],
+    ]);
+  });
+
   testWidgets('tapping a number bubble zooms in and the cluster splits', (
     tester,
   ) async {
@@ -66,23 +88,4 @@ void main() {
       expect(find.text('6'), findsNothing);
     },
   );
-
-  testWidgets('tapping a number bubble does not flash the cluster outline', (
-    tester,
-  ) async {
-    await tester.pumpWidget(app(markers()));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('6'));
-    // sample the zoom animation several times; the outline polygon (the
-    // green triangle) must never be on screen
-    for (var i = 0; i < 8; i++) {
-      await tester.pump(const Duration(milliseconds: 60));
-      expect(
-        find.byType(PolygonLayer),
-        findsNothing,
-        reason: 'cluster outline visible at frame $i',
-      );
-    }
-    await tester.pumpAndSettle();
-  });
 }

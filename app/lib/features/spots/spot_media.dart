@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/net_photo.dart';
 import '../feed/satellite_thumb.dart';
 
 /// Keeps only absolute http(s) URLs. The API sends an empty `cover_url` for
@@ -70,11 +71,10 @@ class SpotMediaStrip extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               child: SizedBox(
                 width: width,
-                child: CachedNetworkImage(
-                  imageUrl: urls[i],
-                  fit: BoxFit.cover,
-                  errorWidget: (_, _, _) =>
-                      const Center(child: Icon(Icons.broken_image_outlined)),
+                child: // a bit wider than the box: cropping a tall photo uses more of it
+                NetPhoto(
+                  urls[i],
+                  decodeWidth: width * 1.5,
                 ),
               ),
             ),

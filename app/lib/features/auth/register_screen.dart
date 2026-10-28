@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/back_or_home.dart';
 import '../../l10n/app_localizations.dart';
 import 'auth_controller.dart';
-import 'auth_errors.dart';
+import 'auth_form_page.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -47,86 +46,58 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final auth = ref.watch(authControllerProvider);
-    final error = auth.error;
     String? required(String? v) =>
         (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null;
-    return Scaffold(
-      appBar: AppBar(
-        leading: const BackOrHomeButton(),
-        title: Text(l10n.register),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Form(
-            key: _form,
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              shrinkWrap: true,
-              children: [
-                TextFormField(
-                  controller: _name,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    labelText: l10n.displayName,
-                    helperText: l10n.displayNameHelp,
-                  ),
-                  autofillHints: const [AutofillHints.username],
-                  textInputAction: TextInputAction.next,
-                  validator: required,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _email,
-                  decoration: InputDecoration(labelText: l10n.email),
-                  keyboardType: TextInputType.emailAddress,
-                  autofillHints: const [AutofillHints.email],
-                  textInputAction: TextInputAction.next,
-                  validator: required,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _password,
-                  decoration: InputDecoration(labelText: l10n.password),
-                  obscureText: true,
-                  autofillHints: const [AutofillHints.newPassword],
-                  // Enter registers once the age box is ticked
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) {
-                    if (_adult && !auth.isLoading) _submit();
-                  },
-                  validator: (v) => (v == null || v.length < 10)
-                      ? l10n.passwordTooShort
-                      : null,
-                ),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  value: _adult,
-                  onChanged: (v) => setState(() => _adult = v ?? false),
-                  title: Text(l10n.adultConfirm),
-                ),
-                if (error != null)
-                  Text(
-                    authErrorText(l10n, error),
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: (_adult && !auth.isLoading) ? _submit : null,
-                  child: Text(l10n.register),
-                ),
-                TextButton(
-                  onPressed: () => context.pushReplacement('/login'),
-                  child: Text(l10n.haveAccount),
-                ),
-              ],
-            ),
+    return AuthFormPage(
+      formKey: _form,
+      title: l10n.register,
+      error: auth.error,
+      onSubmit: (_adult && !auth.isLoading) ? _submit : null,
+      switchLabel: l10n.haveAccount,
+      switchTo: '/login',
+      fields: [
+        TextFormField(
+          controller: _name,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: l10n.displayName,
+            helperText: l10n.displayNameHelp,
           ),
+          autofillHints: const [AutofillHints.username],
+          textInputAction: TextInputAction.next,
+          validator: required,
         ),
-      ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: _email,
+          decoration: InputDecoration(labelText: l10n.email),
+          keyboardType: TextInputType.emailAddress,
+          autofillHints: const [AutofillHints.email],
+          textInputAction: TextInputAction.next,
+          validator: required,
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: _password,
+          decoration: InputDecoration(labelText: l10n.password),
+          obscureText: true,
+          autofillHints: const [AutofillHints.newPassword],
+          // Enter registers once the age box is ticked
+          textInputAction: TextInputAction.done,
+          onFieldSubmitted: (_) {
+            if (_adult && !auth.isLoading) _submit();
+          },
+          validator: (v) =>
+              (v == null || v.length < 10) ? l10n.passwordTooShort : null,
+        ),
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          value: _adult,
+          onChanged: (v) => setState(() => _adult = v ?? false),
+          title: Text(l10n.adultConfirm),
+        ),
+      ],
     );
   }
 }

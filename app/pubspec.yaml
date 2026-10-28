@@ -38,7 +38,6 @@ dependencies:
   go_router: ^18.1.1
   dio: ^5.11.1
   flutter_map: ^8.3.2
-  flutter_map_marker_cluster: ^8.2.2
   latlong2: ^0.9.1
   geolocator: ^14.1.2
   image_picker: ^1.2.4
@@ -56,6 +55,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   integration_test:
+    sdk: flutter
+  flutter_driver:
     sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to

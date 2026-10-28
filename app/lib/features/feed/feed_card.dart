@@ -1,8 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/models.dart';
+import '../../core/net_photo.dart';
 import '../../l10n/app_localizations.dart';
 import '../reviews/rating_widgets.dart';
 import 'satellite_thumb.dart';
@@ -49,12 +49,9 @@ class FeedCard extends StatelessWidget {
         ? SatelliteThumb(lat: item.spot.lat, lon: item.spot.lon)
         : AspectRatio(
             aspectRatio: 4 / 3,
-            child: CachedNetworkImage(
-              imageUrl: item.photos.first.thumbUrl,
-              fit: BoxFit.cover,
-              placeholder: (_, _) => const ColoredBox(color: Colors.black12),
-              errorWidget: (_, _, _) =>
-                  const Center(child: Icon(Icons.broken_image_outlined)),
+            child: NetPhoto(
+              item.photos.first.thumbUrl,
+              placeholder: Colors.black12,
             ),
           );
     final text = _Text(item: item, fill: layout == FeedCardLayout.tile);

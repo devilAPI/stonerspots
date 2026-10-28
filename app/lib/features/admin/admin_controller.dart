@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api_client.dart';
+import '../../core/paging.dart';
 import 'admin_models.dart';
 import 'admin_repository.dart';
 
@@ -8,123 +9,61 @@ const _keep = Object();
 
 /// State of one cursor-paginated admin list.
 class AdminListState<T> {
-  const AdminListState({
-    this.items = const [],
-    this.nextCursor,
-    this.q = '',
-    this.status,
-    this.loading = false,
-    this.loadingMore = false,
-    this.error,
-    this.loadedOnce = false,
-  });
+  // Not const: a const default could not name T (it would be Paged<Never>).
+  AdminListState({Paged<T>? page, this.q = '', this.status})
+    : page = page ?? Paged<T>();
 
-  final List<T> items;
-  final String? nextCursor;
+  final Paged<T> page;
 
   /// Search text (users: name/email, spots: title). Empty = no filter.
   final String q;
 
   /// Spots only: `active`, `hidden` or null for all.
   final String? status;
-  final bool loading;
-  final bool loadingMore;
-  final Object? error;
-  final bool loadedOnce;
 
-  bool get hasMore => nextCursor != null;
+  List<T> get items => page.items;
+  bool get loading => page.loading;
+  bool get loadingMore => page.loadingMore;
+  Object? get error => page.error;
+  bool get loadedOnce => page.loadedOnce;
+  String? get nextCursor => page.nextCursor;
+  bool get hasMore => page.hasMore;
 
   AdminListState<T> copyWith({
+    Paged<T>? page,
     List<T>? items,
-    Object? nextCursor = _keep,
     String? q,
     Object? status = _keep,
-    bool? loading,
-    bool? loadingMore,
-    Object? error = _keep,
-    bool? loadedOnce,
   }) => AdminListState<T>(
-    items: items ?? this.items,
-    nextCursor: identical(nextCursor, _keep)
-        ? this.nextCursor
-        : nextCursor as String?,
+    page: items == null
+        ? page ?? this.page
+        : (page ?? this.page).copyWith(items: items),
     q: q ?? this.q,
     status: identical(status, _keep) ? this.status : status as String?,
-    loading: loading ?? this.loading,
-    loadingMore: loadingMore ?? this.loadingMore,
-    error: identical(error, _keep) ? this.error : error,
-    loadedOnce: loadedOnce ?? this.loadedOnce,
   );
 }
 
-/// Shared first-page / load-more / refresh logic of the three admin lists.
-abstract class AdminListController<T> extends Notifier<AdminListState<T>> {
-  int _gen = 0; // invalidates in-flight requests when the query changes
-
+/// The three admin lists: paging plus a few list edits.
+abstract class AdminListController<T> extends Notifier<AdminListState<T>>
+    with CursorPaging<AdminListState<T>, T> {
   @override
   AdminListState<T> build() => AdminListState<T>();
 
   AdminRepository get repo => ref.read(adminRepositoryProvider);
 
-  Future<AdminPage<T>> fetch(String? cursor);
-  int idOf(T item);
+  @override
+  Paged<T> get paged => state.page;
+
+  @override
+  set paged(Paged<T> value) => state = state.copyWith(page: value);
 
   /// First load; no-op once something was loaded.
-  Future<void> load() => state.loadedOnce ? Future.value() : _first(false);
+  Future<void> load() => state.loadedOnce ? Future.value() : loadFirst();
 
   /// Pull-to-refresh: reloads page one and replaces the list.
-  Future<void> refresh() => _first(true);
+  Future<void> refresh() => loadFirst(keepItems: true);
 
-  Future<void> reload() => _first(false);
-
-  Future<void> _first(bool keepItems) async {
-    final gen = ++_gen;
-    state = state.copyWith(
-      loading: true,
-      loadingMore: false,
-      error: null,
-      items: keepItems ? state.items : <T>[],
-      nextCursor: keepItems ? state.nextCursor : null,
-    );
-    try {
-      final page = await fetch(null);
-      if (gen != _gen) return;
-      state = state.copyWith(
-        items: _dedupe(page.items),
-        nextCursor: page.nextCursor,
-        loading: false,
-        loadedOnce: true,
-      );
-    } catch (e) {
-      if (gen != _gen) return;
-      state = state.copyWith(loading: false, error: e, loadedOnce: true);
-    }
-  }
-
-  /// Appends the next page; no-op when there is none or one is in flight.
-  Future<void> loadMore() async {
-    if (!state.hasMore || state.loading || state.loadingMore) return;
-    final gen = _gen;
-    state = state.copyWith(loadingMore: true, error: null);
-    try {
-      final page = await fetch(state.nextCursor);
-      if (gen != _gen) return;
-      final seen = state.items.map(idOf).toSet();
-      state = state.copyWith(
-        items: [...state.items, ...page.items.where((i) => seen.add(idOf(i)))],
-        nextCursor: page.nextCursor,
-        loadingMore: false,
-      );
-    } catch (e) {
-      if (gen != _gen) return;
-      state = state.copyWith(loadingMore: false, error: e);
-    }
-  }
-
-  List<T> _dedupe(List<T> items) {
-    final seen = <int>{};
-    return items.where((i) => seen.add(idOf(i))).toList();
-  }
+  Future<void> reload() => loadFirst();
 
   void removeWhere(bool Function(T) test) {
     state = state.copyWith(items: state.items.where((i) => !test(i)).toList());
@@ -133,7 +72,7 @@ abstract class AdminListController<T> extends Notifier<AdminListState<T>> {
 
 class ReportsController extends AdminListController<AdminReport> {
   @override
-  Future<AdminPage<AdminReport>> fetch(String? cursor) =>
+  Future<AdminPage<AdminReport>> fetchPage(String? cursor) =>
       repo.reports(cursor: cursor);
 
   @override
@@ -187,7 +126,7 @@ int _dec(int n, int by) => n - by < 0 ? 0 : n - by;
 
 class UsersController extends AdminListController<AdminUser> {
   @override
-  Future<AdminPage<AdminUser>> fetch(String? cursor) =>
+  Future<AdminPage<AdminUser>> fetchPage(String? cursor) =>
       repo.users(q: state.q.isEmpty ? null : state.q, cursor: cursor);
 
   @override
@@ -205,7 +144,7 @@ class UsersController extends AdminListController<AdminUser> {
 
 class SpotsController extends AdminListController<AdminSpot> {
   @override
-  Future<AdminPage<AdminSpot>> fetch(String? cursor) => repo.spots(
+  Future<AdminPage<AdminSpot>> fetchPage(String? cursor) => repo.spots(
     q: state.q.isEmpty ? null : state.q,
     status: state.status,
     cursor: cursor,

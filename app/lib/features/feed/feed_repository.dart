@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api_client.dart';
 import '../../core/models.dart';
+import '../../core/paging.dart';
 import '../../core/providers.dart' show apiClientProvider;
 
 enum FeedSort {
@@ -13,11 +14,7 @@ enum FeedSort {
   final String apiValue;
 }
 
-class FeedPage {
-  const FeedPage(this.items, this.nextCursor);
-  final List<FeedItem> items;
-  final String? nextCursor;
-}
+typedef FeedPage = CursorPage<FeedItem>;
 
 abstract class FeedRepository {
   Future<FeedPage> fetch({

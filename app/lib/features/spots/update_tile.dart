@@ -1,7 +1,7 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/models.dart';
+import '../../core/net_photo.dart';
 import '../../l10n/app_localizations.dart';
 import '../feed/feed_card.dart' show relativeTime;
 
@@ -91,13 +91,7 @@ class UpdateTile extends StatelessWidget {
                           child: SizedBox(
                             width: 72,
                             height: 72,
-                            child: CachedNetworkImage(
-                              imageUrl: item.photos[i].thumbUrl,
-                              fit: BoxFit.cover,
-                              errorWidget: (_, _, _) => const Center(
-                                child: Icon(Icons.broken_image_outlined),
-                              ),
-                            ),
+                            child: NetPhoto(item.photos[i].thumbUrl),
                           ),
                         ),
                       ),

@@ -1,22 +1,10 @@
 import '../../core/models.dart';
+import '../../core/paging.dart';
 
-/// One page of an admin list plus the cursor for the next one (null = end).
-class AdminPage<T> {
-  const AdminPage(this.items, this.nextCursor);
+export '../../core/paging.dart' show CursorPage;
 
-  final List<T> items;
-  final String? nextCursor;
-
-  factory AdminPage.fromJson(
-    Map<String, dynamic> json,
-    T Function(Map<String, dynamic>) parse,
-  ) => AdminPage(
-    ((json['items'] ?? const []) as List)
-        .map((e) => parse(e as Map<String, dynamic>))
-        .toList(),
-    json['next_cursor'] as String?,
-  );
-}
+/// One page of an admin list.
+typedef AdminPage<T> = CursorPage<T>;
 
 /// Reporter of a report: id, name and email.
 class AdminPerson {

@@ -1,12 +1,12 @@
 import 'dart:typed_data';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/api_client.dart';
 import '../../core/models.dart';
+import '../../core/net_photo.dart';
 import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import 'photo_uploader.dart';
@@ -302,12 +302,7 @@ class _UpdateComposerState extends ConsumerState<UpdateComposer> {
           child: SizedBox(
             width: 72,
             height: 72,
-            child: CachedNetworkImage(
-              imageUrl: e.photos[i].thumbUrl,
-              fit: BoxFit.cover,
-              errorWidget: (_, _, _) =>
-                  const Center(child: Icon(Icons.broken_image_outlined)),
-            ),
+            child: NetPhoto(e.photos[i].thumbUrl),
           ),
         ),
     ],

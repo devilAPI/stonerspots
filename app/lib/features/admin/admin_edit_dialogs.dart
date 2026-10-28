@@ -1,15 +1,15 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/api_client.dart';
 import '../../core/coordinates.dart';
-import '../../l10n/app_localizations.dart';
 import '../../core/models.dart'
     show Author, FeedItem, PhotoRef, SpotTag, UpdateTag;
-import '../spots/update_tile.dart' show updateTagLabel;
+import '../../core/net_photo.dart';
 import '../../core/spot_tag_widgets.dart';
+import '../../l10n/app_localizations.dart';
+import '../spots/update_tile.dart' show updateTagLabel;
 import 'admin_models.dart';
 import 'admin_repository.dart';
 
@@ -718,12 +718,7 @@ class _AdminUpdateDialogState extends ConsumerState<_AdminUpdateDialog> {
               height: 96,
               child: RotatedBox(
                 quarterTurns: _turns[p.id] ?? 0,
-                child: CachedNetworkImage(
-                  imageUrl: p.thumbUrl,
-                  fit: BoxFit.cover,
-                  errorWidget: (_, _, _) =>
-                      const Center(child: Icon(Icons.broken_image_outlined)),
-                ),
+                child: NetPhoto(p.thumbUrl),
               ),
             ),
           ),
