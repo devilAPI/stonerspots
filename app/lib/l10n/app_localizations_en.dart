@@ -826,4 +826,189 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get authErrInvalidName =>
       'The name must be 1 to 80 characters without @';
+
+  @override
+  String get adminActions => 'Actions';
+
+  @override
+  String adminSelected(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get adminSelectAll => 'Select all loaded';
+
+  @override
+  String get adminClearSelection => 'Clear selection';
+
+  @override
+  String get adminSelect => 'Select';
+
+  @override
+  String get adminBan => 'Ban';
+
+  @override
+  String get adminUnban => 'Unban';
+
+  @override
+  String get adminBanned => 'banned';
+
+  @override
+  String get adminDelete => 'Delete';
+
+  @override
+  String get adminHide => 'Hide';
+
+  @override
+  String get adminShow => 'Show';
+
+  @override
+  String get adminBulkLock => 'Lock';
+
+  @override
+  String get adminBulkUnlock => 'Unlock';
+
+  @override
+  String get adminAddTag => 'Add tag';
+
+  @override
+  String get adminRemoveTag => 'Remove tag';
+
+  @override
+  String get adminChooseTag => 'Choose a tag';
+
+  @override
+  String adminDeleteUsersTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Delete $count users?',
+      one: 'Delete 1 user?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get adminDeleteUsersBody =>
+      'The accounts are deleted with all their spots, photos, reviews and updates. This cannot be undone.';
+
+  @override
+  String adminDeleteSpotsTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Delete $count spots?',
+      one: 'Delete 1 spot?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get adminDeleteSpotsBody =>
+      'The spots are deleted with all their photos, updates, reviews and reports. This cannot be undone.';
+
+  @override
+  String adminBulkDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count changed',
+      one: '1 changed',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String adminBulkDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count deleted',
+      one: '1 deleted',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String adminBulkSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count skipped (you, admins or already gone)',
+      one: '1 skipped (you, an admin or already gone)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get authErrBanned => 'This account is banned';
+
+  @override
+  String get adminBackend => 'Backend';
+
+  @override
+  String adminBackendVersion(String version) {
+    return 'Installed: $version';
+  }
+
+  @override
+  String get adminVersionUnknown =>
+      'Version unknown (not installed with install-backend.sh)';
+
+  @override
+  String get adminUpdateRelease => 'Update backend to newest';
+
+  @override
+  String get adminUpdateDev => 'Update backend to newest dev';
+
+  @override
+  String get adminUpdateConfirmTitle => 'Update the backend?';
+
+  @override
+  String get adminUpdateConfirmRelease =>
+      'The server downloads the newest release, installs it and restarts. The app is unavailable for a few seconds.';
+
+  @override
+  String get adminUpdateConfirmDev =>
+      'The server downloads the newest dev build (may be unstable), installs it and restarts. The app is unavailable for a few seconds.';
+
+  @override
+  String get adminUpdate => 'Update';
+
+  @override
+  String get adminUpdatesDisabled =>
+      'Updates from here are off on this server. Run install-backend.sh on the server once to set them up.';
+
+  @override
+  String get adminUpdatePending => 'Update requested, waiting for the server…';
+
+  @override
+  String get adminUpdateRunning => 'Updating… the server restarts at the end';
+
+  @override
+  String get adminServerRestarting => 'Server is restarting…';
+
+  @override
+  String adminUpdateDone(String from, String to) {
+    return 'Updated: $from → $to';
+  }
+
+  @override
+  String adminUpdateUpToDate(String version) {
+    return 'Already up to date ($version)';
+  }
+
+  @override
+  String get adminUpdateFailed => 'The last update failed; see the log';
+
+  @override
+  String adminUpdateFinishedAt(String time) {
+    return 'Finished $time';
+  }
+
+  @override
+  String get adminUpdateLog => 'Log';
+
+  @override
+  String get adminUpdateRequestFailed => 'The update could not be requested';
 }

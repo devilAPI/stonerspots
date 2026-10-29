@@ -133,6 +133,8 @@ func (h *handler) login(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, errBadCredentials):
 		h.failures.Allow(key)
 		httpx.Error(w, http.StatusUnauthorized, "invalid_credentials", "invalid login or password")
+	case errors.Is(err, errBanned):
+		httpx.Error(w, http.StatusForbidden, "account_banned", "this account is banned")
 	case err != nil:
 		serverError(w)
 	default:

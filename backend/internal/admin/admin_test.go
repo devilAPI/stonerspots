@@ -31,6 +31,11 @@ type env struct {
 }
 
 func setup(t *testing.T) *env {
+	return setupWith(t, func(*config.Config) {})
+}
+
+// setupWith lets a test change the config the routes are mounted with.
+func setupWith(t *testing.T, cfg func(*config.Config)) *env {
 	t.Helper()
 	db := testutil.NewDB(t)
 	up := t.TempDir()
@@ -38,6 +43,7 @@ func setup(t *testing.T) *env {
 	r.Route("/api/v1", func(r chi.Router) {
 		deps := app.Deps{DB: db, Cfg: config.Config{
 			JWTSecret: []byte(testutil.JWTSecret), UploadDir: up, PublicBaseURL: "http://test"}}
+		cfg(&deps.Cfg)
 		qt := quotas.NewTracker(quotas.Config{})
 		admin.Mount(r, deps)
 		engagement.Mount(r, deps, qt)

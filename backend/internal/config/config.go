@@ -64,6 +64,11 @@ type Config struct {
 	// Zero value disables all mail features (verification, password reset).
 	Mail MailConfig
 
+	// UpdateDir is where admins request a backend update and its result is
+	// reported (see install-backend.sh); empty disables updating from the
+	// admin page.
+	UpdateDir string
+
 	// DisablePoW disables proof-of-work requirement for registration.
 	// Used in tests to avoid PoW overhead.
 	DisablePoW bool
@@ -88,10 +93,10 @@ type Limits struct {
 	Uploads       ratelimit.Rule // photo uploads per user
 
 	// Daily quotas per user (reset at midnight UTC). Zero = unlimited.
-	SpotsPerDay     int // new spots per user per day
-	UpdatesPerDay   int // spot updates per user per day
-	ReviewsPerDay   int // reviews per user per day
-	ReportsPerDay   int // reports per user per day
+	SpotsPerDay   int // new spots per user per day
+	UpdatesPerDay int // spot updates per user per day
+	ReviewsPerDay int // reviews per user per day
+	ReportsPerDay int // reports per user per day
 }
 
 // DefaultLimits are generous for people and tight for scripts. The feed and
@@ -104,27 +109,28 @@ func DefaultLimits() Limits {
 		Register:      ratelimit.Rule{N: 5, Per: time.Hour},
 		Refresh:       ratelimit.Rule{N: 30, Per: time.Minute},
 		Uploads:       ratelimit.Rule{N: 30, Per: time.Hour},
-		SpotsPerDay:     10,
-		UpdatesPerDay:   50,
-		ReviewsPerDay:   20,
-		ReportsPerDay:   10,
+		SpotsPerDay:   10,
+		UpdatesPerDay: 50,
+		ReviewsPerDay: 20,
+		ReportsPerDay: 10,
 	}
 }
 
 // file mirrors config.example.yaml.
 type file struct {
-	Addr           string   `yaml:"addr"`
-	PublicBaseURL  string   `yaml:"public_base_url"`
-	AllowedOrigins []string `yaml:"allowed_origins"`
-	JWTSecret      string   `yaml:"jwt_secret"`
-	UploadDir      string   `yaml:"upload_dir"`
-	MigrationsDir  string   `yaml:"migrations_dir"`
-	GeocoderURL    string   `yaml:"geocoder_url"`
-	TrustedProxies []string `yaml:"trusted_proxies"`
-	Database       database `yaml:"database"`
+	Addr           string     `yaml:"addr"`
+	PublicBaseURL  string     `yaml:"public_base_url"`
+	AllowedOrigins []string   `yaml:"allowed_origins"`
+	JWTSecret      string     `yaml:"jwt_secret"`
+	UploadDir      string     `yaml:"upload_dir"`
+	MigrationsDir  string     `yaml:"migrations_dir"`
+	UpdateDir      string     `yaml:"update_dir"`
+	GeocoderURL    string     `yaml:"geocoder_url"`
+	TrustedProxies []string   `yaml:"trusted_proxies"`
+	Database       database   `yaml:"database"`
 	Limits         fileLimits `yaml:"limits"`
-	MaxBodyBytes   int64    `yaml:"max_body_bytes"`
-	Mail           fileMail `yaml:"mail"`
+	MaxBodyBytes   int64      `yaml:"max_body_bytes"`
+	Mail           fileMail   `yaml:"mail"`
 }
 
 type fileMail struct {
@@ -142,10 +148,10 @@ type fileLimits struct {
 	Register      fileRule `yaml:"register"`
 	Refresh       fileRule `yaml:"refresh"`
 	Uploads       fileRule `yaml:"uploads"`
-	SpotsPerDay     int `yaml:"spots_per_day"`
-	UpdatesPerDay   int `yaml:"updates_per_day"`
-	ReviewsPerDay   int `yaml:"reviews_per_day"`
-	ReportsPerDay   int `yaml:"reports_per_day"`
+	SpotsPerDay   int      `yaml:"spots_per_day"`
+	UpdatesPerDay int      `yaml:"updates_per_day"`
+	ReviewsPerDay int      `yaml:"reviews_per_day"`
+	ReportsPerDay int      `yaml:"reports_per_day"`
 }
 
 type fileRule struct {
@@ -281,6 +287,7 @@ func Read() (Config, error) {
 		UploadDir:      getenv("UPLOAD_DIR", or(f.UploadDir, "./uploads")),
 		Addr:           getenv("ADDR", or(f.Addr, ":8080")),
 		MigrationsDir:  getenv("MIGRATIONS_DIR", or(f.MigrationsDir, "migrations")),
+		UpdateDir:      getenv("UPDATE_DIR", f.UpdateDir),
 		PublicBaseURL:  strings.TrimRight(getenv("PUBLIC_BASE_URL", or(f.PublicBaseURL, "http://localhost:8080")), "/"),
 		GeocoderURL:    getenv("GEOCODER_URL", or(f.GeocoderURL, "https://nominatim.openstreetmap.org")),
 		AllowedOrigins: origins,
@@ -308,10 +315,10 @@ func parseLimits(f fileLimits) Limits {
 		Register:      ruleOrDefault(f.Register, def.Register),
 		Refresh:       ruleOrDefault(f.Refresh, def.Refresh),
 		Uploads:       ruleOrDefault(f.Uploads, def.Uploads),
-		SpotsPerDay:     intOrDefault(f.SpotsPerDay, def.SpotsPerDay),
-		UpdatesPerDay:   intOrDefault(f.UpdatesPerDay, def.UpdatesPerDay),
-		ReviewsPerDay:   intOrDefault(f.ReviewsPerDay, def.ReviewsPerDay),
-		ReportsPerDay:   intOrDefault(f.ReportsPerDay, def.ReportsPerDay),
+		SpotsPerDay:   intOrDefault(f.SpotsPerDay, def.SpotsPerDay),
+		UpdatesPerDay: intOrDefault(f.UpdatesPerDay, def.UpdatesPerDay),
+		ReviewsPerDay: intOrDefault(f.ReviewsPerDay, def.ReviewsPerDay),
+		ReportsPerDay: intOrDefault(f.ReportsPerDay, def.ReportsPerDay),
 	}
 }
 

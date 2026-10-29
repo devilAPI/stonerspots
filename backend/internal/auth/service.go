@@ -31,6 +31,7 @@ var (
 	errNameTaken      = errors.New("display name taken")
 	errBadCredentials = errors.New("invalid credentials")
 	errBadRefresh     = errors.New("invalid refresh token")
+	errBanned         = errors.New("account banned")
 )
 
 // User is the public user representation.
@@ -39,6 +40,8 @@ type User struct {
 	Email       string `json:"email"`
 	DisplayName string `json:"display_name"`
 	IsAdmin     bool   `json:"is_admin"`
+
+	banned bool // only read by refresh
 }
 
 // Session is returned by register, login and refresh.
@@ -205,10 +208,11 @@ func (s *service) login(ctx context.Context, login, password string) (*Session, 
 	var u User
 	var hash string
 	var verified sql.NullBool
+	var banned sql.NullTime
 	where, arg := byLogin(login)
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, email, display_name, is_admin, password_hash, email_verified FROM users WHERE `+where, arg,
-	).Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin, &hash, &verified)
+		`SELECT id, email, display_name, is_admin, password_hash, email_verified, banned_at FROM users WHERE `+where, arg,
+	).Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin, &hash, &verified, &banned)
 	if errors.Is(err, sql.ErrNoRows) {
 		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
 		return nil, errBadCredentials
@@ -222,6 +226,10 @@ func (s *service) login(ctx context.Context, login, password string) (*Session, 
 	// If mail is configured and email is not verified, reject login
 	if s.mail != nil && s.mail.Config().Enabled() && !(verified.Valid && verified.Bool) {
 		return nil, errBadCredentials
+	}
+	// only after the password: a wrong guess does not learn about the ban
+	if banned.Valid {
+		return nil, errBanned
 	}
 	return s.session(ctx, u, "")
 }
@@ -269,6 +277,9 @@ func (s *service) refresh(ctx context.Context, token string) (*Session, error) {
 	if err != nil {
 		return nil, err
 	}
+	if u.banned {
+		return nil, errBadRefresh
+	}
 	return s.session(ctx, *u, family)
 }
 
@@ -306,10 +317,12 @@ func newUUID() string {
 
 func (s *service) user(ctx context.Context, id uint64) (*User, error) {
 	var u User
-	err := s.db.QueryRowContext(ctx, `SELECT id, email, display_name, is_admin FROM users WHERE id = ?`, id).
-		Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin)
+	var banned sql.NullTime
+	err := s.db.QueryRowContext(ctx, `SELECT id, email, display_name, is_admin, banned_at FROM users WHERE id = ?`, id).
+		Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin, &banned)
 	if err != nil {
 		return nil, err
 	}
+	u.banned = banned.Valid
 	return &u, nil
 }

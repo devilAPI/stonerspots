@@ -20,6 +20,10 @@ import (
 type handler struct {
 	repo   repo
 	photos photos.Storage
+
+	// updateDir and versionFile: see system.go
+	updateDir   string
+	versionFile string
 }
 
 const (

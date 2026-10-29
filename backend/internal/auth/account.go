@@ -71,13 +71,23 @@ func (s *service) changePassword(ctx context.Context, userID uint64, current, ne
 	return s.session(ctx, *u, "")
 }
 
-// deleteAccount deletes the user (cascading to all owned rows) in one
-// transaction and then removes their photo files best-effort.
+// deleteAccount deletes the user after checking their password; see
+// DeleteUser.
 func (s *service) deleteAccount(ctx context.Context, userID uint64, password string) error {
 	if _, err := s.checkPassword(ctx, userID, password); err != nil {
 		return err
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	return DeleteUser(ctx, s.db, s.uploadDir, userID)
+}
+
+// ErrNoUser is returned by DeleteUser for an unknown id.
+var ErrNoUser = errNoUser
+
+// DeleteUser deletes the user (cascading to all owned rows, including the
+// spots they created) in one transaction and then removes their photo
+// files best-effort.
+func DeleteUser(ctx context.Context, db *sql.DB, uploadDir string, userID uint64) error {
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -120,7 +130,7 @@ func (s *service) deleteAccount(ctx context.Context, userID uint64, password str
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-	removeFiles(s.uploadDir, keys)
+	removeFiles(uploadDir, keys)
 	return nil
 }
 

@@ -64,6 +64,14 @@ The first run creates `/etc/stonerspots/config.yaml` with a random JWT secret;
 fill in the database there (MariaDB 11.4, not installed by the script), then
 `sudo systemctl start stonerspots-backend`.
 
+Admins can also update the backend from the app: admin page → Actions →
+"Update backend to newest" / "… newest dev". The API runs unprivileged, so
+it only drops the wanted channel into `/var/lib/stonerspots-update/request/`;
+the root unit `stonerspots-update.path` picks that up and runs the installed
+copy of this script (`/opt/stonerspots/install-backend.sh --release|--dev`),
+reporting progress and its log back to the page. Installs from before this
+feature get the units by running `install-backend.sh` once more.
+
 ## Web app on GitHub Pages
 
 The `Publish web app` workflow deploys the web build of the newest release to

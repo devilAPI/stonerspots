@@ -1483,6 +1483,264 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Der Name muss 1 bis 80 Zeichen lang sein und darf kein @ enthalten'**
   String get authErrInvalidName;
+
+  /// No description provided for @adminActions.
+  ///
+  /// In de, this message translates to:
+  /// **'Aktionen'**
+  String get adminActions;
+
+  /// No description provided for @adminSelected.
+  ///
+  /// In de, this message translates to:
+  /// **'{count} ausgewählt'**
+  String adminSelected(int count);
+
+  /// No description provided for @adminSelectAll.
+  ///
+  /// In de, this message translates to:
+  /// **'Alle geladenen auswählen'**
+  String get adminSelectAll;
+
+  /// No description provided for @adminClearSelection.
+  ///
+  /// In de, this message translates to:
+  /// **'Auswahl aufheben'**
+  String get adminClearSelection;
+
+  /// No description provided for @adminSelect.
+  ///
+  /// In de, this message translates to:
+  /// **'Auswählen'**
+  String get adminSelect;
+
+  /// No description provided for @adminBan.
+  ///
+  /// In de, this message translates to:
+  /// **'Sperren'**
+  String get adminBan;
+
+  /// No description provided for @adminUnban.
+  ///
+  /// In de, this message translates to:
+  /// **'Entsperren'**
+  String get adminUnban;
+
+  /// No description provided for @adminBanned.
+  ///
+  /// In de, this message translates to:
+  /// **'gesperrt'**
+  String get adminBanned;
+
+  /// No description provided for @adminDelete.
+  ///
+  /// In de, this message translates to:
+  /// **'Löschen'**
+  String get adminDelete;
+
+  /// No description provided for @adminHide.
+  ///
+  /// In de, this message translates to:
+  /// **'Verbergen'**
+  String get adminHide;
+
+  /// No description provided for @adminShow.
+  ///
+  /// In de, this message translates to:
+  /// **'Anzeigen'**
+  String get adminShow;
+
+  /// No description provided for @adminBulkLock.
+  ///
+  /// In de, this message translates to:
+  /// **'Sperren'**
+  String get adminBulkLock;
+
+  /// No description provided for @adminBulkUnlock.
+  ///
+  /// In de, this message translates to:
+  /// **'Entsperren'**
+  String get adminBulkUnlock;
+
+  /// No description provided for @adminAddTag.
+  ///
+  /// In de, this message translates to:
+  /// **'Tag hinzufügen'**
+  String get adminAddTag;
+
+  /// No description provided for @adminRemoveTag.
+  ///
+  /// In de, this message translates to:
+  /// **'Tag entfernen'**
+  String get adminRemoveTag;
+
+  /// No description provided for @adminChooseTag.
+  ///
+  /// In de, this message translates to:
+  /// **'Tag wählen'**
+  String get adminChooseTag;
+
+  /// No description provided for @adminDeleteUsersTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =1{1 Nutzer löschen?} other{{count} Nutzer löschen?}}'**
+  String adminDeleteUsersTitle(int count);
+
+  /// No description provided for @adminDeleteUsersBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Konten werden mit all ihren Spots, Fotos, Bewertungen und Updates gelöscht. Das lässt sich nicht rückgängig machen.'**
+  String get adminDeleteUsersBody;
+
+  /// No description provided for @adminDeleteSpotsTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =1{1 Spot löschen?} other{{count} Spots löschen?}}'**
+  String adminDeleteSpotsTitle(int count);
+
+  /// No description provided for @adminDeleteSpotsBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Spots werden mit allen Fotos, Updates, Bewertungen und Meldungen gelöscht. Das lässt sich nicht rückgängig machen.'**
+  String get adminDeleteSpotsBody;
+
+  /// No description provided for @adminBulkDone.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =1{1 geändert} other{{count} geändert}}'**
+  String adminBulkDone(int count);
+
+  /// No description provided for @adminBulkDeleted.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =1{1 gelöscht} other{{count} gelöscht}}'**
+  String adminBulkDeleted(int count);
+
+  /// No description provided for @adminBulkSkipped.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =1{1 übersprungen (du, ein Admin oder schon weg)} other{{count} übersprungen (du, Admins oder schon weg)}}'**
+  String adminBulkSkipped(int count);
+
+  /// No description provided for @authErrBanned.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieses Konto ist gesperrt'**
+  String get authErrBanned;
+
+  /// No description provided for @adminBackend.
+  ///
+  /// In de, this message translates to:
+  /// **'Backend'**
+  String get adminBackend;
+
+  /// No description provided for @adminBackendVersion.
+  ///
+  /// In de, this message translates to:
+  /// **'Installiert: {version}'**
+  String adminBackendVersion(String version);
+
+  /// No description provided for @adminVersionUnknown.
+  ///
+  /// In de, this message translates to:
+  /// **'Version unbekannt (nicht mit install-backend.sh installiert)'**
+  String get adminVersionUnknown;
+
+  /// No description provided for @adminUpdateRelease.
+  ///
+  /// In de, this message translates to:
+  /// **'Backend auf neueste Version'**
+  String get adminUpdateRelease;
+
+  /// No description provided for @adminUpdateDev.
+  ///
+  /// In de, this message translates to:
+  /// **'Backend auf neuesten Dev-Build'**
+  String get adminUpdateDev;
+
+  /// No description provided for @adminUpdateConfirmTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Backend aktualisieren?'**
+  String get adminUpdateConfirmTitle;
+
+  /// No description provided for @adminUpdateConfirmRelease.
+  ///
+  /// In de, this message translates to:
+  /// **'Der Server lädt die neueste Version, installiert sie und startet neu. Die App ist ein paar Sekunden nicht erreichbar.'**
+  String get adminUpdateConfirmRelease;
+
+  /// No description provided for @adminUpdateConfirmDev.
+  ///
+  /// In de, this message translates to:
+  /// **'Der Server lädt den neuesten Dev-Build (kann instabil sein), installiert ihn und startet neu. Die App ist ein paar Sekunden nicht erreichbar.'**
+  String get adminUpdateConfirmDev;
+
+  /// No description provided for @adminUpdate.
+  ///
+  /// In de, this message translates to:
+  /// **'Aktualisieren'**
+  String get adminUpdate;
+
+  /// No description provided for @adminUpdatesDisabled.
+  ///
+  /// In de, this message translates to:
+  /// **'Updates von hier sind auf diesem Server aus. Einmal install-backend.sh auf dem Server ausführen, um sie einzurichten.'**
+  String get adminUpdatesDisabled;
+
+  /// No description provided for @adminUpdatePending.
+  ///
+  /// In de, this message translates to:
+  /// **'Update angefordert, warte auf den Server…'**
+  String get adminUpdatePending;
+
+  /// No description provided for @adminUpdateRunning.
+  ///
+  /// In de, this message translates to:
+  /// **'Wird aktualisiert… der Server startet am Ende neu'**
+  String get adminUpdateRunning;
+
+  /// No description provided for @adminServerRestarting.
+  ///
+  /// In de, this message translates to:
+  /// **'Server startet neu…'**
+  String get adminServerRestarting;
+
+  /// No description provided for @adminUpdateDone.
+  ///
+  /// In de, this message translates to:
+  /// **'Aktualisiert: {from} → {to}'**
+  String adminUpdateDone(String from, String to);
+
+  /// No description provided for @adminUpdateUpToDate.
+  ///
+  /// In de, this message translates to:
+  /// **'Schon aktuell ({version})'**
+  String adminUpdateUpToDate(String version);
+
+  /// No description provided for @adminUpdateFailed.
+  ///
+  /// In de, this message translates to:
+  /// **'Das letzte Update ist fehlgeschlagen; siehe Log'**
+  String get adminUpdateFailed;
+
+  /// No description provided for @adminUpdateFinishedAt.
+  ///
+  /// In de, this message translates to:
+  /// **'Fertig {time}'**
+  String adminUpdateFinishedAt(String time);
+
+  /// No description provided for @adminUpdateLog.
+  ///
+  /// In de, this message translates to:
+  /// **'Log'**
+  String get adminUpdateLog;
+
+  /// No description provided for @adminUpdateRequestFailed.
+  ///
+  /// In de, this message translates to:
+  /// **'Das Update konnte nicht angefordert werden'**
+  String get adminUpdateRequestFailed;
 }
 
 class _AppLocalizationsDelegate

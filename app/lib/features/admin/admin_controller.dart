@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api_client.dart';
 import '../../core/paging.dart';
+import 'admin_actions.dart';
 import 'admin_models.dart';
 import 'admin_repository.dart';
 
@@ -67,6 +68,18 @@ abstract class AdminListController<T> extends Notifier<AdminListState<T>>
 
   void removeWhere(bool Function(T) test) {
     state = state.copyWith(items: state.items.where((i) => !test(i)).toList());
+  }
+
+  /// Shows what a bulk action did: changed rows replaced, deleted ones gone.
+  void applyBulk(BulkResult<T> result) {
+    final changed = {for (final i in result.items) idOf(i): i};
+    final gone = result.deleted.toSet();
+    state = state.copyWith(
+      items: [
+        for (final i in state.items)
+          if (!gone.contains(idOf(i))) changed[idOf(i)] ?? i,
+      ],
+    );
   }
 }
 

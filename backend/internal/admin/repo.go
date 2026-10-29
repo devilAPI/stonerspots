@@ -107,12 +107,13 @@ type userItem struct {
 	Email           string    `json:"email"`
 	DisplayName     string    `json:"display_name"`
 	IsAdmin         bool      `json:"is_admin"`
+	Banned          bool      `json:"banned"`
 	CreatedAt       time.Time `json:"created_at"`
 	SpotCount       int       `json:"spot_count"`
 	ReportsReceived int       `json:"reports_received"`
 }
 
-const userSelect = `SELECT u.id, u.email, u.display_name, u.is_admin, u.created_at,
+const userSelect = `SELECT u.id, u.email, u.display_name, u.is_admin, u.banned_at IS NOT NULL, u.created_at,
 		(SELECT COUNT(*) FROM spots s WHERE s.user_id = u.id),
 		(SELECT COUNT(*) FROM reports r JOIN spots s ON r.target_type = 'spot' AND r.target_id = s.id WHERE s.user_id = u.id)
 		+ (SELECT COUNT(*) FROM reports r JOIN spot_updates su ON r.target_type = 'update' AND r.target_id = su.id WHERE su.user_id = u.id)
@@ -121,7 +122,7 @@ const userSelect = `SELECT u.id, u.email, u.display_name, u.is_admin, u.created_
 
 func scanUser(row interface{ Scan(...any) error }) (userItem, error) {
 	var it userItem
-	err := row.Scan(&it.ID, &it.Email, &it.DisplayName, &it.IsAdmin, &it.CreatedAt, &it.SpotCount, &it.ReportsReceived)
+	err := row.Scan(&it.ID, &it.Email, &it.DisplayName, &it.IsAdmin, &it.Banned, &it.CreatedAt, &it.SpotCount, &it.ReportsReceived)
 	it.CreatedAt = it.CreatedAt.UTC()
 	return it, err
 }

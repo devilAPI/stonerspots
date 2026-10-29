@@ -167,12 +167,13 @@ CREATE TABLE `users` (
   `email_verify_expires` timestamp NULL DEFAULT NULL,
   `password_reset_token` varchar(255) DEFAULT NULL,
   `password_reset_expires` timestamp NULL DEFAULT NULL,
+  `banned_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_users_email` (`email`),
   UNIQUE KEY `uq_users_display_name` (`display_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (17, 0);
+INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (18, 0);
 
 INSERT INTO `tags` (`tag`, `name_de`, `name_en`, `icon`, `sort`) VALUES
   ('roof', 'Überdacht', 'Roof', 'roof', 10),

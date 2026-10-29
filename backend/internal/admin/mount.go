@@ -12,7 +12,12 @@ import (
 
 // Mount registers the admin routes on the /api/v1 router.
 func Mount(r chi.Router, d app.Deps) {
-	h := handler{repo: repo{db: d.DB, uploadDir: d.Cfg.UploadDir}, photos: photos.StorageFor(d)}
+	h := handler{
+		repo:        repo{db: d.DB, uploadDir: d.Cfg.UploadDir},
+		photos:      photos.StorageFor(d),
+		updateDir:   d.Cfg.UpdateDir,
+		versionFile: versionFileNextTo(),
+	}
 	g := r.With(auth.Middleware(d.Cfg.JWTSecret), auth.RequireAdmin(d.DB))
 	g.Get("/admin/reports", h.reports)
 	g.Get("/admin/users", h.users)
@@ -27,6 +32,10 @@ func Mount(r chi.Router, d app.Deps) {
 	g.Patch("/admin/tags/{tag}", h.patchTag)
 	g.Delete("/admin/tags/{tag}", h.deleteTag)
 	g.Patch("/admin/users/{id}", h.patchUser)
+	g.Post("/admin/users/bulk", h.bulkUsers)
+	g.Post("/admin/spots/bulk", h.bulkSpots)
+	g.Get("/admin/system", h.system)
+	g.Post("/admin/system/update", h.requestUpdate)
 	g.Delete("/admin/reports/{id}", h.deleteReport)
 	g.Post("/admin/reports/dismiss", h.dismiss)
 

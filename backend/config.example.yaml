@@ -28,6 +28,11 @@ upload_dir: "./uploads"
 # Folder with the SQL migrations; applied on every start [MIGRATIONS_DIR]
 migrations_dir: "./migrations"
 
+# Folder through which the admin page asks for a backend update. Set by the
+# systemd unit of install-backend.sh; empty turns the update buttons off
+# [UPDATE_DIR]
+update_dir: ""
+
 # Nominatim-compatible geocoder [GEOCODER_URL]
 geocoder_url: "https://nominatim.openstreetmap.org"
 

@@ -134,6 +134,7 @@ class AdminUser {
     required this.createdAt,
     required this.spotCount,
     required this.reportsReceived,
+    this.banned = false,
   });
 
   final int id;
@@ -144,6 +145,9 @@ class AdminUser {
   final int spotCount;
   final int reportsReceived;
 
+  /// Cannot log in; their content stays.
+  final bool banned;
+
   factory AdminUser.fromJson(Map<String, dynamic> j) => AdminUser(
     id: j['id'] as int,
     email: (j['email'] ?? '') as String,
@@ -152,6 +156,7 @@ class AdminUser {
     createdAt: DateTime.parse(j['created_at'] as String),
     spotCount: (j['spot_count'] ?? 0) as int,
     reportsReceived: (j['reports_received'] ?? 0) as int,
+    banned: (j['banned'] ?? false) as bool,
   );
 }
 

@@ -7,10 +7,12 @@ import '../../core/tab_keys.dart';
 import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
+import 'admin_bulk.dart';
 import 'admin_controller.dart';
 import 'admin_edit_dialogs.dart';
 import 'admin_models.dart';
 import 'admin_repository.dart';
+import 'admin_system_tab.dart';
 import 'admin_tags_tab.dart';
 
 String _formatDateTime(BuildContext context, DateTime d) {
@@ -20,7 +22,8 @@ String _formatDateTime(BuildContext context, DateTime d) {
       '${loc.formatTimeOfDay(TimeOfDay.fromDateTime(local))}';
 }
 
-/// Moderation page for admins: reports, users, spots and the tag catalog.
+/// Moderation page for admins: reports, users, spots, the tag catalog and
+/// server actions (backend updates).
 class AdminScreen extends ConsumerWidget {
   const AdminScreen({super.key});
 
@@ -33,7 +36,7 @@ class AdminScreen extends ConsumerWidget {
     ref.listen(adminUsersProvider, (_, _) {});
     ref.listen(adminSpotsProvider, (_, _) {});
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Builder(
         // the controller only exists below DefaultTabController
         builder: (context) {
@@ -41,7 +44,7 @@ class AdminScreen extends ConsumerWidget {
           return ListenableBuilder(
             listenable: tabs,
             builder: (context, child) => TabKeys(
-              count: 4,
+              count: 5,
               index: tabs.index,
               onSelect: tabs.animateTo,
               child: child!,
@@ -56,6 +59,7 @@ class AdminScreen extends ConsumerWidget {
                     Tab(text: l10n.adminUsers),
                     Tab(text: l10n.adminSpots),
                     Tab(text: l10n.adminTags),
+                    Tab(text: l10n.adminActions),
                   ],
                 ),
               ),
@@ -65,6 +69,7 @@ class AdminScreen extends ConsumerWidget {
                   _UsersTab(),
                   _SpotsTab(),
                   AdminTagsTab(),
+                  AdminSystemTab(),
                 ],
               ),
             ),
@@ -423,28 +428,92 @@ class _StatusChip extends StatelessWidget {
 }
 
 class _Tile extends StatelessWidget {
-  const _Tile({super.key, required this.body, this.actions = const []});
+  const _Tile({
+    super.key,
+    required this.body,
+    this.actions = const [],
+    this.selected,
+    this.onSelected,
+    this.selectKey,
+  });
   final List<Widget> body;
   final List<Widget> actions;
 
+  /// With a value the tile has a checkbox; [onSelected] null disables it.
+  final bool? selected;
+  final ValueChanged<bool>? onSelected;
+  final Key? selectKey;
+
   @override
-  Widget build(BuildContext context) => Card(
-    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-    child: Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ...body,
-          if (actions.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Wrap(spacing: 8, runSpacing: 4, children: actions),
-            ),
-        ],
+  Widget build(BuildContext context) {
+    final selected = this.selected;
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ...body,
+        if (actions.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Wrap(spacing: 8, runSpacing: 4, children: actions),
+          ),
+      ],
+    );
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      color: selected == true
+          ? Theme.of(context).colorScheme.secondaryContainer
+          : null,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(selected == null ? 12 : 0, 12, 12, 12),
+        child: selected == null
+            ? content
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Checkbox(
+                    key: selectKey,
+                    value: selected,
+                    onChanged: onSelected == null
+                        ? null
+                        : (v) => onSelected!(v ?? false),
+                  ),
+                  Expanded(child: content),
+                ],
+              ),
       ),
-    ),
-  );
+    );
+  }
+}
+
+/// The ids of the selected rows of a list. Rows that left the list (deleted,
+/// or another search) drop out of it.
+mixin _Selection<W extends ConsumerStatefulWidget> on ConsumerState<W> {
+  final selected = <int>{};
+  bool busy = false;
+
+  void toggle(int id, bool on) =>
+      setState(() => on ? selected.add(id) : selected.remove(id));
+
+  /// [selected] limited to the ids still in [loaded].
+  List<int> current(Iterable<int> loaded) {
+    final ids = loaded.toSet();
+    selected.retainWhere(ids.contains);
+    return selected.toList();
+  }
+
+  /// Runs [action]; it calls the callback it gets when its request goes
+  /// out (after its questions), which turns the bar busy.
+  Future<void> run(
+    Future<bool> Function(List<int> ids, VoidCallback onSend) action,
+    List<int> ids,
+  ) async {
+    final ran = await action(ids, () => setState(() => busy = true));
+    if (!mounted) return;
+    setState(() {
+      busy = false;
+      if (ran) selected.clear();
+    });
+  }
 }
 
 /// Search box that only queries on submit (Enter / search key).
@@ -675,7 +744,8 @@ class _UsersTab extends ConsumerStatefulWidget {
   ConsumerState<_UsersTab> createState() => _UsersTabState();
 }
 
-class _UsersTabState extends ConsumerState<_UsersTab> {
+class _UsersTabState extends ConsumerState<_UsersTab>
+    with _Selection<_UsersTab> {
   @override
   void initState() {
     super.initState();
@@ -689,6 +759,12 @@ class _UsersTabState extends ConsumerState<_UsersTab> {
     final l10n = AppLocalizations.of(context);
     final state = ref.watch(adminUsersProvider);
     final ctrl = ref.read(adminUsersProvider.notifier);
+    // admins (you included) are never banned or deleted in bulk
+    final selectable = [
+      for (final u in state.items)
+        if (!u.isAdmin) u.id,
+    ];
+    final ids = current(selectable);
     return Column(
       children: [
         _SearchField(
@@ -707,6 +783,9 @@ class _UsersTabState extends ConsumerState<_UsersTab> {
               final theme = Theme.of(ctx);
               return _Tile(
                 key: Key('user-${u.id}'),
+                selectKey: Key('user-select-${u.id}'),
+                selected: selected.contains(u.id),
+                onSelected: u.isAdmin || busy ? null : (on) => toggle(u.id, on),
                 body: [
                   Row(
                     children: [
@@ -721,6 +800,15 @@ class _UsersTabState extends ConsumerState<_UsersTab> {
                         Chip(
                           visualDensity: VisualDensity.compact,
                           label: Text(l10n.adminBadge),
+                        ),
+                      ],
+                      if (u.banned) ...[
+                        const SizedBox(width: 8),
+                        Chip(
+                          key: Key('user-banned-${u.id}'),
+                          visualDensity: VisualDensity.compact,
+                          backgroundColor: theme.colorScheme.errorContainer,
+                          label: Text(l10n.adminBanned),
                         ),
                       ],
                     ],
@@ -751,6 +839,28 @@ class _UsersTabState extends ConsumerState<_UsersTab> {
             },
           ),
         ),
+        if (ids.isNotEmpty)
+          AdminSelectionBar(
+            count: ids.length,
+            busy: busy,
+            onSelectAll: () => setState(() => selected.addAll(selectable)),
+            onClear: () => setState(selected.clear),
+            onAction: (a) => run(
+              (ids, onSend) =>
+                  runUserBulk(context, ref, ids, a, onSend: onSend),
+              ids,
+            ),
+            actions: [
+              BulkAction('ban', Icons.block, l10n.adminBan),
+              BulkAction('unban', Icons.lock_open, l10n.adminUnban),
+              BulkAction(
+                'delete',
+                Icons.delete_outline,
+                l10n.adminDelete,
+                danger: true,
+              ),
+            ],
+          ),
       ],
     );
   }
@@ -765,7 +875,8 @@ class _SpotsTab extends ConsumerStatefulWidget {
   ConsumerState<_SpotsTab> createState() => _SpotsTabState();
 }
 
-class _SpotsTabState extends ConsumerState<_SpotsTab> {
+class _SpotsTabState extends ConsumerState<_SpotsTab>
+    with _Selection<_SpotsTab> {
   @override
   void initState() {
     super.initState();
@@ -780,6 +891,7 @@ class _SpotsTabState extends ConsumerState<_SpotsTab> {
     final state = ref.watch(adminSpotsProvider);
     final ctrl = ref.read(adminSpotsProvider.notifier);
     final gutter = sideGutter(MediaQuery.sizeOf(context).width);
+    final ids = current(state.items.map((s) => s.id));
     final filters = <(String, String?, String)>[
       ('all', null, l10n.statusAll),
       ('active', 'active', l10n.statusActive),
@@ -822,6 +934,9 @@ class _SpotsTabState extends ConsumerState<_SpotsTab> {
               final theme = Theme.of(ctx);
               return _Tile(
                 key: Key('spot-${s.id}'),
+                selectKey: Key('spot-select-${s.id}'),
+                selected: selected.contains(s.id),
+                onSelected: busy ? null : (on) => toggle(s.id, on),
                 body: [
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -886,6 +1001,37 @@ class _SpotsTabState extends ConsumerState<_SpotsTab> {
             },
           ),
         ),
+        if (ids.isNotEmpty)
+          AdminSelectionBar(
+            count: ids.length,
+            busy: busy,
+            onSelectAll: () =>
+                setState(() => selected.addAll(state.items.map((s) => s.id))),
+            onClear: () => setState(selected.clear),
+            onAction: (a) => run(
+              (ids, onSend) =>
+                  runSpotBulk(context, ref, ids, a, onSend: onSend),
+              ids,
+            ),
+            actions: [
+              BulkAction('hide', Icons.visibility_off_outlined, l10n.adminHide),
+              BulkAction('show', Icons.visibility_outlined, l10n.adminShow),
+              BulkAction('lock', Icons.lock_outline, l10n.adminBulkLock),
+              BulkAction('unlock', Icons.lock_open, l10n.adminBulkUnlock),
+              BulkAction('add_tag', Icons.sell_outlined, l10n.adminAddTag),
+              BulkAction(
+                'remove_tag',
+                Icons.label_off_outlined,
+                l10n.adminRemoveTag,
+              ),
+              BulkAction(
+                'delete',
+                Icons.delete_outline,
+                l10n.adminDelete,
+                danger: true,
+              ),
+            ],
+          ),
       ],
     );
   }

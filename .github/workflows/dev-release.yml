@@ -184,7 +184,7 @@ jobs:
           mkdir -p "pkg/$name" ../dist
           go build -trimpath -ldflags="-s -w" -o "pkg/$name/api" ./cmd/api
           go build -trimpath -ldflags="-s -w" -o "pkg/$name/makeadmin" ./cmd/makeadmin
-          cp -R migrations config.example.yaml schema.example.sql "pkg/$name/"
+          cp -R migrations config.example.yaml schema.example.sql ../install-backend.sh "pkg/$name/"
           tar -czf "../dist/$name.tar.gz" -C pkg "$name"
       - uses: actions/upload-artifact@v4
         with:
