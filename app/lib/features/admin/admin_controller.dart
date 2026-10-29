@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api_client.dart';
+import '../../core/models.dart' show Author;
 import '../../core/paging.dart';
 import 'admin_actions.dart';
 import 'admin_models.dart';
@@ -11,7 +12,7 @@ const _keep = Object();
 /// State of one cursor-paginated admin list.
 class AdminListState<T> {
   // Not const: a const default could not name T (it would be Paged<Never>).
-  AdminListState({Paged<T>? page, this.q = '', this.status})
+  AdminListState({Paged<T>? page, this.q = '', this.status, this.owner})
     : page = page ?? Paged<T>();
 
   final Paged<T> page;
@@ -21,6 +22,9 @@ class AdminListState<T> {
 
   /// Spots only: `active`, `hidden` or null for all.
   final String? status;
+
+  /// Spots only: just this user's spots, or null for everyone's.
+  final Author? owner;
 
   List<T> get items => page.items;
   bool get loading => page.loading;
@@ -35,12 +39,14 @@ class AdminListState<T> {
     List<T>? items,
     String? q,
     Object? status = _keep,
+    Object? owner = _keep,
   }) => AdminListState<T>(
     page: items == null
         ? page ?? this.page
         : (page ?? this.page).copyWith(items: items),
     q: q ?? this.q,
     status: identical(status, _keep) ? this.status : status as String?,
+    owner: identical(owner, _keep) ? this.owner : owner as Author?,
   );
 }
 
@@ -160,6 +166,7 @@ class SpotsController extends AdminListController<AdminSpot> {
   Future<AdminPage<AdminSpot>> fetchPage(String? cursor) => repo.spots(
     q: state.q.isEmpty ? null : state.q,
     status: state.status,
+    ownerId: state.owner?.id,
     cursor: cursor,
   );
 
@@ -173,6 +180,12 @@ class SpotsController extends AdminListController<AdminSpot> {
 
   Future<void> setStatus(String? status) {
     state = state.copyWith(status: status);
+    return reload();
+  }
+
+  /// Shows only [owner]'s spots (null: everyone's).
+  Future<void> setOwner(Author? owner) {
+    state = state.copyWith(owner: owner);
     return reload();
   }
 

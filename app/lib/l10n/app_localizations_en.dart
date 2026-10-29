@@ -1011,4 +1011,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminUpdateRequestFailed => 'The update could not be requested';
+
+  @override
+  String get adminEditUpdates => 'Edit updates';
+
+  @override
+  String get adminPickUpdate => 'Which update?';
+
+  @override
+  String get adminShowUserSpots => 'Show spots';
+
+  @override
+  String adminSpotsOf(String name) {
+    return 'Spots by $name';
+  }
+
+  @override
+  String get adminUpdateSaved => 'Update saved';
 }

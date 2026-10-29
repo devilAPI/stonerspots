@@ -23,6 +23,23 @@ class _Fake implements AdminRepository {
       calls.add('update:$id:${patch.toJson()}');
 
   @override
+  Future<AdminPage<AdminUser>> users({
+    String? q,
+    String? cursor,
+    int limit = 20,
+  }) async => AdminPage([
+    AdminUser(
+      id: 9,
+      email: 'bo@x.de',
+      displayName: 'Bo',
+      isAdmin: false,
+      createdAt: DateTime.utc(2026),
+      spotCount: 0,
+      reportsReceived: 0,
+    ),
+  ], null);
+
+  @override
   Future<void> rotatePhoto(int id, int degrees) async =>
       calls.add('rotate:$id:$degrees');
 
@@ -100,6 +117,18 @@ void main() {
 
     await _tap(t, 'admin-update-save');
     expect(repo.calls, ['rotate:1:90', 'delete:2']);
+    expect(result(), isTrue);
+  });
+
+  testWidgets('the owner can be changed', (t) async {
+    final repo = _Fake();
+    final result = await _open(t, repo, feedItem());
+    expect(find.text('Ann'), findsOneWidget);
+    await _tap(t, 'admin-update-change-owner');
+    await _tap(t, 'owner-pick-9');
+    expect(find.text('Bo'), findsOneWidget);
+    await _tap(t, 'admin-update-save');
+    expect(repo.calls, ['update:7:{owner_id: 9}']);
     expect(result(), isTrue);
   });
 

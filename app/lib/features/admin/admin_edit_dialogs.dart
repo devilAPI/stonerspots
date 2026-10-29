@@ -536,8 +536,8 @@ String adminUpdateErrorText(AppLocalizations l, Object e) {
   return l.errorGeneric;
 }
 
-/// Admin edit of anyone's update (text, status tag, and its photos: rotate
-/// by 90° or remove); resolves to true when anything was saved.
+/// Admin edit of anyone's update (text, status tag, owner, and its photos:
+/// rotate by 90° or remove); resolves to true when anything was saved.
 Future<bool?> showAdminUpdateDialog(BuildContext context, FeedItem item) =>
     showDialog<bool>(
       context: context,
@@ -559,6 +559,8 @@ class _AdminUpdateDialogState extends ConsumerState<_AdminUpdateDialog> {
   // a retry after a partial failure never applies a step twice.
   late String _savedBody = widget.item.body;
   late UpdateTag _savedTag = widget.item.tag;
+  late Author _owner = widget.item.author;
+  late int _savedOwner = widget.item.author.id;
   late final List<PhotoRef> _photos = [...widget.item.photos];
   // Pending clockwise quarter turns (1-3) and removals, by photo id.
   final Map<int, int> _turns = {};
@@ -592,6 +594,7 @@ class _AdminUpdateDialogState extends ConsumerState<_AdminUpdateDialog> {
     final patch = AdminUpdatePatch(
       body: body != _savedBody ? body : null,
       tag: _tag != _savedTag ? _tag : null,
+      ownerId: _owner.id != _savedOwner ? _owner.id : null,
     );
     if (patch.isEmpty && _turns.isEmpty && _removed.isEmpty) {
       Navigator.pop(context, _saved);
@@ -613,6 +616,7 @@ class _AdminUpdateDialogState extends ConsumerState<_AdminUpdateDialog> {
         _saved = true;
         _savedBody = body;
         _savedTag = _tag;
+        _savedOwner = _owner.id;
       }
       for (final id in [..._turns.keys]) {
         if (_removed.contains(id)) continue;
@@ -647,11 +651,31 @@ class _AdminUpdateDialogState extends ConsumerState<_AdminUpdateDialog> {
     return AlertDialog(
       title: Text(l10n.adminEditUpdate),
       content: _dialogBody([
-        Text(
-          widget.item.author.displayName,
-          style: Theme.of(context).textTheme.labelLarge,
+        ListTile(
+          key: const Key('admin-update-owner'),
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.person_outline),
+          title: Text(l10n.adminOwner),
+          subtitle: Text(_owner.displayName),
+          trailing: TextButton(
+            key: const Key('admin-update-change-owner'),
+            onPressed: _busy
+                ? null
+                : () async {
+                    final picked = await showUserPickerDialog(context);
+                    if (picked != null) {
+                      setState(
+                        () => _owner = Author(
+                          id: picked.id,
+                          displayName: picked.displayName,
+                        ),
+                      );
+                    }
+                  },
+            child: Text(l10n.adminChangeOwner),
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         TextField(
           key: const Key('admin-update-body'),
           controller: _body,

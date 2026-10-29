@@ -374,7 +374,20 @@ func TestSpots(t *testing.T) {
 	if len(p2.Items) != 1 || p2.Items[0].ID != s1 || p2.NextCursor != nil {
 		t.Fatalf("page2 %+v", p2)
 	}
-	code, _, w := get("?status=bogus")
+	s4 := newSpot(t, e.db, rep, "Other's", "active")
+	_, p, _ = get("?owner=" + itoa(rep))
+	if len(p.Items) != 1 || p.Items[0].ID != s4 {
+		t.Fatalf("owner %+v", p.Items)
+	}
+	_, p, _ = get("?owner=" + itoa(au) + "&status=hidden")
+	if len(p.Items) != 1 || p.Items[0].ID != s2 {
+		t.Fatalf("owner+status %+v", p.Items)
+	}
+	code, _, w := get("?owner=x")
+	if code != 400 || errCode(t, w) != "invalid_owner" {
+		t.Fatalf("owner: %d %s", code, w.Body)
+	}
+	code, _, w = get("?status=bogus")
 	if code != 400 || errCode(t, w) != "invalid_status" {
 		t.Fatalf("status: %d %s", code, w.Body)
 	}

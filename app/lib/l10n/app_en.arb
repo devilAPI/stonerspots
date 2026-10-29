@@ -398,5 +398,11 @@
   "adminUpdateFinishedAt": "Finished {time}",
   "@adminUpdateFinishedAt": {"placeholders": {"time": {"type": "String"}}},
   "adminUpdateLog": "Log",
-  "adminUpdateRequestFailed": "The update could not be requested"
+  "adminUpdateRequestFailed": "The update could not be requested",
+  "adminEditUpdates": "Edit updates",
+  "adminPickUpdate": "Which update?",
+  "adminShowUserSpots": "Show spots",
+  "adminSpotsOf": "Spots by {name}",
+  "@adminSpotsOf": {"placeholders": {"name": {"type": "String"}}},
+  "adminUpdateSaved": "Update saved"
 }

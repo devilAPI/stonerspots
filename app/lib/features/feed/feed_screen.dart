@@ -5,6 +5,7 @@ import '../../core/models.dart';
 import '../../core/responsive.dart';
 import '../../core/spot_tag_widgets.dart';
 import '../../l10n/app_localizations.dart';
+import '../spots/update_actions.dart';
 import 'feed_card.dart';
 import 'feed_controller.dart';
 import 'feed_repository.dart';
@@ -131,7 +132,14 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               child: Center(child: CircularProgressIndicator()),
             );
           }
-          if (!grid) return FeedCard(item: state.items[i], layout: cardLayout);
+          if (!grid) {
+            final item = state.items[i];
+            return FeedCard(
+              item: item,
+              layout: cardLayout,
+              menu: _CardMenu(item),
+            );
+          }
           return _GridRow(
             items: state.items.skip(i * columns).take(columns).toList(),
             columns: columns,
@@ -194,11 +202,24 @@ class _GridRow extends StatelessWidget {
                     item: items[j],
                     layout: FeedCardLayout.tile,
                     margin: const EdgeInsets.all(6),
+                    menu: _CardMenu(items[j]),
                   )
                 : const SizedBox.shrink(),
           ),
       ],
     ),
+  );
+}
+
+/// Edit / delete actions on a card's update; reloads the feed after a change.
+class _CardMenu extends ConsumerWidget {
+  const _CardMenu(this.item);
+  final FeedItem item;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => UpdateMenu(
+    item: item,
+    onChanged: () => ref.read(feedControllerProvider.notifier).refresh(),
   );
 }
 

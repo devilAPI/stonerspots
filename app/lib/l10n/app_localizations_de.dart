@@ -1022,4 +1022,21 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get adminUpdateRequestFailed =>
       'Das Update konnte nicht angefordert werden';
+
+  @override
+  String get adminEditUpdates => 'Updates bearbeiten';
+
+  @override
+  String get adminPickUpdate => 'Welches Update bearbeiten?';
+
+  @override
+  String get adminShowUserSpots => 'Spots anzeigen';
+
+  @override
+  String adminSpotsOf(String name) {
+    return 'Spots von $name';
+  }
+
+  @override
+  String get adminUpdateSaved => 'Update gespeichert';
 }

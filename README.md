@@ -7,6 +7,7 @@ small picture feed. Launch region: Germany, Austria, Switzerland, Liechtenstein.
 - **App:** Flutter (Android, iOS, web, Linux desktop for development) in [`app/`](app)
 - **API:** Go + chi + MariaDB (spatial index for "spots in view") in [`backend/`](backend)
 - **Plan / decisions:** [`docs/superpowers/plans/`](docs/superpowers/plans)
+- **Ideas / to do:** [`docs/ideas.md`](docs/ideas.md)
 
 > Spots are community content. Consumption near schools, playgrounds and in
 > pedestrian zones is restricted by law (KCanG in Germany); a zone check is not

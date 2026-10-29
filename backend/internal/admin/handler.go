@@ -127,11 +127,19 @@ func (h handler) spots(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_status", "status must be active or hidden")
 		return
 	}
+	var owner uint64
+	if v := r.URL.Query().Get("owner"); v != "" {
+		var err error
+		if owner, err = strconv.ParseUint(v, 10, 64); err != nil || owner == 0 {
+			httpx.Error(w, http.StatusBadRequest, "invalid_owner", "owner must be a user id")
+			return
+		}
+	}
 	limit, after, ok := page(w, r)
 	if !ok {
 		return
 	}
-	items, err := h.repo.spots(r.Context(), r.URL.Query().Get("q"), status, limit+1, after)
+	items, err := h.repo.spots(r.Context(), r.URL.Query().Get("q"), status, owner, limit+1, after)
 	if err != nil {
 		serverError(w)
 		return

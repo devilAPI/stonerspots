@@ -94,6 +94,7 @@ class _Fake implements AdminRepository {
   Future<AdminPage<AdminSpot>> spots({
     String? q,
     String? status,
+    int? ownerId,
     String? cursor,
     int limit = 20,
   }) async => AdminPage(

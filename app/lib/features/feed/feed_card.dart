@@ -37,11 +37,15 @@ class FeedCard extends StatelessWidget {
     required this.item,
     this.layout = FeedCardLayout.stacked,
     this.margin = const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    this.menu,
   });
 
   final FeedItem item;
   final FeedCardLayout layout;
   final EdgeInsetsGeometry margin;
+
+  /// Shown next to the title, e.g. edit / delete actions on the update.
+  final Widget? menu;
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +58,11 @@ class FeedCard extends StatelessWidget {
               placeholder: Colors.black12,
             ),
           );
-    final text = _Text(item: item, fill: layout == FeedCardLayout.tile);
+    final text = _Text(
+      item: item,
+      fill: layout == FeedCardLayout.tile,
+      menu: menu,
+    );
     return Card(
       margin: margin,
       clipBehavior: Clip.antiAlias,
@@ -86,9 +94,10 @@ class FeedCard extends StatelessWidget {
 }
 
 class _Text extends StatelessWidget {
-  const _Text({required this.item, required this.fill});
+  const _Text({required this.item, required this.fill, this.menu});
 
   final FeedItem item;
+  final Widget? menu;
 
   /// Takes all the height it gets and pins the likes row to the bottom.
   final bool fill;
@@ -103,14 +112,22 @@ class _Text extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
         children: [
-          InkWell(
-            onTap: () => context.push('/spot/${item.spot.id}'),
-            child: Text(
-              item.spot.title,
-              style: theme.textTheme.titleMedium,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => context.push('/spot/${item.spot.id}'),
+                  child: Text(
+                    item.spot.title,
+                    style: theme.textTheme.titleMedium,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              ?menu,
+            ],
           ),
           const SizedBox(height: 4),
           Wrap(

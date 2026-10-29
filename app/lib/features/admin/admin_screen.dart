@@ -6,7 +6,10 @@ import '../../core/back_or_home.dart';
 import '../../core/tab_keys.dart';
 import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
+import '../../core/models.dart' show Author, FeedItem;
 import '../auth/auth_controller.dart';
+import '../spots/update_actions.dart';
+import '../spots/updates_repository.dart';
 import 'admin_bulk.dart';
 import 'admin_controller.dart';
 import 'admin_edit_dialogs.dart';
@@ -834,6 +837,18 @@ class _UsersTabState extends ConsumerState<_UsersTab>
                     onPressed: () => _editUser(ctx, ref, u),
                     child: Text(l10n.adminEdit),
                   ),
+                  OutlinedButton(
+                    key: Key('user-spots-${u.id}'),
+                    onPressed: () {
+                      ref
+                          .read(adminSpotsProvider.notifier)
+                          .setOwner(
+                            Author(id: u.id, displayName: u.displayName),
+                          );
+                      DefaultTabController.of(ctx).animateTo(2);
+                    },
+                    child: Text(l10n.adminShowUserSpots),
+                  ),
                 ],
               );
             },
@@ -867,6 +882,31 @@ class _UsersTabState extends ConsumerState<_UsersTab>
 }
 
 // ------------------------------------------------------------------ spots
+
+/// Lets the admin pick one of the spot's updates and edit it.
+Future<void> _editSpotUpdates(
+  BuildContext context,
+  WidgetRef ref,
+  int spotId,
+) async {
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final List<FeedItem> updates;
+  try {
+    updates = await ref.read(spotUpdatesRepositoryProvider).listForSpot(spotId);
+  } catch (_) {
+    messenger.showSnackBar(SnackBar(content: Text(l10n.errorGeneric)));
+    return;
+  }
+  if (!context.mounted) return;
+  if (updates.isEmpty) {
+    messenger.showSnackBar(SnackBar(content: Text(l10n.updatesNone)));
+    return;
+  }
+  if (await adminEditOneOf(context, updates)) {
+    messenger.showSnackBar(SnackBar(content: Text(l10n.adminUpdateSaved)));
+  }
+}
 
 class _SpotsTab extends ConsumerStatefulWidget {
   const _SpotsTab();
@@ -911,6 +951,17 @@ class _SpotsTabState extends ConsumerState<_SpotsTab>
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 12 + gutter, vertical: 4),
             children: [
+              if (state.owner case final owner?)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: InputChip(
+                    key: const Key('spots-owner-filter'),
+                    avatar: const Icon(Icons.person_outline),
+                    label: Text(l10n.adminSpotsOf(owner.displayName)),
+                    selected: true,
+                    onDeleted: () => ctrl.setOwner(null),
+                  ),
+                ),
               for (final f in filters)
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
@@ -977,6 +1028,11 @@ class _SpotsTabState extends ConsumerState<_SpotsTab>
                     onPressed: () =>
                         _editSpot(ctx, ref, s.id, fallbackTitle: s.title),
                     child: Text(l10n.adminEdit),
+                  ),
+                  OutlinedButton(
+                    key: Key('spot-updates-${s.id}'),
+                    onPressed: () => _editSpotUpdates(ctx, ref, s.id),
+                    child: Text(l10n.adminEditUpdates),
                   ),
                   OutlinedButton(
                     key: Key('spot-open-${s.id}'),

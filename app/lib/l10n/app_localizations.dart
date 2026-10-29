@@ -1741,6 +1741,36 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Das Update konnte nicht angefordert werden'**
   String get adminUpdateRequestFailed;
+
+  /// No description provided for @adminEditUpdates.
+  ///
+  /// In de, this message translates to:
+  /// **'Updates bearbeiten'**
+  String get adminEditUpdates;
+
+  /// No description provided for @adminPickUpdate.
+  ///
+  /// In de, this message translates to:
+  /// **'Welches Update bearbeiten?'**
+  String get adminPickUpdate;
+
+  /// No description provided for @adminShowUserSpots.
+  ///
+  /// In de, this message translates to:
+  /// **'Spots anzeigen'**
+  String get adminShowUserSpots;
+
+  /// No description provided for @adminSpotsOf.
+  ///
+  /// In de, this message translates to:
+  /// **'Spots von {name}'**
+  String adminSpotsOf(String name);
+
+  /// No description provided for @adminUpdateSaved.
+  ///
+  /// In de, this message translates to:
+  /// **'Update gespeichert'**
+  String get adminUpdateSaved;
 }
 
 class _AppLocalizationsDelegate

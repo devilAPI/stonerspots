@@ -21,15 +21,19 @@ func DeleteUpdateByID(ctx context.Context, db *sql.DB, uploadDir string, id uint
 var ErrInvalidStatus = errors.New("feed: invalid status")
 
 // AdminEditUpdate changes any update, whoever wrote it and whatever its
-// spot's lock (nil = unchanged): text, tag and status (active / hidden).
-// The text rules are the author's: at most MaxBodyLen, and text or photos.
-func AdminEditUpdate(ctx context.Context, db *sql.DB, id uint64, body, tag, status *string) error {
-	return AdminEditUpdateWithPhotos(ctx, db, id, body, tag, status, nil)
+// spot's lock (nil = unchanged): text, tag, status (active / hidden) and
+// owner. The text rules are the author's: at most MaxBodyLen, and text or
+// photos.
+func AdminEditUpdate(ctx context.Context, db *sql.DB, id uint64, body, tag, status *string, ownerID *uint64) error {
+	return AdminEditUpdateWithPhotos(ctx, db, id, body, tag, status, ownerID, nil)
 }
+
+// ErrNoSuchOwner: the new owner of an update is not a user.
+var ErrNoSuchOwner = errors.New("feed: no such owner")
 
 // AdminEditUpdateWithPhotos changes any update, including its photos.
 // photoIDs nil means don't change photos; empty slice means remove all photos.
-func AdminEditUpdateWithPhotos(ctx context.Context, db *sql.DB, id uint64, body, tag, status *string, photoIDs *[]uint64) error {
+func AdminEditUpdateWithPhotos(ctx context.Context, db *sql.DB, id uint64, body, tag, status *string, ownerID *uint64, photoIDs *[]uint64) error {
 	if tag != nil && !ValidTag(*tag) {
 		return ErrInvalidTag
 	}
@@ -67,6 +71,26 @@ func AdminEditUpdateWithPhotos(ctx context.Context, db *sql.DB, id uint64, body,
 			edited_at = IF(?, CURRENT_TIMESTAMP, edited_at)
 		WHERE id = ?`, newBody, tag, status, edited, id); err != nil {
 		return err
+	}
+	if ownerID != nil {
+		var one uint64
+		err := tx.QueryRowContext(ctx, "SELECT id FROM users WHERE id = ?", *ownerID).Scan(&one)
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNoSuchOwner
+		}
+		if err != nil {
+			return err
+		}
+		// The photos go with the update, so they stay with it if the old
+		// owner's account is deleted.
+		for _, q := range []string{
+			"UPDATE spot_updates SET user_id = ? WHERE id = ?",
+			"UPDATE photos SET user_id = ? WHERE update_id = ?",
+		} {
+			if _, err := tx.ExecContext(ctx, q, *ownerID, id); err != nil {
+				return err
+			}
+		}
 	}
 	// Handle photo changes if provided
 	if photoIDs != nil {

@@ -33,7 +33,7 @@ AdminReport _report(int id, {int spotId = 100, bool exists = true}) =>
           : const AdminReportTarget(exists: false),
     );
 
-AdminSpot _spot(int id, {String status = 'active'}) => AdminSpot(
+AdminSpot _spot(int id, {String status = 'active', int owner = 1}) => AdminSpot(
   id: id,
   title: 'Spot$id',
   lat: 48,
@@ -41,7 +41,7 @@ AdminSpot _spot(int id, {String status = 'active'}) => AdminSpot(
   status: status,
   likeCount: 2,
   createdAt: DateTime.utc(2026, 9, 1),
-  author: Author(id: 1, displayName: 'Author$id'),
+  author: Author(id: owner, displayName: 'Author$id'),
   reportCount: 1,
 );
 
@@ -68,6 +68,7 @@ class _Fake implements AdminRepository {
   final reportCursors = <String?>[];
   final userCalls = <String?>[];
   final spotCalls = <(String?, String?)>[];
+  final spotOwners = <int?>[];
   final deleted = <int>[];
   ApiException? deleteError;
 
@@ -103,12 +104,15 @@ class _Fake implements AdminRepository {
   Future<AdminPage<AdminSpot>> spots({
     String? q,
     String? status,
+    int? ownerId,
     String? cursor,
     int limit = 20,
   }) async {
     spotCalls.add((q, status));
+    spotOwners.add(ownerId);
     final f = spotItems
         .where((s) => status == null || s.status == status)
+        .where((s) => ownerId == null || s.author.id == ownerId)
         .toList();
     return _page(f, cursor);
   }
@@ -244,6 +248,38 @@ void main() {
         expect(repo.spotCalls.last, (null, 'hidden'));
         expect(find.text('Spot2'), findsOneWidget);
         expect(find.text('Spot1'), findsNothing);
+      });
+
+      testWidgets("a user's spots button filters the spots tab by owner", (
+        tester,
+      ) async {
+        final repo = _Fake(pageSize: 20)
+          ..spotItems = [_spot(1), _spot(2, owner: 3), _spot(3, owner: 3)];
+        await _pump(tester, repo, e.value);
+        await _tab(tester, 'Users');
+        final button = find.byKey(const Key('user-spots-3'));
+        await tester.ensureVisible(button);
+        await tester.pumpAndSettle();
+        await tester.tap(button);
+        await tester.pumpAndSettle();
+        expect(repo.spotOwners.last, 3);
+        expect(find.text('Spots by User3'), findsOneWidget);
+        expect(find.text('Spot2'), findsOneWidget);
+        expect(find.text('Spot3'), findsOneWidget);
+        expect(find.text('Spot1'), findsNothing);
+        // the same spot cards, with their updates button
+        expect(find.byKey(const Key('spot-updates-2')), findsOneWidget);
+
+        await tester.tap(
+          find.descendant(
+            of: find.byKey(const Key('spots-owner-filter')),
+            matching: find.byTooltip('Delete'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(repo.spotOwners.last, isNull);
+        expect(find.text('Spot1'), findsOneWidget);
+        expect(find.byKey(const Key('spots-owner-filter')), findsNothing);
       });
 
       testWidgets('removing a spot updates both lists and shows snackbar', (

@@ -26,9 +26,17 @@ func (h handler) patchUpdate(w http.ResponseWriter, r *http.Request) {
 		notFound(w, "update")
 		return
 	}
-	p, ok := readPatch(w, r, "body", "tag", "status")
+	p, ok := readPatch(w, r, "body", "tag", "status", "owner_id")
 	if !ok {
 		return
+	}
+	var owner *uint64
+	var o uint64
+	if present, good := field(p, "owner_id", &o); !good {
+		badBody(w)
+		return
+	} else if present {
+		owner = &o
 	}
 	var body, tag, status *string
 	for key, dst := range map[string]**string{"body": &body, "tag": &tag, "status": &status} {
@@ -42,7 +50,7 @@ func (h handler) patchUpdate(w http.ResponseWriter, r *http.Request) {
 			*dst = &v
 		}
 	}
-	switch err := feed.AdminEditUpdate(r.Context(), h.repo.db, id, body, tag, status); {
+	switch err := feed.AdminEditUpdate(r.Context(), h.repo.db, id, body, tag, status, owner); {
 	case errors.Is(err, feed.ErrUpdateNotFound):
 		notFound(w, "update")
 	case errors.Is(err, feed.ErrInvalidTag):
@@ -51,6 +59,8 @@ func (h handler) patchUpdate(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_status", "status must be active or hidden")
 	case errors.Is(err, feed.ErrInvalidBody):
 		httpx.Error(w, http.StatusBadRequest, "invalid_body", "body must be at most 2000 characters; text or photos required")
+	case errors.Is(err, feed.ErrNoSuchOwner):
+		httpx.Error(w, http.StatusBadRequest, "invalid_owner", "owner_id must be an existing user")
 	case err != nil:
 		serverError(w)
 	default:

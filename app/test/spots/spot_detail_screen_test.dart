@@ -813,6 +813,44 @@ void main() {
     expect(admin.calls.last, 'delete:8');
   });
 
+  testWidgets('admins pick an update to edit from the spot menu', (
+    tester,
+  ) async {
+    final api = _Api();
+    final admin = _Admin(api);
+    await _pump(
+      tester,
+      adminUser,
+      withApi: api,
+      admin: admin,
+      items: [
+        feedItem(id: 8, authorId: 2, body: 'first'),
+        feedItem(id: 9, authorId: 4, body: 'second'),
+      ],
+    );
+    await tester.tap(find.byKey(const Key('menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('adminEditUpdates')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('pickUpdate_8')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('pickUpdate_9')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('admin-update-body')), 'fixed');
+    await tester.tap(find.byKey(const Key('admin-update-save')));
+    await tester.pumpAndSettle();
+    expect(admin.calls.last, 'update:9:{body: fixed}');
+  });
+
+  testWidgets('no "edit updates" entry while the spot has none', (
+    tester,
+  ) async {
+    await _pump(tester, adminUser, admin: _Admin(_Api()));
+    await tester.tap(find.byKey(const Key('menu')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('adminEditSpot')), findsOneWidget);
+    expect(find.byKey(const Key('adminEditUpdates')), findsNothing);
+  });
+
   const owner = User(id: 9, email: 'a@b.de', displayName: 'Ann');
   const stranger = User(id: 2, email: 'c@d.de', displayName: 'Cy');
   const admin = User(id: 3, email: 'e@f.de', displayName: 'Ad', isAdmin: true);

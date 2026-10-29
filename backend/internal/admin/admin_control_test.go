@@ -98,8 +98,20 @@ func TestAdminEditUpdate(t *testing.T) {
 	e.expect(t, e.patchUpdate(t, up, `{}`), 400, "empty_patch")
 	e.expect(t, e.patchUpdate(t, 999999, `{"body":"x"}`), 404, "not_found")
 
-	// admins only
+	// a new owner takes the update and its photos along
 	other := testutil.NewUser(t, e.db)
+	exec(t, e.db, `INSERT INTO photos (user_id, update_id, `+"`key`"+`, thumb_key, width, height) VALUES (?, ?, 'k.avif', 't.avif', 1, 1)`, author, up)
+	e.expect(t, e.patchUpdate(t, up, `{"owner_id":`+itoa(other)+`}`), 204, "")
+	var owner, photoOwner uint64
+	e.db.QueryRow(`SELECT user_id FROM spot_updates WHERE id=?`, up).Scan(&owner)
+	e.db.QueryRow(`SELECT user_id FROM photos WHERE update_id=?`, up).Scan(&photoOwner)
+	if owner != other || photoOwner != other {
+		t.Fatal(owner, photoOwner)
+	}
+	e.expect(t, e.patchUpdate(t, up, `{"owner_id":999999}`), 400, "invalid_owner")
+	e.expect(t, e.patchUpdate(t, up, `{"owner_id":"x"}`), 400, "invalid_body")
+
+	// admins only
 	e.expect(t, e.send(t, "PATCH", "/admin/updates/"+itoa(up), testutil.Token(t, other), `{"body":"hack"}`), 403, "forbidden")
 	e.expect(t, e.send(t, "PATCH", "/admin/updates/"+itoa(up), testutil.Token(t, author), `{"body":"hack"}`), 403, "forbidden")
 }

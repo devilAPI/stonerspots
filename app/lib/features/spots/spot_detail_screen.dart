@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/back_or_home.dart';
-import '../../core/api_client.dart';
 import '../../core/models.dart';
 import '../../core/responsive.dart';
 import '../../core/spot_tag_widgets.dart';
@@ -22,6 +21,7 @@ import 'spot_api.dart';
 import 'spot_link.dart';
 import 'spot_location_map.dart';
 import 'spot_media.dart';
+import 'update_actions.dart';
 import 'update_composer.dart';
 import 'update_tile.dart';
 import 'updates_repository.dart';
@@ -160,42 +160,15 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
     if (posted == true) ref.invalidate(spotUpdatesProvider(widget.spotId));
   }
 
-  Future<void> _editUpdate(FeedItem item) async {
-    final saved = await showUpdateComposer(
-      context,
-      spotId: widget.spotId,
-      editing: item,
-    );
-    if (saved == true) ref.invalidate(spotUpdatesProvider(widget.spotId));
+  Future<void> _reloadUpdatesIf(Future<bool> changed) async {
+    if (await changed) ref.invalidate(spotUpdatesProvider(widget.spotId));
   }
 
-  Future<void> _deleteUpdate(FeedItem item) async {
-    final l = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.updateDeleteTitle),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l.cancel),
-          ),
-          FilledButton(
-            key: const Key('updateDeleteConfirm'),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l.updateDeleteConfirm),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    try {
-      await ref.read(spotUpdatesRepositoryProvider).delete(item.id);
-      ref.invalidate(spotUpdatesProvider(widget.spotId));
-    } catch (_) {
-      _snack(l.errorGeneric);
-    }
-  }
+  Future<void> _editUpdate(FeedItem item) =>
+      _reloadUpdatesIf(editOwnUpdate(context, item));
+
+  Future<void> _deleteUpdate(FeedItem item) =>
+      _reloadUpdatesIf(deleteOwnUpdate(context, ref, item));
 
   // ---- admin actions ----
 
@@ -222,52 +195,19 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
     }
   }
 
-  Future<void> _adminEditUpdate(FeedItem item) async {
-    final saved = await showAdminUpdateDialog(context, item);
-    if (saved == true) ref.invalidate(spotUpdatesProvider(widget.spotId));
-  }
+  Future<void> _adminEditUpdate(FeedItem item) =>
+      _reloadUpdatesIf(adminEditUpdate(context, item));
 
-  Future<void> _adminHideUpdate(FeedItem item) async {
-    final l = AppLocalizations.of(context);
-    try {
-      await ref
-          .read(adminRepositoryProvider)
-          .updateUpdate(item.id, const AdminUpdatePatch(status: 'hidden'));
-      _snack(l.adminUpdateHidden);
-      ref.invalidate(spotUpdatesProvider(widget.spotId));
-    } catch (_) {
-      _snack(l.errorGeneric);
-    }
-  }
+  Future<void> _adminHideUpdate(FeedItem item) =>
+      _reloadUpdatesIf(adminHideUpdate(context, ref, item));
 
-  Future<void> _adminDeleteUpdate(FeedItem item) async {
-    final l = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.adminRemoveUpdateTitle),
-        content: Text(l.adminRemoveUpdateBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l.cancel),
-          ),
-          FilledButton(
-            key: const Key('adminUpdateDeleteConfirm'),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l.adminRemove),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    try {
-      await ref.read(adminRepositoryProvider).deleteUpdate(item.id);
-      _snack(l.adminUpdateRemoved);
-    } catch (e) {
-      if (!(e is ApiException && e.status == 404)) _snack(l.errorGeneric);
-    }
-    ref.invalidate(spotUpdatesProvider(widget.spotId));
+  Future<void> _adminDeleteUpdate(FeedItem item) =>
+      _reloadUpdatesIf(adminDeleteUpdate(context, ref, item));
+
+  Future<void> _adminEditUpdates() async {
+    final list = ref.read(spotUpdatesProvider(widget.spotId)).value;
+    if (list == null || list.isEmpty) return;
+    await _reloadUpdatesIf(adminEditOneOf(context, list));
   }
 
   @override
@@ -304,6 +244,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   if (loaded != null) _adminEditSpot(loaded);
                 case 'admin-lock':
                   if (loaded != null) _adminToggleLock(loaded);
+                case 'admin-updates':
+                  _adminEditUpdates();
               }
             },
             itemBuilder: (_) => [
@@ -326,6 +268,15 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                     title: Text(loaded.locked ? l.adminUnlock : l.adminLock),
                   ),
                 ),
+                if (updates.value?.isNotEmpty ?? false)
+                  PopupMenuItem(
+                    key: const Key('adminEditUpdates'),
+                    value: 'admin-updates',
+                    child: ListTile(
+                      leading: const Icon(Icons.edit_outlined),
+                      title: Text(l.adminEditUpdates),
+                    ),
+                  ),
                 const PopupMenuDivider(),
               ],
               PopupMenuItem(value: 'report', child: Text(l.report)),

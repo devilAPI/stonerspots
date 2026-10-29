@@ -64,6 +64,7 @@ class _Lists implements AdminRepository {
   Future<AdminPage<AdminSpot>> spots({
     String? q,
     String? status,
+    int? ownerId,
     String? cursor,
     int limit = 20,
   }) async => AdminPage(spots_, null);

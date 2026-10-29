@@ -15,9 +15,11 @@ abstract class AdminRepository {
     int limit = 20,
   });
 
+  /// [ownerId] lists only that user's spots.
   Future<AdminPage<AdminSpot>> spots({
     String? q,
     String? status,
+    int? ownerId,
     String? cursor,
     int limit = 20,
   });
@@ -118,12 +120,16 @@ class ApiAdminRepository implements AdminRepository {
   Future<AdminPage<AdminSpot>> spots({
     String? q,
     String? status,
+    int? ownerId,
     String? cursor,
     int limit = 20,
   }) async => AdminPage.fromJson(
     await _api.get<Map<String, dynamic>>(
       '/admin/spots',
-      query: _query(q: q, status: status, cursor: cursor, limit: limit),
+      query: {
+        ..._query(q: q, status: status, cursor: cursor, limit: limit),
+        'owner': ?ownerId,
+      },
     ),
     AdminSpot.fromJson,
   );

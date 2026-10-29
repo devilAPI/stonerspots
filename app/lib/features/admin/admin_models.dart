@@ -299,10 +299,13 @@ class AdminSpotPatch {
 
 /// Fields of `PATCH /admin/updates/{id}`; only set fields are serialized.
 class AdminUpdatePatch {
-  const AdminUpdatePatch({this.body, this.tag, this.status});
+  const AdminUpdatePatch({this.body, this.tag, this.status, this.ownerId});
 
   final String? body;
   final UpdateTag? tag;
+
+  /// Moves the update (and its photos) to another user.
+  final int? ownerId;
 
   /// `active` or `hidden`.
   final String? status;
@@ -313,6 +316,7 @@ class AdminUpdatePatch {
     'body': ?body,
     'tag': ?tag?.wire,
     'status': ?status,
+    'owner_id': ?ownerId,
   };
 }
 

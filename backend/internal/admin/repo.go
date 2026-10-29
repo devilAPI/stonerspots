@@ -178,14 +178,16 @@ func scanSpot(row interface{ Scan(...any) error }) (spotItem, error) {
 	return it, err
 }
 
-func (r repo) spots(ctx context.Context, search, status string, limit int, after uint64) ([]spotItem, error) {
+// spots lists spots newest first; owner 0 means anyone's.
+func (r repo) spots(ctx context.Context, search, status string, owner uint64, limit int, after uint64) ([]spotItem, error) {
 	q := spotSelect + `
 	WHERE (? = 0 OR s.id < ?)
 	  AND (? = '' OR s.title LIKE ? ESCAPE '\\')
 	  AND (? = '' OR s.status = ?)
+	  AND (? = 0 OR s.user_id = ?)
 	ORDER BY s.id DESC LIMIT ?`
 	pat := "%" + likeEscape(search) + "%"
-	rows, err := r.db.QueryContext(ctx, q, after, after, search, pat, status, status, limit)
+	rows, err := r.db.QueryContext(ctx, q, after, after, search, pat, status, status, owner, owner, limit)
 	if err != nil {
 		return nil, err
 	}
