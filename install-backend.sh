@@ -27,6 +27,9 @@
 #
 # The database itself (MariaDB 11.4) is not installed; point config.yaml at it.
 set -euo pipefail
+# Everything installed under /opt must be readable by the service user,
+# whatever umask the caller has (the admin-page updater runs with 027).
+umask 022
 
 REPO="${STONERSPOTS_REPO:-devilAPI/stonerspots}"
 INSTALL_DIR=/opt/stonerspots
@@ -114,8 +117,11 @@ url=$(printf '%s' "$urls" | grep -oE '"browser_download_url": *"[^"]+"' | cut -d
 tag=$(basename "$(dirname "$url")")
 file=$(basename "$url")
 
-# (an install from before the admin-page updater still gets its units)
-if [ "$installed" = "$tag" ] && ! $force && [ -f "/etc/systemd/system/${UPDATER}.path" ]; then
+# (an install from before the admin-page updater still gets its units, and
+# a service that fails to start is repaired by installing again)
+svc_state=$(systemctl show -p ActiveState --value "$SERVICE" 2>/dev/null || true)
+if [ "$installed" = "$tag" ] && ! $force && [ -f "/etc/systemd/system/${UPDATER}.path" ] \
+  && { [ "$svc_state" = active ] || [ "$svc_state" = inactive ]; }; then
   log "${tag} is already installed; nothing to do (use --force to reinstall)."
   exit 0
 fi
@@ -155,6 +161,9 @@ if [ -x "$INSTALL_DIR/api" ]; then
 fi
 rm -rf "$INSTALL_DIR/migrations"
 cp -R "$src/migrations" "$INSTALL_DIR/"
+# also repairs installs whose files were made unreadable by an earlier
+# admin-page update (the service user must read them)
+chmod -R u=rwX,go=rX "$INSTALL_DIR/migrations"
 for f in config.example.yaml schema.example.sql; do
   [ -f "$src/$f" ] && install -m 0644 "$src/$f" "$INSTALL_DIR/$f"
 done
@@ -204,7 +213,8 @@ state() { # state <running|done|failed> [to] [finished]
   mv -f "$status/state.new" "$status/state"
 }
 state running
-if /opt/stonerspots/install-backend.sh "--$channel" > "$status/log" 2>&1; then
+# the installer gets the usual umask: the service user must read its files
+if (umask 022 && exec /opt/stonerspots/install-backend.sh "--$channel") > "$status/log" 2>&1; then
   result=done
 else
   result=failed
@@ -214,6 +224,7 @@ RUNNER
 # install via a temp name + rename so a running process keeps its old binary
 install -m 0755 "$src/api" "$INSTALL_DIR/api.new" && mv -f "$INSTALL_DIR/api.new" "$INSTALL_DIR/api"
 echo "$tag" > "$INSTALL_DIR/VERSION"
+chmod 0644 "$INSTALL_DIR/VERSION"
 
 install -d -m 0750 -o "$SERVICE_USER" -g "$SERVICE_USER" "$DATA_DIR" "$DATA_DIR/uploads"
 # Outside DATA_DIR on purpose: the API user owns that and could swap a
