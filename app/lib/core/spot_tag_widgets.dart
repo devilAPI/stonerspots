@@ -58,10 +58,13 @@ FilterChip spotTagFilterChip(
   required VoidCallback onToggle,
 }) => FilterChip(
   key: key,
-  avatar: Icon(spotTagIcon(tag), size: 18),
+  avatar: Icon(
+    spotTagIcon(tag),
+    size: 18,
+    color: selected ? Theme.of(context).colorScheme.onPrimary : null,
+  ),
   label: Text(spotTagLabel(context, tag)),
   selected: selected,
-  showCheckmark: false,
   onSelected: (_) => onToggle(),
 );
 

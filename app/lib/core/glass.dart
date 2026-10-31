@@ -51,11 +51,8 @@ class GlassSurface extends StatelessWidget {
             style: IconButton.styleFrom(foregroundColor: kOnGlass),
           ),
           chipTheme: theme.chipTheme.copyWith(
-            backgroundColor: const Color(0x14FFFFFF),
-            selectedColor: theme.colorScheme.primary.withValues(alpha: 0.45),
-            side: BorderSide.none,
-            labelStyle: const TextStyle(color: kOnGlass),
-            iconTheme: const IconThemeData(color: kOnGlass),
+            backgroundColor: const Color(0x24FFFFFF),
+            iconTheme: const IconThemeData(size: 18, color: kOnGlass),
           ),
         ),
         child: Material(
@@ -68,6 +65,47 @@ class GlassSurface extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Horizontally scrolling row of chips on glass. Chips stop short of the
+/// glass edge and fade out before they reach it, so nothing runs over the
+/// rim while scrolling.
+class GlassChipRow extends StatelessWidget {
+  const GlassChipRow({super.key, required this.children});
+
+  final List<Widget> children;
+
+  static const double _inset = 8;
+  static const double _fade = 12;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: _inset),
+    child: LayoutBuilder(
+      builder: (context, c) {
+        final stop = _fade / c.maxWidth;
+        return ShaderMask(
+          blendMode: BlendMode.dstIn,
+          shaderCallback: (bounds) => LinearGradient(
+            colors: const [
+              Color(0x00000000),
+              Color(0xFF000000),
+              Color(0xFF000000),
+              Color(0x00000000),
+            ],
+            stops: [0, stop, 1 - stop, 1],
+          ).createShader(bounds),
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: _fade),
+            itemCount: children.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
+            itemBuilder: (_, i) => Center(child: children[i]),
+          ),
+        );
+      },
+    ),
+  );
 }
 
 /// App bar as a capsule of glass floating over the page. Use it with

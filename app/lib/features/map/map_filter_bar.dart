@@ -32,20 +32,7 @@ class MapFilterBar extends ConsumerWidget {
         radius: 26,
         // One lens over the scrolling chips, not one per chip: glass reads
         // the backdrop, so it belongs above a list rather than inside it.
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(26),
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            children: [
-              for (final w in items)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Center(child: w),
-                ),
-            ],
-          ),
-        ),
+        child: GlassChipRow(children: items),
       ),
     );
   }

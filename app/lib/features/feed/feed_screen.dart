@@ -185,45 +185,41 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           right: insets.right + gutter + _headerGap,
           height: _headerHeight,
           child: GlassSurface(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
-                    child: Text(
-                      l10n.feedTitle,
-                      style: Theme.of(context).textTheme.titleLarge
-                          ?.copyWith(color: kOnGlass),
-                    ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
+                  child: Text(
+                    l10n.feedTitle,
+                    style: Theme.of(context).textTheme.titleLarge
+                        ?.copyWith(color: kOnGlass),
                   ),
-                  _ChipRow(
-                    children: [
-                      for (final s in FeedSort.values)
-                        ChoiceChip(
-                          label: Text(_sortLabel(l10n, s)),
-                          selected: state.sort == s,
-                          showCheckmark: false,
-                          onSelected: (_) => ctrl.setSort(s),
-                        ),
-                    ],
+                ),
+                _ChipRow(
+                  children: [
+                    for (final s in FeedSort.values)
+                      ChoiceChip(
+                        label: Text(_sortLabel(l10n, s)),
+                        selected: state.sort == s,
+                        onSelected: (_) => ctrl.setSort(s),
+                      ),
+                  ],
+                ),
+                _ChipRow(
+                  key: const Key('feedTagRow'),
+                  children: spotTagFilterItems(
+                    context,
+                    ref,
+                    keyPrefix: 'feedTag-',
+                    selected: state.tags,
+                    onToggle: ctrl.toggleTag,
+                    onClear: ctrl.clearTags,
+                    clearKey: const Key('feedTagsClear'),
+                    withDivider: false,
                   ),
-                  _ChipRow(
-                    key: const Key('feedTagRow'),
-                    children: spotTagFilterItems(
-                      context,
-                      ref,
-                      keyPrefix: 'feedTag-',
-                      selected: state.tags,
-                      onToggle: ctrl.toggleTag,
-                      onClear: ctrl.clearTags,
-                      clearKey: const Key('feedTagsClear'),
-                      withDivider: false,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -277,15 +273,6 @@ class _ChipRow extends StatelessWidget {
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 48,
-    child: ListView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      children: [
-        for (final c in children)
-          Padding(padding: const EdgeInsets.only(right: 8), child: c),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) =>
+      SizedBox(height: 48, child: GlassChipRow(children: children));
 }
