@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -149,19 +150,25 @@ class _SpotPullSheetState extends State<SpotPullSheet> {
     }
     return NotificationListener<DraggableScrollableNotification>(
       onNotification: _onExtent,
-      child: DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: rest,
-        // Below the resting size it snaps shut; the route closes at 0.
-        minChildSize: 0,
-        snap: true,
-        snapSizes: [rest],
-        snapAnimationDuration: const Duration(milliseconds: 240),
-        builder: (context, scroll) => ValueListenableBuilder<double>(
-          valueListenable: _extent,
-          child: _card(scroll),
-          builder: (context, extent, card) =>
-              _layers(context, rest, extent, card!),
+      // Scrollables ignore mouse drags by default; the sheet has to follow
+      // them too, or it cannot be pulled in a desktop browser.
+      child: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context)
+            .copyWith(dragDevices: PointerDeviceKind.values.toSet()),
+        child: DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: rest,
+          // Below the resting size it snaps shut; the route closes at 0.
+          minChildSize: 0,
+          snap: true,
+          snapSizes: [rest],
+          snapAnimationDuration: const Duration(milliseconds: 240),
+          builder: (context, scroll) => ValueListenableBuilder<double>(
+            valueListenable: _extent,
+            child: _card(scroll),
+            builder: (context, extent, card) =>
+                _layers(context, rest, extent, card!),
+          ),
         ),
       ),
     );

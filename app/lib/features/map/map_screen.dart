@@ -271,11 +271,17 @@ class _ErrorBanner extends ConsumerWidget {
           child: Material(
             borderRadius: BorderRadius.circular(8),
             color: Theme.of(context).colorScheme.errorContainer,
-            child: ListTile(
-              title: Text(l10n.errorGeneric),
-              trailing: TextButton(
-                onPressed: ref.read(spotsControllerProvider.notifier).retry,
-                child: Text(l10n.retry),
+            // ListTile would add the shell's navigation padding as well
+            child: MediaQuery.removePadding(
+              context: context,
+              removeLeft: true,
+              removeRight: true,
+              child: ListTile(
+                title: Text(l10n.errorGeneric),
+                trailing: TextButton(
+                  onPressed: ref.read(spotsControllerProvider.notifier).retry,
+                  child: Text(l10n.retry),
+                ),
               ),
             ),
           ),

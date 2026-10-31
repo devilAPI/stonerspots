@@ -2,6 +2,7 @@ import 'package:app/core/models.dart';
 import 'package:app/features/map/spot_preview_sheet.dart';
 import 'package:app/features/map/spot_pull_sheet.dart';
 import 'package:app/l10n/app_localizations.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -71,6 +72,17 @@ void main() {
     expect(expanded, hasLength(1));
     expect(find.text('real page'), findsOneWidget);
     expect(find.byType(SpotPullSheet), findsNothing);
+  });
+
+  testWidgets('a mouse can pull it up too (web, desktop)', (t) async {
+    final expanded = await openSheet(t);
+    await t.drag(
+      find.text('Lake bench'),
+      const Offset(0, -700),
+      kind: PointerDeviceKind.mouse,
+    );
+    await t.pumpAndSettle();
+    expect(expanded, hasLength(1));
   });
 
   testWidgets('pulled down, the sheet closes', (t) async {
