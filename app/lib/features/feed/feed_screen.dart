@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/glass.dart';
 import '../../core/models.dart';
 import '../../core/responsive.dart';
 import '../../core/spot_tag_widgets.dart';
@@ -15,6 +16,9 @@ String _sortLabel(AppLocalizations l, FeedSort s) => switch (s) {
   FeedSort.top => l.sortTop,
   FeedSort.nearby => l.sortNearby,
 };
+
+const double _headerHeight = 142;
+const double _headerGap = 8;
 
 class FeedScreen extends ConsumerStatefulWidget {
   const FeedScreen({super.key});
@@ -63,7 +67,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.feedTitle)),
       // Gutter from the space the feed actually gets (the nav rail takes
       // part of the window), not from the window width.
       body: LayoutBuilder(
@@ -75,6 +78,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   Widget _buildBody(BuildContext context, FeedState state, double width) {
     final l10n = AppLocalizations.of(context);
     final ctrl = ref.read(feedControllerProvider.notifier);
+    // The list runs under the status bar, the glass header and the shell's
+    // glass navigation; [insets] says what those cover.
+    final insets = MediaQuery.paddingOf(context);
+    width -= insets.left + insets.right;
     // Phones get one column; tablets/desktops a grid as wide as the pane
     // allows. Content stays centred at a readable width, while the scrollable
     // area (and its mouse-wheel/scrollbar) spans the whole pane.
@@ -90,22 +97,35 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final rows = grid
         ? (state.items.length / columns).ceil()
         : state.items.length;
+    final top = insets.top + _headerGap + _headerHeight + _headerGap;
+    final page = EdgeInsets.only(
+      left: insets.left,
+      right: insets.right,
+      top: top,
+      bottom: insets.bottom,
+    );
     Widget body;
     if (state.error != null && state.items.isEmpty) {
-      body = Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l10n.errorGeneric),
-            TextButton(onPressed: ctrl.load, child: Text(l10n.retry)),
-          ],
+      body = Padding(
+        padding: page,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(l10n.errorGeneric),
+              TextButton(onPressed: ctrl.load, child: Text(l10n.retry)),
+            ],
+          ),
         ),
       );
     } else if (state.loading && state.items.isEmpty) {
-      body = const Center(child: CircularProgressIndicator());
+      body = Padding(
+        padding: page,
+        child: const Center(child: CircularProgressIndicator()),
+      );
     } else if (state.loadedOnce && state.items.isEmpty) {
       body = ListView(
-        padding: EdgeInsets.symmetric(horizontal: gutter),
+        padding: page.add(EdgeInsets.symmetric(horizontal: gutter)),
         children: [
           const SizedBox(height: 120),
           Center(child: Text(l10n.noResults)),
@@ -119,9 +139,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       });
       body = ListView.builder(
         controller: _scroll,
-        padding: EdgeInsets.symmetric(
-          horizontal: gutter + (grid ? 6 : 0),
-          vertical: grid ? 6 : 0,
+        padding: page.add(
+          EdgeInsets.symmetric(
+            horizontal: gutter + (grid ? 6 : 0),
+            vertical: grid ? 6 : 0,
+          ),
         ),
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: rows + (state.loadingMore ? 1 : 0),
@@ -148,35 +170,62 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       );
     }
 
-    return Column(
+    return Stack(
       children: [
-        _ChipRow(
-          gutter: gutter,
-          children: [
-            for (final s in FeedSort.values)
-              ChoiceChip(
-                label: Text(_sortLabel(l10n, s)),
-                selected: state.sort == s,
-                onSelected: (_) => ctrl.setSort(s),
-              ),
-          ],
-        ),
-        _ChipRow(
-          key: const Key('feedTagRow'),
-          gutter: gutter,
-          children: spotTagFilterItems(
-            context,
-            ref,
-            keyPrefix: 'feedTag-',
-            selected: state.tags,
-            onToggle: ctrl.toggleTag,
-            onClear: ctrl.clearTags,
-            clearKey: const Key('feedTagsClear'),
-            withDivider: false,
+        Positioned.fill(
+          child: RefreshIndicator(
+            onRefresh: ctrl.refresh,
+            edgeOffset: top,
+            child: body,
           ),
         ),
-        Expanded(
-          child: RefreshIndicator(onRefresh: ctrl.refresh, child: body),
+        Positioned(
+          top: insets.top + _headerGap,
+          left: insets.left + gutter + _headerGap,
+          right: insets.right + gutter + _headerGap,
+          height: _headerHeight,
+          child: GlassSurface(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
+                    child: Text(
+                      l10n.feedTitle,
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(color: kOnGlass),
+                    ),
+                  ),
+                  _ChipRow(
+                    children: [
+                      for (final s in FeedSort.values)
+                        ChoiceChip(
+                          label: Text(_sortLabel(l10n, s)),
+                          selected: state.sort == s,
+                          showCheckmark: false,
+                          onSelected: (_) => ctrl.setSort(s),
+                        ),
+                    ],
+                  ),
+                  _ChipRow(
+                    key: const Key('feedTagRow'),
+                    children: spotTagFilterItems(
+                      context,
+                      ref,
+                      keyPrefix: 'feedTag-',
+                      selected: state.tags,
+                      onToggle: ctrl.toggleTag,
+                      onClear: ctrl.clearTags,
+                      clearKey: const Key('feedTagsClear'),
+                      withDivider: false,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -224,16 +273,15 @@ class _CardMenu extends ConsumerWidget {
 }
 
 class _ChipRow extends StatelessWidget {
-  const _ChipRow({super.key, required this.children, this.gutter = 0});
+  const _ChipRow({super.key, required this.children});
   final List<Widget> children;
-  final double gutter;
 
   @override
   Widget build(BuildContext context) => SizedBox(
     height: 48,
     child: ListView(
       scrollDirection: Axis.horizontal,
-      padding: EdgeInsets.symmetric(horizontal: 12 + gutter, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       children: [
         for (final c in children)
           Padding(padding: const EdgeInsets.only(right: 8), child: c),

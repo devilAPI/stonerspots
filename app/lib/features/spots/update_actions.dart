@@ -134,6 +134,8 @@ Future<bool> adminEditOneOf(
   final l = AppLocalizations.of(context);
   final picked = await showModalBottomSheet<FeedItem>(
     context: context,
+    // above the shell's floating tab bar
+    useRootNavigator: true,
     showDragHandle: true,
     isScrollControlled: true,
     builder: (ctx) => SafeArea(

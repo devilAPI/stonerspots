@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/glass.dart';
 import '../../core/spot_tag_widgets.dart';
 import 'spots_controller.dart';
 
@@ -26,17 +27,25 @@ class MapFilterBar extends ConsumerWidget {
       ),
     ];
     return SizedBox(
-      height: 44,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        children: [
-          for (final w in items)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Center(child: w),
-            ),
-        ],
+      height: 52,
+      child: GlassSurface(
+        radius: 26,
+        // One lens over the scrolling chips, not one per chip: glass reads
+        // the backdrop, so it belongs above a list rather than inside it.
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(26),
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            children: [
+              for (final w in items)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Center(child: w),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

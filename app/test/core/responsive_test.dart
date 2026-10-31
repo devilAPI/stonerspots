@@ -2,6 +2,7 @@ import 'package:app/core/adaptive_nav.dart';
 import 'package:app/core/responsive.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 
 const phonePortrait = Size(400, 800);
 const phoneLandscape = Size(844, 390);
@@ -56,9 +57,9 @@ void main() {
   });
 
   group('AdaptiveNavScaffold', () {
-    testWidgets('phone portrait uses a bottom navigation bar', (t) async {
+    testWidgets('phone portrait uses a glass bottom tab bar', (t) async {
       await pumpAt(t, phonePortrait, nav((_) {}));
-      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(find.byType(LiquidGlassTabBar), findsOneWidget);
       expect(find.byType(NavigationRail), findsNothing);
     });
 
@@ -66,7 +67,7 @@ void main() {
       t,
     ) async {
       await pumpAt(t, phoneLandscape, nav((_) {}));
-      expect(find.byType(NavigationBar), findsNothing);
+      expect(find.byType(LiquidGlassTabBar), findsNothing);
       final rail = t.widget<NavigationRail>(find.byType(NavigationRail));
       expect(rail.extended, isFalse);
       expect(find.text('body'), findsOneWidget);

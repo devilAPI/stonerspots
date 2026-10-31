@@ -197,7 +197,7 @@ class MapLayerButton extends StatelessWidget {
       MapBase.satellite => (Icons.satellite_alt, l.mapSatellite),
       MapBase.transit => (Icons.directions_transit, l.mapTransit),
     };
-    return IconButton.filledTonal(
+    return IconButton(
       tooltip: label,
       onPressed: () => onChanged(nextMapBase(base, transitKey: transitKey)),
       icon: Icon(icon),
