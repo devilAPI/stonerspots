@@ -51,6 +51,8 @@ Future<bool?> showUpdateComposer(
   }
   return showModalBottomSheet<bool>(
     context: context,
+    // above the shell's floating tab bar
+    useRootNavigator: true,
     isScrollControlled: true,
     useSafeArea: true,
     builder: (_) => composer,

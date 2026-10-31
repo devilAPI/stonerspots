@@ -3,15 +3,19 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 
+import '../../core/glass.dart';
 import '../../core/location_service.dart';
 import '../../core/models.dart';
+import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import 'map_filter_bar.dart';
 import 'map_tiles.dart';
 import 'spot_cluster_layer.dart';
 import 'spot_marker.dart';
 import 'spot_preview_sheet.dart';
+import 'spot_pull_sheet.dart';
 import 'spots_controller.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
@@ -95,8 +99,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   void _showPreview(Spot spot) {
-    showModalBottomSheet<void>(
+    // Narrow windows: the card pulls up into the page. On wider ones the
+    // sheet is narrower than the page, so it stays a card with a button.
+    if (!context.useNavRail) {
+      showSpotPullSheet(context, spot);
+      return;
+    }
+    showLiquidGlassSheet<void>(
       context: context,
+      style: glassStyle(radius: 32),
+      foregroundColor: kOnGlass,
+      padding: EdgeInsets.zero,
+      // above the floating tab bar, which lives outside this tab's navigator
+      useRootNavigator: true,
       // full height available (landscape phones are short) but never wider
       // than a comfortable card on big windows
       isScrollControlled: true,
@@ -131,13 +146,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       ];
     }
 
+    // The map runs edge to edge, under the status bar and the shell's glass
+    // navigation; its padding says what those cover.
+    final insets = MediaQuery.paddingOf(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.mapTitle)),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/spot/new'),
-        icon: const Icon(Icons.add),
-        label: Text(l10n.addSpot),
-      ),
       body: Stack(
         children: [
           FlutterMap(
@@ -157,35 +169,63 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             children: [
               buildBaseLayer(context, base: _base, transitKey: transitKey),
               SpotClusterLayer(markers: _markers),
-              buildBaseAttribution(context, base: _base),
+              SafeArea(
+                top: false,
+                child: buildBaseAttribution(context, base: _base),
+              ),
             ],
           ),
-          Positioned(top: 8, left: 0, right: 0, child: const MapFilterBar()),
+          Positioned(
+            top: insets.top + 8,
+            left: insets.left + 12,
+            right: insets.right + 12,
+            child: const MapFilterBar(),
+          ),
           // below the filter chips
           Positioned(
-            top: 64,
-            right: 12,
-            child: Column(
-              spacing: 4,
-              children: [
-                MapLayerButton(
-                  key: const Key('mapLayer'),
-                  base: _base,
-                  transitKey: transitKey,
-                  onChanged: (b) => setState(() => _base = b),
+            top: insets.top + 72,
+            right: insets.right + 12,
+            child: SizedBox(
+              width: 52,
+              child: GlassSurface(
+                radius: 26,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    MapLayerButton(
+                      key: const Key('mapLayer'),
+                      base: _base,
+                      transitKey: transitKey,
+                      onChanged: (b) => setState(() => _base = b),
+                    ),
+                    IconButton(
+                      key: const Key('mapLocateMe'),
+                      tooltip: l10n.mapMyLocation,
+                      onPressed: _locating ? null : _locateMe,
+                      icon: _locating
+                          ? const SizedBox.square(
+                              dimension: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.my_location),
+                    ),
+                  ],
                 ),
-                IconButton.filledTonal(
-                  key: const Key('mapLocateMe'),
-                  tooltip: l10n.mapMyLocation,
-                  onPressed: _locating ? null : _locateMe,
-                  icon: _locating
-                      ? const SizedBox.square(
-                          dimension: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.my_location),
-                ),
-              ],
+              ),
+            ),
+          ),
+          // In the stack, not Scaffold.floatingActionButton: that one would
+          // ignore the padding and sit behind the glass tab bar.
+          Positioned(
+            right: insets.right + 16,
+            bottom: insets.bottom + 16,
+            child: LiquidGlassFab.extended(
+              key: const Key('addSpot'),
+              style: glassStyle(radius: 24),
+              foregroundColor: kOnGlass,
+              onPressed: () => context.push('/spot/new'),
+              icon: Icons.add,
+              label: Text(l10n.addSpot),
             ),
           ),
           const _LoadingBar(),
@@ -202,11 +242,11 @@ class _LoadingBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) =>
       ref.watch(spotsControllerProvider.select((s) => s.loading))
-      ? const Positioned(
-          top: 0,
+      ? Positioned(
+          top: MediaQuery.paddingOf(context).top,
           left: 0,
           right: 0,
-          child: LinearProgressIndicator(minHeight: 2),
+          child: const LinearProgressIndicator(minHeight: 2),
         )
       : const SizedBox.shrink();
 }
@@ -221,7 +261,7 @@ class _ErrorBanner extends ConsumerWidget {
     }
     final l10n = AppLocalizations.of(context);
     return Positioned(
-      bottom: 88,
+      bottom: MediaQuery.paddingOf(context).bottom + 88,
       left: 16,
       right: 16,
       child: Align(

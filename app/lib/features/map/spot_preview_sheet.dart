@@ -7,10 +7,22 @@ import '../spots/spot_media.dart';
 import '../reviews/rating_widgets.dart';
 
 class SpotPreviewSheet extends StatelessWidget {
-  const SpotPreviewSheet({super.key, required this.spot, required this.onOpen});
+  const SpotPreviewSheet({
+    super.key,
+    required this.spot,
+    required this.onOpen,
+    this.scrollController,
+    this.header,
+  });
 
   final Spot spot;
   final VoidCallback onOpen;
+
+  /// Set inside a draggable sheet: drags on the card then move the sheet.
+  final ScrollController? scrollController;
+
+  /// Shown above the content, scrolling with it.
+  final Widget? header;
 
   @override
   Widget build(BuildContext context) {
@@ -18,11 +30,16 @@ class SpotPreviewSheet extends StatelessWidget {
     final cover = spot.coverUrl;
     return SafeArea(
       child: SingleChildScrollView(
+        controller: scrollController,
+        physics: scrollController == null
+            ? null
+            : const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            ?header,
             // User photos first, then the spot seen from above.
             SpotMediaStrip(
               photoUrls: [?cover],

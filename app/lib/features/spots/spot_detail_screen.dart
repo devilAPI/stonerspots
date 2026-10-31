@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/glass.dart';
 import '../../core/back_or_home.dart';
 import '../../core/models.dart';
 import '../../core/responsive.dart';
@@ -222,7 +223,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
     final loaded = spotAsync.value;
 
     return Scaffold(
-      appBar: AppBar(
+      extendBodyBehindAppBar: true,
+      appBar: GlassAppBar(
         leading: const BackOrHomeButton(),
         title: Text(spotAsync.value?.title ?? l.spotDetailTitle),
         actions: [
@@ -478,6 +480,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
           return LayoutBuilder(
             builder: (context, c) {
               final width = c.maxWidth;
+              final barBottom = GlassAppBar.contentTop(context);
               final landscapePhone = context.isPhoneLandscape;
               if (!landscapePhone && width < kTwoPaneBreakpoint) {
                 // Phone portrait: swipeable photos on top, then details and
@@ -487,7 +490,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   MediaQuery.sizeOf(context).height * 0.5,
                 );
                 return ListView(
-                  padding: const EdgeInsets.only(bottom: 24),
+                  // the hero runs under the glass app bar
+                  padding: EdgeInsets.zero.copyWith(bottom: 24),
                   children: [
                     if (urls.isEmpty)
                       locationMap(heroHeight, radius: 0)
@@ -519,7 +523,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
               final media = SizedBox(
                 width: mediaWidth,
                 child: ListView(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.fromLTRB(12, barBottom, 12, 12),
                   children: [
                     // where it is first, then what it looks like
                     locationMap((mediaWidth - 24) * 0.75),
@@ -553,7 +557,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                     SizedBox(
                       width: (width * 0.28).clamp(360.0, 480.0),
                       child: ListView(
-                        padding: const EdgeInsets.only(bottom: 24),
+                        padding: EdgeInsets.only(top: barBottom, bottom: 24),
                         children: [timeline],
                       ),
                     ),
@@ -579,7 +583,7 @@ class _ReadablePane extends StatelessWidget {
     builder: (context, c) => ListView(
       padding: EdgeInsets.fromLTRB(
         sideGutter(c.maxWidth),
-        0,
+        GlassAppBar.contentTop(context),
         sideGutter(c.maxWidth),
         24,
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/glass.dart';
 import '../../l10n/app_localizations.dart';
 import 'auth_controller.dart';
 import 'profile_dialogs.dart';
@@ -15,10 +16,12 @@ class ProfileScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final user = ref.watch(authControllerProvider).value;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.navProfile)),
+      extendBodyBehindAppBar: true,
+      appBar: GlassAppBar(title: Text(l10n.navProfile)),
+      // Its padding covers the bar and the shell's glass navigation.
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: MediaQuery.paddingOf(context).add(const EdgeInsets.all(16)),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
             child: user == null
