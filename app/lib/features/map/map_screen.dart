@@ -8,12 +8,14 @@ import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 import '../../core/glass.dart';
 import '../../core/location_service.dart';
 import '../../core/models.dart';
+import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import 'map_filter_bar.dart';
 import 'map_tiles.dart';
 import 'spot_cluster_layer.dart';
 import 'spot_marker.dart';
 import 'spot_preview_sheet.dart';
+import 'spot_pull_sheet.dart';
 import 'spots_controller.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
@@ -97,6 +99,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   void _showPreview(Spot spot) {
+    // Narrow windows: the card pulls up into the page. On wider ones the
+    // sheet is narrower than the page, so it stays a card with a button.
+    if (!context.useNavRail) {
+      showSpotPullSheet(context, spot);
+      return;
+    }
     showLiquidGlassSheet<void>(
       context: context,
       style: glassStyle(radius: 32),

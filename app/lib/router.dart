@@ -8,6 +8,7 @@ import 'features/auth/login_screen.dart';
 import 'features/auth/profile_screen.dart';
 import 'features/auth/register_screen.dart';
 import 'features/feed/feed_screen.dart';
+import 'core/glass.dart';
 import 'core/adaptive_nav.dart';
 import 'core/models.dart' show User;
 import 'core/back_or_home.dart';
@@ -125,11 +126,34 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/spot/:id',
-        builder: (_, state) => BackToHomeScope(
-          child: SpotDetailScreen(
-            spotId: int.parse(state.pathParameters['id']!),
-          ),
-        ),
+        pageBuilder: (_, state) {
+          final page = BackToHomeScope(
+            child: SpotDetailScreen(
+              spotId: int.parse(state.pathParameters['id']!),
+            ),
+          );
+          if (state.extra != kSpotFromSheet) {
+            return MaterialPage(key: state.pageKey, child: page);
+          }
+          // The pulled-up sheet is already showing this page; back slides
+          // it down again, like the sheet would.
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: page,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: const Duration(milliseconds: 280),
+            transitionsBuilder: (_, animation, _, child) => SlideTransition(
+              position: Tween(begin: const Offset(0, 1), end: Offset.zero)
+                  .animate(
+                    CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutCubic,
+                    ),
+                  ),
+              child: child,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: '/login',

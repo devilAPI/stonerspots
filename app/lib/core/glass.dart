@@ -9,6 +9,10 @@ const double kGlassTabBarGap = 12;
 /// Height of [GlassAppBar]'s capsule, without the status bar and margins.
 const double kGlassAppBarHeight = 56;
 
+/// `extra` of a spot route opened by pulling up its sheet: the sheet already
+/// looks like the page, so the page appears without a transition.
+const Object kSpotFromSheet = 'spotFromSheet';
+
 /// Text and icons on glass. The tint keeps them readable over any backdrop,
 /// from the dark map to a bright satellite image or photo.
 const Color kOnGlass = Color(0xF2FFFFFF);
