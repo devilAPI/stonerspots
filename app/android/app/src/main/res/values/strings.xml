@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- German is the default, as in the app: any language other than English
+     gets German there too (see localeResolutionCallback in main.dart). -->
+<resources>
+    <string name="widget_nearest_label">Nächster Spot</string>
+    <string name="widget_nearest_description">Der nächste Spot zu deinem letzten Standort in der App. Tippen öffnet ihn.</string>
+    <string name="widget_nearest_empty_new">Öffne Stonerspots einmal, um den nächsten Spot zu sehen.</string>
+    <string name="widget_nearest_empty_location">Teile in Stonerspots deinen Standort, um den nächsten Spot zu sehen.</string>
+    <string name="widget_nearest_empty_spots">Noch kein Spot in deiner Nähe. Schau auf der Karte nach.</string>
+    <string name="widget_nearest_sample_name">Bank am Flussufer</string>
+    <string name="widget_nearest_sample_meta">850 m · ★ 4.5</string>
+    <string name="widget_nearest_sample_tags">Aussicht · Ruhig</string>
+    <string name="widget_quick_label">Schnellzugriff</string>
+    <string name="widget_quick_description">Öffne die Karte oder füge direkt einen Spot hinzu.</string>
+    <string name="widget_quick_map">Karte</string>
+    <string name="widget_quick_add">Spot</string>
+    <string name="widget_quick_add_description">Spot hinzufügen</string>
+</resources>

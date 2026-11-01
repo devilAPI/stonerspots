@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_nearest_label">Nearest spot</string>
+    <string name="widget_nearest_description">The spot closest to where you last used the app. Tap to open it.</string>
+    <string name="widget_nearest_empty_new">Open Stonerspots once to see your nearest spot.</string>
+    <string name="widget_nearest_empty_location">Share your location in Stonerspots to see your nearest spot.</string>
+    <string name="widget_nearest_empty_spots">No spots near you yet. Have a look at the map.</string>
+    <string name="widget_nearest_sample_name">Bench by the river</string>
+    <string name="widget_nearest_sample_meta">850 m · ★ 4.5</string>
+    <string name="widget_nearest_sample_tags">View · Quiet</string>
+    <string name="widget_quick_label">Quick actions</string>
+    <string name="widget_quick_description">Open the map or add a spot right away.</string>
+    <string name="widget_quick_map">Map</string>
+    <string name="widget_quick_add">Spot</string>
+    <string name="widget_quick_add_description">Add a spot</string>
+</resources>
