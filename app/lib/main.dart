@@ -18,13 +18,6 @@ Future<void> main() async {
   final settings = await SettingsStore.load();
   // Glass needs something to refract: draw under the system bars too.
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarContrastEnforced: false,
-    ),
-  );
   runApp(
     ProviderScope(
       overrides: [settingsStoreProvider.overrideWithValue(settings)],
@@ -53,6 +46,12 @@ class _StonerspotsAppState extends ConsumerState<StonerspotsApp> {
     ref.watch(homeWidgetSyncProvider);
     return GlassSettingScope(
       child: MaterialApp.router(
+        // Inside MaterialApp, whose own region would paint the navigation bar
+        // black on every frame.
+        builder: (_, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+          value: kSystemBars,
+          child: child!,
+        ),
         onGenerateTitle: (c) => AppLocalizations.of(c).appTitle,
         routerConfig: ref.watch(routerProvider),
         theme: lightTheme,

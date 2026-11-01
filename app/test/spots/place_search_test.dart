@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:app/core/api_client.dart';
 import 'package:app/core/location_service.dart';
 import 'package:app/core/models.dart';
+import 'package:app/features/auth/auth_controller.dart';
 import 'package:app/features/spots/add_spot_controller.dart';
 import 'package:app/features/spots/add_spot_screen.dart';
 import 'package:app/features/spots/geocode_repository.dart';
@@ -73,6 +74,7 @@ Future<void> pumpAt(WidgetTester t, Size size) async {
     ProviderScope(
       overrides: [
         locationServiceProvider.overrideWithValue(_NoLocation()),
+        authControllerProvider.overrideWith(_Auth.new),
         spotApiProvider.overrideWithValue(_Api()),
         geocodeRepositoryProvider.overrideWithValue(geo),
       ],
@@ -95,6 +97,12 @@ Future<void> search(WidgetTester t, String text) async {
   await t.testTextInput.receiveAction(TextInputAction.search);
   await t.pump();
   await t.pump();
+}
+
+class _Auth extends AuthController {
+  @override
+  Future<User?> build() async =>
+      const User(id: 1, email: 'a@b.c', displayName: 'A');
 }
 
 void main() {

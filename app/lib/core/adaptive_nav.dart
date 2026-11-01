@@ -95,28 +95,39 @@ class AdaptiveNavScaffold extends StatelessWidget {
               child: SingleChildScrollView(
                 child: GlassSurface(
                   radius: 28,
-                  child: IntrinsicHeight(
-                    child: NavigationRail(
-                      backgroundColor: Colors.transparent,
-                      selectedIndex: selectedIndex,
-                      onDestinationSelected: onSelected,
-                      extended: extended,
-                      minExtendedWidth: _extendedRailWidth,
-                      labelType: extended
-                          ? NavigationRailLabelType.none
-                          : NavigationRailLabelType.selected,
-                      unselectedIconTheme: const IconThemeData(color: kOnGlass),
-                      unselectedLabelTextStyle: const TextStyle(
-                        color: kOnGlass,
+                  child: MediaQuery.removePadding(
+                    context: context,
+                    removeLeft: true,
+                    removeRight: true,
+                    removeTop: true,
+                    removeBottom: true,
+                    child: IntrinsicHeight(
+                      child: NavigationRail(
+                        backgroundColor: Colors.transparent,
+                        selectedIndex: selectedIndex,
+                        onDestinationSelected: onSelected,
+                        extended: extended,
+                        minExtendedWidth: _extendedRailWidth,
+                        labelType: extended
+                            ? NavigationRailLabelType.none
+                            : NavigationRailLabelType.selected,
+                        unselectedIconTheme: const IconThemeData(
+                          color: kOnGlass,
+                        ),
+                        unselectedLabelTextStyle: const TextStyle(
+                          color: kOnGlass,
+                        ),
+                        selectedLabelTextStyle: const TextStyle(
+                          color: kOnGlass,
+                        ),
+                        destinations: [
+                          for (final i in items)
+                            NavigationRailDestination(
+                              icon: Icon(i.icon),
+                              label: Text(i.label),
+                            ),
+                        ],
                       ),
-                      selectedLabelTextStyle: const TextStyle(color: kOnGlass),
-                      destinations: [
-                        for (final i in items)
-                          NavigationRailDestination(
-                            icon: Icon(i.icon),
-                            label: Text(i.label),
-                          ),
-                      ],
                     ),
                   ),
                 ),

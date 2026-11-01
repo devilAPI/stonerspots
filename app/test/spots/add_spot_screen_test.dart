@@ -1,5 +1,6 @@
 import 'package:app/core/location_service.dart';
 import 'package:app/core/models.dart';
+import 'package:app/features/auth/auth_controller.dart';
 import 'package:app/features/spots/add_spot_screen.dart';
 import 'package:app/features/spots/location_picker.dart';
 import 'package:app/features/spots/spot_api.dart';
@@ -9,9 +10,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 
-class _NoLocation implements LocationService {
+class _Auth extends AuthController {
+  _Auth(this.user);
+  final User? user;
   @override
-  Future<LatLng?> currentPosition() async => null;
+  Future<User?> build() async => user;
+}
+
+const _demo = User(id: 1, email: 'a@b.c', displayName: 'A');
+
+class _NoLocation implements LocationService {
+  int asked = 0;
+  @override
+  Future<LatLng?> currentPosition() async {
+    asked++;
+    return null;
+  }
 }
 
 class _Api implements SpotApi {
@@ -30,14 +44,20 @@ class _Api implements SpotApi {
   Future<void> report(String t, int id, String r) async {}
 }
 
-Future<void> pumpAt(WidgetTester t, Size size) async {
+Future<void> pumpAt(
+  WidgetTester t,
+  Size size, {
+  User? user = _demo,
+  LocationService? location,
+}) async {
   t.view.physicalSize = size;
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
   await t.pumpWidget(
     ProviderScope(
       overrides: [
-        locationServiceProvider.overrideWithValue(_NoLocation()),
+        locationServiceProvider.overrideWithValue(location ?? _NoLocation()),
+        authControllerProvider.overrideWith(() => _Auth(user)),
         spotApiProvider.overrideWithValue(_Api()),
       ],
       child: const MaterialApp(
@@ -52,6 +72,18 @@ Future<void> pumpAt(WidgetTester t, Size size) async {
 }
 
 void main() {
+  testWidgets('logged in, it asks for the location', (t) async {
+    final location = _NoLocation();
+    await pumpAt(t, const Size(400, 800), location: location);
+    expect(location.asked, 1);
+  });
+
+  testWidgets('logged out, on the way to login, it does not ask', (t) async {
+    final location = _NoLocation();
+    await pumpAt(t, const Size(400, 800), user: null, location: location);
+    expect(location.asked, 0);
+  });
+
   testWidgets(
     'wide window: map beside the form, save button visible without scrolling',
     (t) async {

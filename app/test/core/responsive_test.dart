@@ -73,6 +73,31 @@ void main() {
       expect(find.text('body'), findsOneWidget);
     });
 
+    testWidgets('a camera cutout moves the rail, it does not squeeze it', (
+      t,
+    ) async {
+      t.view.physicalSize = phoneLandscape;
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      await t.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(padding: const EdgeInsets.only(left: 48)),
+              child: nav((_) {}),
+            ),
+          ),
+        ),
+      );
+      final rail = find.byType(NavigationRail);
+      expect(t.getSize(rail).width, 80);
+      final icon = t.getCenter(
+        find.descendant(of: rail, matching: find.byType(Icon)).first,
+      );
+      expect(icon.dx, moreOrLessEquals(t.getCenter(rail).dx, epsilon: 1));
+    });
+
     testWidgets('desktop uses an extended rail with labels', (t) async {
       await pumpAt(t, desktop, nav((_) {}));
       final rail = t.widget<NavigationRail>(find.byType(NavigationRail));

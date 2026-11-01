@@ -1,6 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 const Color kAccent = Color(0xFF4CAF50);
+
+/// See-through system bars with light icons: the app draws under them.
+const SystemUiOverlayStyle kSystemBars = SystemUiOverlayStyle(
+  statusBarColor: Colors.transparent,
+  statusBarBrightness: Brightness.dark,
+  statusBarIconBrightness: Brightness.light,
+  systemNavigationBarColor: Colors.transparent,
+  systemNavigationBarDividerColor: Colors.transparent,
+  systemNavigationBarIconBrightness: Brightness.light,
+  systemNavigationBarContrastEnforced: false,
+);
 
 ThemeData _build(Brightness b) {
   final scheme = ColorScheme.fromSeed(seedColor: kAccent, brightness: b);

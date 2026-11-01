@@ -8,6 +8,7 @@ import '../../core/location_service.dart';
 import '../../core/responsive.dart';
 import '../../core/spot_tag_widgets.dart';
 import '../../l10n/app_localizations.dart';
+import '../auth/auth_controller.dart';
 import 'add_spot_controller.dart';
 import 'add_spot_errors.dart';
 import 'location_picker.dart';
@@ -28,15 +29,24 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
   @override
   void initState() {
     super.initState();
-    _location = ref.read(locationServiceProvider).currentPosition().then((p) {
-      if (!mounted) return p;
-      if (p == null) {
-        setState(() => _locationDenied = true);
-      } else if (ref.read(addSpotControllerProvider).point == null) {
-        ref.read(addSpotControllerProvider.notifier).setPoint(p);
-      }
-      return p;
-    });
+    _location = _findLocation();
+  }
+
+  Future<LatLng?> _findLocation() async {
+    // This page shows briefly while the session is restored. Someone logged
+    // out is on the way to the login page: no location prompt over it.
+    final user = await ref
+        .read(authControllerProvider.future)
+        .catchError((_) => null);
+    if (user == null || !mounted) return null;
+    final p = await ref.read(locationServiceProvider).currentPosition();
+    if (!mounted) return p;
+    if (p == null) {
+      setState(() => _locationDenied = true);
+    } else if (ref.read(addSpotControllerProvider).point == null) {
+      ref.read(addSpotControllerProvider.notifier).setPoint(p);
+    }
+    return p;
   }
 
   Future<void> _pickPhotos() async {
