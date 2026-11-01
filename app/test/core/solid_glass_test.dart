@@ -188,7 +188,8 @@ void main() {
     });
 
     for (final solid in [false, true]) {
-      testWidgets('empty areas let taps through (solid: $solid)', (t) async {
+      testWidgets('empty areas: clear glass lets taps through, solid does not '
+          '(solid: $solid)', (t) async {
         var behind = 0;
         var inside = 0;
         await pumpIn(
@@ -225,11 +226,12 @@ void main() {
         );
         await t.tapAt(const Offset(100, 50));
         await t.pump(const Duration(milliseconds: 400));
-        expect(behind, 1);
+        final expected = solid ? 0 : 1;
+        expect(behind, expected);
         await t.tap(find.byKey(const Key('inside')));
         await t.pump(const Duration(milliseconds: 400));
         expect(inside, 1);
-        expect(behind, 1);
+        expect(behind, expected);
       });
     }
   });

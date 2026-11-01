@@ -62,8 +62,8 @@ Future<void> initGlass() async {
 }
 
 /// The bare surface every piece of glass stands on: a lens, or under
-/// [SolidGlass] a filled shape. Either way it clips [child] and takes no
-/// pointer events of its own.
+/// [SolidGlass] a filled shape. Either way it clips [child]. Glass takes no
+/// pointer events of its own; a solid surface stops those on its empty parts.
 class GlassPanel extends StatelessWidget {
   const GlassPanel({
     super.key,
@@ -91,9 +91,13 @@ class GlassPanel extends StatelessWidget {
       borderRadius: BorderRadius.circular(radius),
       side: const BorderSide(color: _solidRim),
     );
-    return CustomPaint(
-      painter: _SolidPainter(shape, color ?? kSolidGlass),
-      child: ClipPath.shape(shape: shape, child: child),
+    // Opaque, so a tap on an empty part must not reach what it hides.
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      child: CustomPaint(
+        painter: _SolidPainter(shape, color ?? kSolidGlass),
+        child: ClipPath.shape(shape: shape, child: child),
+      ),
     );
   }
 }
