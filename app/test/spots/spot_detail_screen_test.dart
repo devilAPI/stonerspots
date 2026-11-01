@@ -11,6 +11,7 @@ import 'package:app/features/spots/spot_detail_screen.dart';
 import 'package:app/features/spots/spot_link.dart';
 import 'package:app/features/reviews/review_models.dart';
 import 'package:app/features/reviews/reviews_repository.dart';
+import 'package:app/features/saved/saved_repository.dart';
 import 'package:app/features/spots/photo_viewer.dart';
 import 'package:app/features/spots/updates_repository.dart';
 import 'package:app/l10n/app_localizations.dart';
@@ -22,6 +23,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 import '../reviews/review_helpers.dart';
+import '../saved/saved_helpers.dart' show FakeSaved;
 import 'update_helpers.dart';
 
 class _Api implements SpotApi {
@@ -107,6 +109,7 @@ class _Admin implements AdminRepository {
 
 late FakeUpdates updates;
 late FakeReviews reviews;
+late FakeSaved saved;
 
 Future<_Api> _pump(
   WidgetTester tester,
@@ -125,6 +128,7 @@ Future<_Api> _pump(
       withApi ??
       _Api(cover: cover, tags: tags, authorId: authorId, locked: locked);
   updates = FakeUpdates(items: items);
+  saved = FakeSaved();
   reviews = FakeReviews([
     ReviewsPage(
       summary: summaryOf({4: 1, 5: 1}),
@@ -154,6 +158,7 @@ Future<_Api> _pump(
         spotApiProvider.overrideWithValue(api),
         spotUpdatesRepositoryProvider.overrideWithValue(updates),
         reviewsRepositoryProvider.overrideWithValue(reviews),
+        savedRepositoryProvider.overrideWithValue(saved),
         authControllerProvider.overrideWith(() => _Auth(user)),
         if (launcher != null) urlLauncherProvider.overrideWithValue(launcher),
         if (admin != null) adminRepositoryProvider.overrideWithValue(admin),
@@ -177,22 +182,23 @@ void _portrait(WidgetTester t) {
   addTearDown(t.view.reset);
 }
 
-/// The page is a lazy list: scroll the main (first vertical) scrollable
-/// until [f] is built, then fully into view. Scrolls in code rather than by
-/// dragging, since a drag over the location map moves the map instead.
+/// The page is a lazy list, or several side by side: scroll the vertical
+/// scrollables in turn until [f] is built, then fully into view. Scrolls in
+/// code rather than by dragging, since a drag over the location map moves the
+/// map instead.
 Future<void> _scrollTo(WidgetTester t, Finder f) async {
-  final list = t.state<ScrollableState>(
-    find
-        .byWidgetPredicate(
-          (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
-        )
-        .first,
+  final lists = t.stateList<ScrollableState>(
+    find.byWidgetPredicate(
+      (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+    ),
   );
-  while (f.evaluate().isEmpty) {
-    final p = list.position;
-    if (p.pixels >= p.maxScrollExtent) break;
-    p.jumpTo((p.pixels + 300).clamp(0, p.maxScrollExtent));
-    await t.pump();
+  for (final list in lists) {
+    while (f.evaluate().isEmpty) {
+      final p = list.position;
+      if (p.pixels >= p.maxScrollExtent) break;
+      p.jumpTo((p.pixels + 300).clamp(0, p.maxScrollExtent));
+      await t.pump();
+    }
   }
   await t.ensureVisible(f);
   await t.pumpAndSettle();
@@ -223,6 +229,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(api.likes, 1);
     expect(find.text('4 likes'), findsOneWidget);
+  });
+
+  testWidgets('logged-out bookmark pushes login', (tester) async {
+    await _pump(tester, null);
+    await tester.tap(find.byKey(const Key('saveSpot')));
+    await tester.pumpAndSettle();
+    expect(find.text('login from null'), findsOneWidget);
+    expect(saved.calls, isEmpty);
+  });
+
+  testWidgets('the bookmark saves to Favourites, apart from the like', (
+    tester,
+  ) async {
+    final api = await _pump(
+      tester,
+      const User(id: 1, email: 'a@b.de', displayName: 'A'),
+    );
+    expect(find.byIcon(Icons.bookmark_border), findsOneWidget);
+    await tester.tap(find.byKey(const Key('saveSpot')));
+    await tester.pumpAndSettle();
+    expect(saved.calls, contains('favourite:5'));
+    expect(find.byIcon(Icons.bookmark), findsOneWidget);
+    expect(find.text('Saved to Favourites'), findsOneWidget);
+    expect(api.likes, 0);
   });
 
   testWidgets('open in google maps launches the spot coordinates', (

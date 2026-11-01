@@ -13,6 +13,20 @@ void main() {
     expect(authRedirect(loggedIn: false, location: '/spot/5'), isNull);
   });
 
+  test('saved pages require login', () {
+    expect(
+      authRedirect(loggedIn: false, location: '/saved'),
+      '/login?from=%2Fsaved',
+    );
+    expect(
+      authRedirect(loggedIn: false, location: '/saved/3'),
+      '/login?from=%2Fsaved%2F3',
+    );
+    expect(authRedirect(loggedIn: true, location: '/saved'), isNull);
+    expect(authRedirect(loggedIn: true, location: '/saved/3'), isNull);
+    expect(authRedirect(loggedIn: false, location: '/savedish'), isNull);
+  });
+
   test('admin route guard', () {
     expect(
       authRedirect(loggedIn: false, location: '/admin'),
