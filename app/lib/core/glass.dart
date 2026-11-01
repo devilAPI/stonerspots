@@ -219,7 +219,11 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   /// Where a page's content starts below the bar.
   static double contentTop(BuildContext context) =>
-      MediaQuery.viewPaddingOf(context).top + kGlassAppBarHeight + 2 * _margin;
+      // From the view: a Scaffold takes the top padding out of its body's
+      // MediaQuery, and this is called from inside bodies as well.
+      MediaQueryData.fromView(View.of(context)).viewPadding.top +
+      kGlassAppBarHeight +
+      2 * _margin;
 
   @override
   Size get preferredSize =>
