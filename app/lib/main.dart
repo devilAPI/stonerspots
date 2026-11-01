@@ -7,6 +7,7 @@ import 'core/glass.dart';
 import 'core/settings.dart';
 import 'core/tag_catalog.dart';
 import 'core/theme.dart';
+import 'features/home_widgets/home_widget_sync.dart';
 import 'l10n/app_localizations.dart';
 import 'router.dart';
 
@@ -49,6 +50,7 @@ class _StonerspotsAppState extends ConsumerState<StonerspotsApp> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(homeWidgetSyncProvider);
     return GlassSettingScope(
       child: MaterialApp.router(
         onGenerateTitle: (c) => AppLocalizations.of(c).appTitle,

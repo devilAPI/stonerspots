@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="widget_radius">20dp</dimen>
+    <dimen name="widget_button_radius">14dp</dimen>
+    <color name="widget_accent">#4CAF50</color>
+    <color name="widget_accent_soft">#334CAF50</color>
+    <color name="widget_surface">#EB101410</color>
+    <color name="widget_text">#F2F5F2</color>
+    <color name="widget_text_secondary">#B8C4B8</color>
+    <color name="widget_on_accent">#0B1A0C</color>
+</resources>
