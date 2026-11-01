@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../core/glass.dart';
 import '../../core/models.dart';
 import '../../core/spot_tag_widgets.dart';
 import '../../l10n/app_localizations.dart';
+import '../saved/save_spot_button.dart';
 import '../spots/spot_media.dart';
 import '../reviews/rating_widgets.dart';
 
@@ -52,7 +54,22 @@ class SpotPreviewSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Text(spot.title, style: Theme.of(context).textTheme.titleLarge),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    spot.title,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                // the card sits on glass
+                SaveSpotButton(
+                  spotId: spot.id,
+                  iconOnly: true,
+                  color: kOnGlass,
+                ),
+              ],
+            ),
             const SizedBox(height: 4),
             Row(
               children: [

@@ -1795,6 +1795,114 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Einfarbige Flächen statt Glas. Schont Grafikleistung und Akku.'**
   String get settingsDisableTransparencyHint;
+
+  /// No description provided for @saved.
+  ///
+  /// In de, this message translates to:
+  /// **'Gespeichert'**
+  String get saved;
+
+  /// No description provided for @savedFavourites.
+  ///
+  /// In de, this message translates to:
+  /// **'Favoriten'**
+  String get savedFavourites;
+
+  /// No description provided for @savedToFavourites.
+  ///
+  /// In de, this message translates to:
+  /// **'In Favoriten gespeichert'**
+  String get savedToFavourites;
+
+  /// No description provided for @savedChangeList.
+  ///
+  /// In de, this message translates to:
+  /// **'Liste ändern'**
+  String get savedChangeList;
+
+  /// No description provided for @savedPickLists.
+  ///
+  /// In de, this message translates to:
+  /// **'In Listen speichern'**
+  String get savedPickLists;
+
+  /// No description provided for @savedNewList.
+  ///
+  /// In de, this message translates to:
+  /// **'Neue Liste'**
+  String get savedNewList;
+
+  /// No description provided for @savedListName.
+  ///
+  /// In de, this message translates to:
+  /// **'Name der Liste'**
+  String get savedListName;
+
+  /// No description provided for @savedRenameList.
+  ///
+  /// In de, this message translates to:
+  /// **'Umbenennen'**
+  String get savedRenameList;
+
+  /// No description provided for @savedDelete.
+  ///
+  /// In de, this message translates to:
+  /// **'Löschen'**
+  String get savedDelete;
+
+  /// No description provided for @savedDeleteTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Liste löschen?'**
+  String get savedDeleteTitle;
+
+  /// No description provided for @savedDeleteBody.
+  ///
+  /// In de, this message translates to:
+  /// **'„{name}“ wird gelöscht. Die Spots darin bleiben erhalten.'**
+  String savedDeleteBody(String name);
+
+  /// No description provided for @savedNameTaken.
+  ///
+  /// In de, this message translates to:
+  /// **'Du hast schon eine Liste mit diesem Namen'**
+  String get savedNameTaken;
+
+  /// No description provided for @savedListLimit.
+  ///
+  /// In de, this message translates to:
+  /// **'Du hast die maximale Anzahl an Listen erreicht'**
+  String get savedListLimit;
+
+  /// No description provided for @savedEmpty.
+  ///
+  /// In de, this message translates to:
+  /// **'Noch nichts gespeichert. Tippe bei einem Spot auf das Lesezeichen, um ihn hier zu sammeln.'**
+  String get savedEmpty;
+
+  /// No description provided for @savedListEmpty.
+  ///
+  /// In de, this message translates to:
+  /// **'Diese Liste ist noch leer'**
+  String get savedListEmpty;
+
+  /// No description provided for @savedListGone.
+  ///
+  /// In de, this message translates to:
+  /// **'Diese Liste gibt es nicht mehr'**
+  String get savedListGone;
+
+  /// No description provided for @savedRemoveSpot.
+  ///
+  /// In de, this message translates to:
+  /// **'Aus der Liste entfernen'**
+  String get savedRemoveSpot;
+
+  /// No description provided for @savedSpotCount.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =0{Keine Spots} =1{1 Spot} other{{count} Spots}}'**
+  String savedSpotCount(int count);
 }
 
 class _AppLocalizationsDelegate

@@ -55,6 +55,13 @@ class ProfileScreen extends ConsumerWidget {
                         style: theme.textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 24),
+                      FilledButton.tonalIcon(
+                        key: const Key('open-saved'),
+                        icon: const Icon(Icons.bookmark_border),
+                        onPressed: () => context.push('/saved'),
+                        label: Text(l10n.saved),
+                      ),
+                      const SizedBox(height: 12),
                       if (user.isAdmin) ...[
                         FilledButton.tonalIcon(
                           key: const Key('open-admin'),

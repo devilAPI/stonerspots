@@ -14,6 +14,8 @@ import 'core/models.dart' show User;
 import 'core/back_or_home.dart';
 import 'core/tab_keys.dart';
 import 'features/map/map_screen.dart';
+import 'features/saved/saved_list_screen.dart';
+import 'features/saved/saved_lists_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/spots/add_spot_screen.dart';
 import 'features/spots/spot_detail_screen.dart';
@@ -28,8 +30,9 @@ String? authRedirect({
   required String location,
   bool isAdmin = false,
 }) {
+  final saved = location == '/saved' || location.startsWith('/saved/');
   if (!loggedIn &&
-      (_protectedPaths.contains(location) || location == '/admin')) {
+      (_protectedPaths.contains(location) || saved || location == '/admin')) {
     return '/login?from=${Uri.encodeComponent(location)}';
   }
   if (loggedIn && !isAdmin && location == '/admin') return '/';
@@ -155,6 +158,19 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           );
         },
+      ),
+      GoRoute(
+        path: '/saved',
+        builder: (_, _) => const BackToHomeScope(child: SavedListsScreen()),
+      ),
+      GoRoute(
+        path: '/saved/:id',
+        builder: (_, state) => BackToHomeScope(
+          // anything that is no id shows as a list that does not exist
+          child: SavedListScreen(
+            listId: int.tryParse(state.pathParameters['id']!) ?? 0,
+          ),
+        ),
       ),
       GoRoute(
         path: '/login',

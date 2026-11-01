@@ -1,13 +1,22 @@
 import 'package:app/core/models.dart';
 import 'package:app/features/feed/satellite_thumb.dart';
+import 'package:app/features/auth/auth_controller.dart';
 import 'package:app/features/map/spot_preview_sheet.dart';
+import 'package:app/features/saved/saved_repository.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Future<void> pumpSheet(WidgetTester t, Spot spot, {Size? size}) async {
+import '../saved/saved_helpers.dart' show FakeAuth, FakeSaved;
+
+Future<void> pumpSheet(
+  WidgetTester t,
+  Spot spot, {
+  Size? size,
+  FakeSaved? saved,
+}) async {
   if (size != null) {
     t.view.physicalSize = size;
     t.view.devicePixelRatio = 1;
@@ -15,6 +24,10 @@ Future<void> pumpSheet(WidgetTester t, Spot spot, {Size? size}) async {
   }
   await t.pumpWidget(
     ProviderScope(
+      overrides: [
+        savedRepositoryProvider.overrideWithValue(saved ?? FakeSaved()),
+        authControllerProvider.overrideWith(() => FakeAuth(null)),
+      ],
       child: MaterialApp(
         locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -123,6 +136,23 @@ void main() {
     expect(find.byKey(const Key('previewTag-water')), findsOneWidget);
     expect(find.byKey(const Key('previewTag-lit')), findsNothing);
     expect(find.text('Roof'), findsOneWidget);
+  });
+
+  testWidgets('has a bookmark, separate from the likes', (t) async {
+    await pumpSheet(t, noPhoto);
+    expect(find.byKey(const Key('saveSpot')), findsOneWidget);
+    expect(find.byIcon(Icons.bookmark_border), findsOneWidget);
+    expect(find.byIcon(Icons.favorite), findsOneWidget);
+  });
+
+  testWidgets('a long title leaves room for the bookmark', (t) async {
+    await pumpSheet(
+      t,
+      Spot(id: 1, title: 'Very long name ' * 8, lat: 1, lon: 2),
+      size: const Size(320, 640),
+    );
+    expect(t.takeException(), isNull);
+    expect(find.byKey(const Key('saveSpot')).hitTestable(), findsOneWidget);
   });
 
   testWidgets('no tags: no chip row', (t) async {

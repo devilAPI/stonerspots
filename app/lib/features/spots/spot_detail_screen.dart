@@ -15,6 +15,7 @@ import '../admin/admin_repository.dart';
 import '../auth/auth_controller.dart';
 import '../reviews/rating_widgets.dart';
 import '../reviews/reviews_section.dart';
+import '../saved/save_spot_button.dart';
 import 'edit_tags_dialog.dart';
 import 'maps_link.dart';
 import 'photo_viewer.dart';
@@ -384,6 +385,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                         const SizedBox(width: 8),
                       ],
                     ),
+                    SaveSpotButton(spotId: widget.spotId),
                     if (canChange)
                       OutlinedButton.icon(
                         key: const Key('postUpdate'),

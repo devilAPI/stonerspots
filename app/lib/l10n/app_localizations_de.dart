@@ -1052,4 +1052,70 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsDisableTransparencyHint =>
       'Einfarbige Flächen statt Glas. Schont Grafikleistung und Akku.';
+
+  @override
+  String get saved => 'Gespeichert';
+
+  @override
+  String get savedFavourites => 'Favoriten';
+
+  @override
+  String get savedToFavourites => 'In Favoriten gespeichert';
+
+  @override
+  String get savedChangeList => 'Liste ändern';
+
+  @override
+  String get savedPickLists => 'In Listen speichern';
+
+  @override
+  String get savedNewList => 'Neue Liste';
+
+  @override
+  String get savedListName => 'Name der Liste';
+
+  @override
+  String get savedRenameList => 'Umbenennen';
+
+  @override
+  String get savedDelete => 'Löschen';
+
+  @override
+  String get savedDeleteTitle => 'Liste löschen?';
+
+  @override
+  String savedDeleteBody(String name) {
+    return '„$name“ wird gelöscht. Die Spots darin bleiben erhalten.';
+  }
+
+  @override
+  String get savedNameTaken => 'Du hast schon eine Liste mit diesem Namen';
+
+  @override
+  String get savedListLimit => 'Du hast die maximale Anzahl an Listen erreicht';
+
+  @override
+  String get savedEmpty =>
+      'Noch nichts gespeichert. Tippe bei einem Spot auf das Lesezeichen, um ihn hier zu sammeln.';
+
+  @override
+  String get savedListEmpty => 'Diese Liste ist noch leer';
+
+  @override
+  String get savedListGone => 'Diese Liste gibt es nicht mehr';
+
+  @override
+  String get savedRemoveSpot => 'Aus der Liste entfernen';
+
+  @override
+  String savedSpotCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Spots',
+      one: '1 Spot',
+      zero: 'Keine Spots',
+    );
+    return '$_temp0';
+  }
 }

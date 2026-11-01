@@ -78,6 +78,7 @@ Future<(_Repo, TokenStore)> _pump(
             GoRoute(path: '/', builder: (_, _) => const ProfileScreen()),
             GoRoute(path: '/login', builder: (_, _) => const Text('LOGIN')),
             GoRoute(path: '/admin', builder: (_, _) => const Text('ADMIN')),
+            GoRoute(path: '/saved', builder: (_, _) => const Text('SAVED')),
           ],
         ),
       ),
@@ -115,6 +116,18 @@ void main() {
     expect(find.text('Log in'), findsOneWidget);
     expect(find.byKey(const Key('change-password')), findsNothing);
     expect(find.byKey(const Key('delete-account')), findsNothing);
+  });
+
+  testWidgets('a logged-in user can open their saved spots', (tester) async {
+    await _pump(tester);
+    await tester.tap(find.byKey(const Key('open-saved')));
+    await tester.pumpAndSettle();
+    expect(find.text('SAVED'), findsOneWidget);
+  });
+
+  testWidgets('anonymous has no saved entry', (tester) async {
+    await _pump(tester, auth: false);
+    expect(find.byKey(const Key('open-saved')), findsNothing);
   });
 
   testWidgets('normal user does not see the Admin button', (tester) async {
