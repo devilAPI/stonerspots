@@ -94,6 +94,34 @@ CREATE TABLE `spot_likes` (
   CONSTRAINT `fk_likes_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+DROP TABLE IF EXISTS `spot_lists`;
+CREATE TABLE `spot_lists` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `name` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
+  `is_default` tinyint(1) NOT NULL DEFAULT 0,
+  `default_slot` tinyint(1) GENERATED ALWAYS AS (if(`is_default`,1,NULL)) STORED,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_spot_lists_name` (`user_id`,`name`),
+  UNIQUE KEY `uq_spot_lists_default` (`user_id`,`default_slot`),
+  CONSTRAINT `fk_spot_lists_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+DROP TABLE IF EXISTS `spot_list_items`;
+CREATE TABLE `spot_list_items` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `list_id` bigint(20) unsigned NOT NULL,
+  `spot_id` bigint(20) unsigned NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_spot_list_items` (`list_id`,`spot_id`),
+  KEY `idx_spot_list_items_page` (`list_id`,`id`),
+  KEY `idx_spot_list_items_spot` (`spot_id`),
+  CONSTRAINT `fk_spot_list_items_list` FOREIGN KEY (`list_id`) REFERENCES `spot_lists` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_spot_list_items_spot` FOREIGN KEY (`spot_id`) REFERENCES `spots` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 DROP TABLE IF EXISTS `spot_reviews`;
 CREATE TABLE `spot_reviews` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -173,7 +201,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `uq_users_display_name` (`display_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (18, 0);
+INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (19, 0);
 
 INSERT INTO `tags` (`tag`, `name_de`, `name_en`, `icon`, `sort`) VALUES
   ('roof', 'Überdacht', 'Roof', 'roof', 10),

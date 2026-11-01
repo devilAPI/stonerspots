@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 
 	"stonerspots/backend/internal/spots/tagset"
 )
@@ -128,6 +129,41 @@ func (r *Repo) Get(ctx context.Context, id uint64) (*Spot, error) {
 	}
 	list[0].Author = &a
 	return &list[0], nil
+}
+
+// ByIDs returns the active spots among ids, in the order of ids.
+func (r *Repo) ByIDs(ctx context.Context, ids []uint64) ([]Spot, error) {
+	if len(ids) == 0 {
+		return []Spot{}, nil
+	}
+	args := make([]any, 0, len(ids)+1)
+	args = append(args, r.PublicBaseURL)
+	for _, id := range ids {
+		args = append(args, id)
+	}
+	rows, err := r.DB.QueryContext(ctx,
+		`SELECT `+selectCols+` FROM spots s WHERE s.status = 'active' AND s.id IN (?`+strings.Repeat(",?", len(ids)-1)+`)`, args...)
+	if err != nil {
+		return nil, err
+	}
+	found, err := scan(rows, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := r.attachTags(ctx, found); err != nil {
+		return nil, err
+	}
+	byID := make(map[uint64]Spot, len(found))
+	for _, s := range found {
+		byID[s.ID] = s
+	}
+	out := make([]Spot, 0, len(found))
+	for _, id := range ids {
+		if s, ok := byID[id]; ok {
+			out = append(out, s)
+		}
+	}
+	return out, nil
 }
 
 // bboxQuery builds the bounding-box query. MBRContains lets MariaDB use the spatial index.

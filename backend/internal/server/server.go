@@ -16,6 +16,7 @@ import (
 	"stonerspots/backend/internal/feed"
 	"stonerspots/backend/internal/geocode"
 	"stonerspots/backend/internal/httpx"
+	"stonerspots/backend/internal/lists"
 	"stonerspots/backend/internal/photos"
 	"stonerspots/backend/internal/quotas"
 	"stonerspots/backend/internal/ratelimit"
@@ -68,6 +69,7 @@ func New(d app.Deps) http.Handler {
 		feed.Mount(r, d, quotaTracker)
 		engagement.Mount(r, d, quotaTracker)
 		reviews.Mount(r, d, quotaTracker)
+		lists.Mount(r, d)
 		geocode.Mount(r, d)
 		admin.Mount(r, d)
 	})
