@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:liquid_glass_easy/liquid_glass_easy.dart';
+import 'package:liquid_glass_easy/liquid_glass_easy.dart'
+    show LiquidGlassTabBarItem;
 
 import 'glass.dart';
 import 'responsive.dart';
@@ -61,21 +62,10 @@ class AdaptiveNavScaffold extends StatelessWidget {
                 bottom: kGlassTabBarHeight + kGlassTabBarGap,
               ),
             ),
-            LiquidGlassTabBar(
+            GlassTabBar(
               width: math.min(width - 32, 360),
-              height: kGlassTabBarHeight,
-              // on top of the safe area, which the bar adds itself
-              margin: const EdgeInsets.only(bottom: kGlassTabBarGap),
               selectedIndex: selectedIndex,
               onChanged: onSelected,
-              style: glassStyle(radius: kGlassTabBarHeight / 2),
-              pillStyle: const LiquidGlassTabPillStyle(
-                mode: LiquidGlassPillMode.impellerOnly,
-              ),
-              itemStyle: const LiquidGlassTabItemStyle(
-                selectedColor: kOnGlass,
-                unselectedColor: Color(0xB3FFFFFF),
-              ),
               items: [
                 for (final i in items)
                   LiquidGlassTabBarItem(icon: i.icon, label: i.label),

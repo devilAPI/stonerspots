@@ -4,7 +4,6 @@ import 'dart:ui' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 
 import '../../core/glass.dart';
 import '../../core/models.dart';
@@ -184,20 +183,18 @@ class _SpotPullSheetState extends State<SpotPullSheet> {
     final size = MediaQuery.sizeOf(context);
     final radius = _radius * (1 - t);
     final margin = _margin * (1 - t);
-    final style = glassStyle(radius: radius);
     return Padding(
       padding: EdgeInsets.fromLTRB(margin, 0, margin, margin),
       child: Stack(
         children: [
           Positioned.fill(
-            child: LiquidGlassLens(
-              style: style.copyWith(
-                // solid by the time the page has faded in
-                color: Color.lerp(
-                  style.color,
-                  Theme.of(context).scaffoldBackgroundColor,
-                  t,
-                ),
+            child: GlassPanel(
+              radius: radius,
+              // solid by the time the page has faded in
+              color: Color.lerp(
+                glassTint(context),
+                Theme.of(context).scaffoldBackgroundColor,
+                t,
               ),
               child: const SizedBox.expand(),
             ),

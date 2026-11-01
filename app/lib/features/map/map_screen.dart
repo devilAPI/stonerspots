@@ -3,7 +3,6 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 
 import '../../core/glass.dart';
 import '../../core/location_service.dart';
@@ -105,11 +104,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       showSpotPullSheet(context, spot);
       return;
     }
-    showLiquidGlassSheet<void>(
+    showGlassSheet<void>(
       context: context,
-      style: glassStyle(radius: 32),
-      foregroundColor: kOnGlass,
-      padding: EdgeInsets.zero,
+      radius: 32,
       // above the floating tab bar, which lives outside this tab's navigator
       useRootNavigator: true,
       // full height available (landscape phones are short) but never wider
@@ -219,10 +216,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           Positioned(
             right: insets.right + 16,
             bottom: insets.bottom + 16,
-            child: LiquidGlassFab.extended(
+            child: GlassFab(
               key: const Key('addSpot'),
-              style: glassStyle(radius: 24),
-              foregroundColor: kOnGlass,
+              radius: 24,
               onPressed: () => context.push('/spot/new'),
               icon: Icons.add,
               label: Text(l10n.addSpot),

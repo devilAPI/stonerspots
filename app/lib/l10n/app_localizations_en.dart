@@ -1028,4 +1028,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminUpdateSaved => 'Update saved';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsAppearance => 'Appearance';
+
+  @override
+  String get settingsDisableTransparency => 'Disable transparency';
+
+  @override
+  String get settingsDisableTransparencyHint =>
+      'Solid surfaces instead of glass. Easier on the GPU and battery.';
 }

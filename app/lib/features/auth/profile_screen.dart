@@ -17,7 +17,17 @@ class ProfileScreen extends ConsumerWidget {
     final user = ref.watch(authControllerProvider).value;
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: GlassAppBar(title: Text(l10n.navProfile)),
+      appBar: GlassAppBar(
+        title: Text(l10n.navProfile),
+        actions: [
+          IconButton(
+            key: const Key('open-settings'),
+            tooltip: l10n.settingsTitle,
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/settings'),
+          ),
+        ],
+      ),
       // Its padding covers the bar and the shell's glass navigation.
       body: Center(
         child: SingleChildScrollView(
