@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/glass.dart';
+import 'core/settings.dart';
 import 'core/tag_catalog.dart';
 import 'core/theme.dart';
 import 'l10n/app_localizations.dart';
@@ -12,6 +13,8 @@ import 'router.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initGlass();
+  // Read before the first frame, so saved settings never flash the default.
+  final settings = await SettingsStore.load();
   // Glass needs something to refract: draw under the system bars too.
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(
@@ -21,7 +24,12 @@ Future<void> main() async {
       systemNavigationBarContrastEnforced: false,
     ),
   );
-  runApp(const ProviderScope(child: StonerspotsApp()));
+  runApp(
+    ProviderScope(
+      overrides: [settingsStoreProvider.overrideWithValue(settings)],
+      child: const StonerspotsApp(),
+    ),
+  );
 }
 
 class StonerspotsApp extends ConsumerStatefulWidget {
@@ -41,26 +49,28 @@ class _StonerspotsAppState extends ConsumerState<StonerspotsApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      onGenerateTitle: (c) => AppLocalizations.of(c).appTitle,
-      routerConfig: ref.watch(routerProvider),
-      theme: lightTheme,
-      darkTheme: darkTheme,
-      themeMode: ThemeMode.dark,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: AppLocalizations.supportedLocales,
-      // German is the default; fall back to it for any unsupported locale.
-      localeResolutionCallback: (locale, supported) {
-        for (final s in supported) {
-          if (s.languageCode == locale?.languageCode) return s;
-        }
-        return const Locale('de');
-      },
+    return GlassSettingScope(
+      child: MaterialApp.router(
+        onGenerateTitle: (c) => AppLocalizations.of(c).appTitle,
+        routerConfig: ref.watch(routerProvider),
+        theme: lightTheme,
+        darkTheme: darkTheme,
+        themeMode: ThemeMode.dark,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        // German is the default; fall back to it for any unsupported locale.
+        localeResolutionCallback: (locale, supported) {
+          for (final s in supported) {
+            if (s.languageCode == locale?.languageCode) return s;
+          }
+          return const Locale('de');
+        },
+      ),
     );
   }
 }

@@ -14,6 +14,7 @@ import 'core/models.dart' show User;
 import 'core/back_or_home.dart';
 import 'core/tab_keys.dart';
 import 'features/map/map_screen.dart';
+import 'features/settings/settings_screen.dart';
 import 'features/spots/add_spot_screen.dart';
 import 'features/spots/spot_detail_screen.dart';
 import 'l10n/app_localizations.dart';
@@ -168,6 +169,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/register',
         builder: (_, _) => const BackToHomeScope(child: RegisterScreen()),
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (_, _) => const BackToHomeScope(child: SettingsScreen()),
       ),
     ],
   );

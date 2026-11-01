@@ -1039,4 +1039,17 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get adminUpdateSaved => 'Update gespeichert';
+
+  @override
+  String get settingsTitle => 'Einstellungen';
+
+  @override
+  String get settingsAppearance => 'Darstellung';
+
+  @override
+  String get settingsDisableTransparency => 'Transparenz deaktivieren';
+
+  @override
+  String get settingsDisableTransparencyHint =>
+      'Einfarbige Flächen statt Glas. Schont Grafikleistung und Akku.';
 }

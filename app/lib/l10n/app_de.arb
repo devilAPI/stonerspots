@@ -404,5 +404,9 @@
   "adminShowUserSpots": "Spots anzeigen",
   "adminSpotsOf": "Spots von {name}",
   "@adminSpotsOf": {"placeholders": {"name": {"type": "String"}}},
-  "adminUpdateSaved": "Update gespeichert"
+  "adminUpdateSaved": "Update gespeichert",
+  "settingsTitle": "Einstellungen",
+  "settingsAppearance": "Darstellung",
+  "settingsDisableTransparency": "Transparenz deaktivieren",
+  "settingsDisableTransparencyHint": "Einfarbige Flächen statt Glas. Schont Grafikleistung und Akku."
 }

@@ -404,5 +404,9 @@
   "adminShowUserSpots": "Show spots",
   "adminSpotsOf": "Spots by {name}",
   "@adminSpotsOf": {"placeholders": {"name": {"type": "String"}}},
-  "adminUpdateSaved": "Update saved"
+  "adminUpdateSaved": "Update saved",
+  "settingsTitle": "Settings",
+  "settingsAppearance": "Appearance",
+  "settingsDisableTransparency": "Disable transparency",
+  "settingsDisableTransparencyHint": "Solid surfaces instead of glass. Easier on the GPU and battery."
 }

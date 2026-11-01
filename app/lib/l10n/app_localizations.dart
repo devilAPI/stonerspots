@@ -1771,6 +1771,30 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Update gespeichert'**
   String get adminUpdateSaved;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Einstellungen'**
+  String get settingsTitle;
+
+  /// No description provided for @settingsAppearance.
+  ///
+  /// In de, this message translates to:
+  /// **'Darstellung'**
+  String get settingsAppearance;
+
+  /// No description provided for @settingsDisableTransparency.
+  ///
+  /// In de, this message translates to:
+  /// **'Transparenz deaktivieren'**
+  String get settingsDisableTransparency;
+
+  /// No description provided for @settingsDisableTransparencyHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Einfarbige Flächen statt Glas. Schont Grafikleistung und Akku.'**
+  String get settingsDisableTransparencyHint;
 }
 
 class _AppLocalizationsDelegate
