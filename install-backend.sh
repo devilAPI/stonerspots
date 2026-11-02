@@ -9,7 +9,8 @@
 # An existing install is detected and updated in place: it stays on its
 # channel (release or dev), is skipped when already up to date, keeps
 # config.yaml and the uploads untouched, and is only restarted if it was
-# running. The previous api binary is kept as api.previous.
+# running. The previous api binary is kept as api.previous, and an update
+# whose service does not stay up goes back to it by itself.
 #
 # Layout:
 #   /opt/stonerspots/                         api, makeadmin, migrations/ (replaced on update)
@@ -40,6 +41,9 @@ SERVICE=stonerspots-backend
 UPDATER=stonerspots-update
 SERVICE_USER=stonerspots
 UNIT_FILE="/etc/systemd/system/${SERVICE}.service"
+# How long a restarted service must stay up to count as started: longer than
+# the unit's RestartSec, so that a crash loop is seen between two attempts.
+STARTUP_SECONDS=12
 
 usage() {
   cat <<EOF
@@ -139,6 +143,18 @@ tar -xzf "$tmp/$file" -C "$tmp"
 src="$tmp/${file%.tar.gz}"
 [ -x "$src/api" ] || die "archive does not contain the api binary"
 
+# An update from the admin page runs the installed copy of this script, which
+# is the one from the last update. Hand over to the copy in the archive, so a
+# fix to this script already applies to the update that delivers it.
+if [ "${BASH_SOURCE[0]:-}" = "$INSTALL_DIR/install-backend.sh" ] && [ -z "${STONERSPOTS_HANDED_OVER:-}" ] \
+  && [ -f "$src/install-backend.sh" ] && ! cmp -s "$src/install-backend.sh" "${BASH_SOURCE[0]}"; then
+  log "Continuing with the installer of ${tag}"
+  next_args=("--${channel}")
+  if $force; then next_args+=(--force); fi
+  STONERSPOTS_HANDED_OVER=1 bash "$src/install-backend.sh" "${next_args[@]}"
+  exit 0
+fi
+
 if ! id "$SERVICE_USER" >/dev/null 2>&1; then
   log "Creating system user ${SERVICE_USER}"
   useradd --system --home-dir "$DATA_DIR" --no-create-home --shell /usr/sbin/nologin "$SERVICE_USER"
@@ -150,11 +166,12 @@ else
   log "Installing ${tag} to ${INSTALL_DIR}"
 fi
 install -d -m 0755 "$INSTALL_DIR"
-# remember whether the service runs now: an update restarts only a running one
+# Remember whether the service should run: an update restarts only those. A
+# failed or crash-looping service counts, or installing again would not repair it.
 was_running=false
-if command -v systemctl >/dev/null && [ -d /run/systemd/system ] && systemctl is-active --quiet "$SERVICE"; then
-  was_running=true
-fi
+case "$svc_state" in
+  active | activating | deactivating | reloading | failed) was_running=true ;;
+esac
 # keep the old binary for a manual rollback
 if [ -x "$INSTALL_DIR/api" ]; then
   cp -p "$INSTALL_DIR/api" "$INSTALL_DIR/api.previous"
@@ -323,6 +340,17 @@ systemctl daemon-reload
 systemctl enable --quiet "$SERVICE"
 systemctl enable --now --quiet "${UPDATER}.path"
 
+# A unit is active as soon as its process exists, so one good look proves
+# nothing: the API fails on start only after it tried the migrations.
+restart_and_check() {
+  local i
+  systemctl restart "$SERVICE" || return 1
+  for i in $(seq "$STARTUP_SECONDS"); do
+    sleep 1
+    systemctl is-active --quiet "$SERVICE" || return 1
+  done
+}
+
 if $first_install || [ -z "$installed" ]; then
   log "Installed ${tag}. Next steps:"
   cat <<EOF
@@ -334,12 +362,19 @@ if $first_install || [ -z "$installed" ]; then
 EOF
 elif $was_running; then
   log "Restarting ${SERVICE}"
-  systemctl restart "$SERVICE"
-  sleep 2
-  if systemctl is-active --quiet "$SERVICE"; then
+  systemctl reset-failed "$SERVICE" 2>/dev/null || true
+  if restart_and_check; then
     log "Updated to ${tag}; ${SERVICE} is running."
+  elif [ "$installed" != "$tag" ] && [ -x "$INSTALL_DIR/api.previous" ]; then
+    log "${SERVICE} did not start on ${tag}; going back to ${installed}"
+    # The new migrations stay: they may be applied already, and the old
+    # binary refuses a database newer than its migrations folder.
+    cp -p "$INSTALL_DIR/api.previous" "$INSTALL_DIR/api.new" && mv -f "$INSTALL_DIR/api.new" "$INSTALL_DIR/api"
+    echo "$installed" > "$INSTALL_DIR/VERSION"
+    systemctl reset-failed "$SERVICE" 2>/dev/null || true
+    restart_and_check || die "${SERVICE} does not start on ${installed} either; see: journalctl -u ${SERVICE} -n 50"
+    die "${tag} did not start, back on ${installed}; see: journalctl -u ${SERVICE} -n 50"
   else
-    echo "  the previous binary is ${INSTALL_DIR}/api.previous" >&2
     die "${SERVICE} did not start; see: journalctl -u ${SERVICE} -n 50"
   fi
 else

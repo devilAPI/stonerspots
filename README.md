@@ -58,7 +58,9 @@ Running it again updates an existing install: it stays on its channel (a dev
 install keeps taking dev builds, `--release` switches it), does nothing when
 already up to date (`--force` reinstalls), never touches `config.yaml` (it only
 lists settings that are new in `config.example.yaml`) and restarts the service
-only if it was running. The previous binary stays as `/opt/stonerspots/api.previous`.
+only if it was meant to run. The previous binary stays as
+`/opt/stonerspots/api.previous`; if the service does not stay up after an update,
+the script goes back to it and reports the update as failed.
 
 Binaries go to `/opt/stonerspots`, photos to `/var/lib/stonerspots/uploads`.
 The first run creates `/etc/stonerspots/config.yaml` with a random JWT secret;
@@ -70,8 +72,10 @@ Admins can also update the backend from the app: admin page → Actions →
 it only drops the wanted channel into `/var/lib/stonerspots-update/request/`;
 the root unit `stonerspots-update.path` picks that up and runs the installed
 copy of this script (`/opt/stonerspots/install-backend.sh --release|--dev`),
-reporting progress and its log back to the page. Installs from before this
-feature get the units by running `install-backend.sh` once more.
+reporting progress and its log back to the page. It hands over to the script
+inside the new build, so installer fixes apply to the update that delivers them.
+Installs from before this feature get the units by running `install-backend.sh`
+once more.
 
 ## Web app on GitHub Pages
 
