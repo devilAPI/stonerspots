@@ -85,6 +85,8 @@ func (r repo) AddReport(ctx context.Context, userID uint64, targetType string, t
 		table = "spot_updates"
 	case "review":
 		table = "spot_reviews"
+	case "comment":
+		table = "comments"
 	default:
 		return false, errBadType
 	}
@@ -92,7 +94,7 @@ func (r repo) AddReport(ctx context.Context, userID uint64, targetType string, t
 	err := r.inTx(ctx, func(tx *sql.Tx) error {
 		var x uint64
 		lock := `SELECT id FROM ` + table + ` WHERE id = ?`
-		if targetType == "review" {
+		if targetType == "review" || targetType == "comment" {
 			lock += ` AND status = 'active'`
 		}
 		err := tx.QueryRowContext(ctx, lock+` FOR UPDATE`, targetID).Scan(&x)

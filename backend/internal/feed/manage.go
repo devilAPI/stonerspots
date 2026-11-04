@@ -127,6 +127,8 @@ func removeUpdate(ctx context.Context, db *sql.DB, uploadDir string, id uint64, 
 	for _, q := range []string{
 		"DELETE FROM photos WHERE update_id = ?",
 		"DELETE FROM reports WHERE target_type = 'update' AND target_id = ?",
+		// the comments go with the update (FK cascade), their reports explicitly
+		"DELETE FROM reports WHERE target_type = 'comment' AND target_id IN (SELECT id FROM comments WHERE update_id = ?)",
 		"DELETE FROM spot_updates WHERE id = ?",
 	} {
 		if _, err := tx.ExecContext(ctx, q, id); err != nil {

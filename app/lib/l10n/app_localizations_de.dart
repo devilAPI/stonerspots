@@ -1274,4 +1274,65 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get userGone => 'Dieses Profil gibt es nicht';
+
+  @override
+  String get commentsTitle => 'Kommentare';
+
+  @override
+  String get commentsEmpty => 'Noch keine Kommentare. Schreib den ersten!';
+
+  @override
+  String get commentsLoadMore => 'Weitere Kommentare';
+
+  @override
+  String get commentsQuota =>
+      'Du hast heute schon sehr viel kommentiert. Versuch es morgen wieder.';
+
+  @override
+  String get commentsGone => 'Dieses Update gibt es nicht mehr';
+
+  @override
+  String get commentHint => 'Kommentar schreiben …';
+
+  @override
+  String get commentSend => 'Senden';
+
+  @override
+  String get commentLoginToWrite => 'Zum Kommentieren anmelden';
+
+  @override
+  String get commentMore => 'Mehr';
+
+  @override
+  String get commentDelete => 'Kommentar löschen';
+
+  @override
+  String get commentDeleteTitle => 'Kommentar löschen?';
+
+  @override
+  String get commentDeleteConfirm => 'Löschen';
+
+  @override
+  String get commentReported => 'Danke, wir schauen uns den Kommentar an';
+
+  @override
+  String get adminTargetComment => 'Kommentar';
+
+  @override
+  String adminCommentOn(String title) {
+    return 'Kommentar unter einem Update zu $title';
+  }
+
+  @override
+  String get adminRemoveComment => 'Kommentar entfernen';
+
+  @override
+  String get adminRemoveCommentTitle => 'Kommentar entfernen?';
+
+  @override
+  String get adminRemoveCommentBody =>
+      'Damit wird dieser Kommentar endgültig gelöscht.';
+
+  @override
+  String get adminCommentRemoved => 'Kommentar entfernt';
 }

@@ -133,14 +133,23 @@ Future<void> _confirmRemoveTarget(
   final l10n = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
   final review = report.targetType == 'review';
+  final comment = report.targetType == 'comment';
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text(
-        review ? l10n.adminRemoveReviewTitle : l10n.adminRemoveUpdateTitle,
+        comment
+            ? l10n.adminRemoveCommentTitle
+            : review
+            ? l10n.adminRemoveReviewTitle
+            : l10n.adminRemoveUpdateTitle,
       ),
       content: Text(
-        review ? l10n.adminRemoveReviewBody : l10n.adminRemoveUpdateBody,
+        comment
+            ? l10n.adminRemoveCommentBody
+            : review
+            ? l10n.adminRemoveReviewBody
+            : l10n.adminRemoveUpdateBody,
       ),
       actions: [
         TextButton(
@@ -165,7 +174,11 @@ Future<void> _confirmRemoveTarget(
     messenger.showSnackBar(
       SnackBar(
         content: Text(
-          review ? l10n.adminReviewRemoved : l10n.adminUpdateRemoved,
+          comment
+              ? l10n.adminCommentRemoved
+              : review
+              ? l10n.adminReviewRemoved
+              : l10n.adminUpdateRemoved,
         ),
       ),
     );
@@ -596,6 +609,9 @@ class _ReportTile extends ConsumerWidget {
     final t = report.target;
     final isUpdate = report.targetType == 'update';
     final isReview = report.targetType == 'review';
+    final isComment = report.targetType == 'comment';
+    // reviews and comments: the spot itself is not what was reported
+    final isSub = isReview || isComment;
     return _Tile(
       key: Key('report-${report.id}'),
       body: [
@@ -637,27 +653,33 @@ class _ReportTile extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (isReview || isUpdate)
+                    if (isSub || isUpdate)
                       Text(
-                        isReview
+                        isComment
+                            ? l10n.adminTargetComment
+                            : isReview
                             ? l10n.adminTargetReview
                             : l10n.adminTargetUpdate,
                         style: theme.textTheme.labelLarge,
                       ),
                     if (isReview && t.rating > 0) _StarRow(t.rating),
-                    if ((isReview || isUpdate) && t.body.isNotEmpty)
+                    if ((isSub || isUpdate) && t.body.isNotEmpty)
                       Text(
                         t.body,
                         maxLines: 4,
                         overflow: TextOverflow.ellipsis,
                       ),
                     Text(
-                      isUpdate ? l10n.adminUpdateOn(t.title) : t.title,
-                      style: isUpdate || isReview
+                      isComment
+                          ? l10n.adminCommentOn(t.title)
+                          : isUpdate
+                          ? l10n.adminUpdateOn(t.title)
+                          : t.title,
+                      style: isUpdate || isSub
                           ? theme.textTheme.bodySmall
                           : theme.textTheme.titleSmall,
                     ),
-                    if (isReview && t.author != null)
+                    if (isSub && t.author != null)
                       Text(
                         t.author!.displayName,
                         style: theme.textTheme.bodySmall,
@@ -676,7 +698,7 @@ class _ReportTile extends ConsumerWidget {
           onPressed: () => _dismissOne(context, ref, report),
           child: Text(l10n.adminDismiss),
         ),
-        if (t.exists && (isReview || isUpdate))
+        if (t.exists && (isSub || isUpdate))
           OutlinedButton(
             key: Key('report-remove-target-${report.id}'),
             style: OutlinedButton.styleFrom(
@@ -684,7 +706,11 @@ class _ReportTile extends ConsumerWidget {
             ),
             onPressed: () => _confirmRemoveTarget(context, ref, report),
             child: Text(
-              isReview ? l10n.adminRemoveReview : l10n.adminRemoveUpdate,
+              isComment
+                  ? l10n.adminRemoveComment
+                  : isReview
+                  ? l10n.adminRemoveReview
+                  : l10n.adminRemoveUpdate,
             ),
           ),
         if (t.exists && t.spotId != null) ...[
@@ -693,7 +719,7 @@ class _ReportTile extends ConsumerWidget {
             onPressed: () => context.push('/spot/${t.spotId}'),
             child: Text(l10n.adminOpenSpot),
           ),
-          if (!isReview) ...[
+          if (!isSub) ...[
             OutlinedButton(
               key: Key('report-edit-spot-${report.id}'),
               onPressed: () =>

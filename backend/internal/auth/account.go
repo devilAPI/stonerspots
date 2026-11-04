@@ -120,6 +120,13 @@ func DeleteUser(ctx context.Context, db *sql.DB, uploadDir string, userID uint64
 		userID, userID, userID, userID, userID); err != nil {
 		return err
 	}
+	// and those about their comments and the comments under their updates
+	if _, err := tx.ExecContext(ctx, `DELETE FROM reports WHERE target_type = 'comment' AND target_id IN
+		(SELECT c.id FROM comments c JOIN spot_updates u ON u.id = c.update_id
+		 WHERE c.user_id = ? OR u.user_id = ? OR u.spot_id IN `+mySpots+`)`,
+		userID, userID, userID); err != nil {
+		return err
+	}
 	res, err := tx.ExecContext(ctx, `DELETE FROM users WHERE id = ?`, userID)
 	if err != nil {
 		return err

@@ -12,6 +12,7 @@ import (
 	"stonerspots/backend/internal/admin"
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/auth"
+	"stonerspots/backend/internal/comments"
 	"stonerspots/backend/internal/engagement"
 	"stonerspots/backend/internal/feed"
 	"stonerspots/backend/internal/geocode"
@@ -60,6 +61,8 @@ func New(d app.Deps) http.Handler {
 		UpdatesPerDay: d.Cfg.Limits.UpdatesPerDay,
 		ReviewsPerDay: d.Cfg.Limits.ReviewsPerDay,
 		ReportsPerDay: d.Cfg.Limits.ReportsPerDay,
+
+		CommentsPerDay: d.Cfg.Limits.CommentsPerDay,
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {
@@ -72,6 +75,7 @@ func New(d app.Deps) http.Handler {
 		reviews.Mount(r, d, quotaTracker)
 		lists.Mount(r, d)
 		users.Mount(r, d)
+		comments.Mount(r, d, quotaTracker)
 		geocode.Mount(r, d)
 		admin.Mount(r, d)
 	})

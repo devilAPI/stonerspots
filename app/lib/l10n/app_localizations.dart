@@ -2191,6 +2191,120 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Dieses Profil gibt es nicht'**
   String get userGone;
+
+  /// No description provided for @commentsTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Kommentare'**
+  String get commentsTitle;
+
+  /// No description provided for @commentsEmpty.
+  ///
+  /// In de, this message translates to:
+  /// **'Noch keine Kommentare. Schreib den ersten!'**
+  String get commentsEmpty;
+
+  /// No description provided for @commentsLoadMore.
+  ///
+  /// In de, this message translates to:
+  /// **'Weitere Kommentare'**
+  String get commentsLoadMore;
+
+  /// No description provided for @commentsQuota.
+  ///
+  /// In de, this message translates to:
+  /// **'Du hast heute schon sehr viel kommentiert. Versuch es morgen wieder.'**
+  String get commentsQuota;
+
+  /// No description provided for @commentsGone.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieses Update gibt es nicht mehr'**
+  String get commentsGone;
+
+  /// No description provided for @commentHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Kommentar schreiben …'**
+  String get commentHint;
+
+  /// No description provided for @commentSend.
+  ///
+  /// In de, this message translates to:
+  /// **'Senden'**
+  String get commentSend;
+
+  /// No description provided for @commentLoginToWrite.
+  ///
+  /// In de, this message translates to:
+  /// **'Zum Kommentieren anmelden'**
+  String get commentLoginToWrite;
+
+  /// No description provided for @commentMore.
+  ///
+  /// In de, this message translates to:
+  /// **'Mehr'**
+  String get commentMore;
+
+  /// No description provided for @commentDelete.
+  ///
+  /// In de, this message translates to:
+  /// **'Kommentar löschen'**
+  String get commentDelete;
+
+  /// No description provided for @commentDeleteTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Kommentar löschen?'**
+  String get commentDeleteTitle;
+
+  /// No description provided for @commentDeleteConfirm.
+  ///
+  /// In de, this message translates to:
+  /// **'Löschen'**
+  String get commentDeleteConfirm;
+
+  /// No description provided for @commentReported.
+  ///
+  /// In de, this message translates to:
+  /// **'Danke, wir schauen uns den Kommentar an'**
+  String get commentReported;
+
+  /// No description provided for @adminTargetComment.
+  ///
+  /// In de, this message translates to:
+  /// **'Kommentar'**
+  String get adminTargetComment;
+
+  /// No description provided for @adminCommentOn.
+  ///
+  /// In de, this message translates to:
+  /// **'Kommentar unter einem Update zu {title}'**
+  String adminCommentOn(String title);
+
+  /// No description provided for @adminRemoveComment.
+  ///
+  /// In de, this message translates to:
+  /// **'Kommentar entfernen'**
+  String get adminRemoveComment;
+
+  /// No description provided for @adminRemoveCommentTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Kommentar entfernen?'**
+  String get adminRemoveCommentTitle;
+
+  /// No description provided for @adminRemoveCommentBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Damit wird dieser Kommentar endgültig gelöscht.'**
+  String get adminRemoveCommentBody;
+
+  /// No description provided for @adminCommentRemoved.
+  ///
+  /// In de, this message translates to:
+  /// **'Kommentar entfernt'**
+  String get adminCommentRemoved;
 }
 
 class _AppLocalizationsDelegate

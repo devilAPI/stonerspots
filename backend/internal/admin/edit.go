@@ -426,8 +426,8 @@ func (h handler) dismiss(w http.ResponseWriter, r *http.Request) {
 		badBody(w)
 		return
 	}
-	if in.TargetType != "spot" && in.TargetType != "update" && in.TargetType != "review" {
-		httpx.Error(w, http.StatusBadRequest, "invalid_target", "target_type must be spot, update or review")
+	if in.TargetType != "spot" && in.TargetType != "update" && in.TargetType != "review" && in.TargetType != "comment" {
+		httpx.Error(w, http.StatusBadRequest, "invalid_target", "target_type must be spot, update, review or comment")
 		return
 	}
 	n, err := h.repo.dismiss(r.Context(), in.TargetType, in.TargetID, in.Restore)
@@ -448,6 +448,8 @@ func (r repo) dismiss(ctx context.Context, typ string, id int64, restore bool) (
 		table = "spot_updates"
 	case "review":
 		table = "spot_reviews"
+	case "comment":
+		table = "comments"
 	}
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {

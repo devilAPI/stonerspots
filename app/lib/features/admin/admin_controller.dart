@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
 import '../../core/models.dart' show Author;
 import '../../core/paging.dart';
+import '../comments/comments_repository.dart';
 import 'admin_actions.dart';
 import 'admin_models.dart';
 import 'admin_repository.dart';
@@ -284,7 +285,7 @@ Future<int> dismissAdminReportsOfTarget(
   return removed;
 }
 
-/// Deletes the reported review or update ([report]'s target) on the server
+/// Deletes the reported review, update or comment ([report]'s target) on the server
 /// and drops every report about it. A 404 means it is already gone. Other
 /// errors propagate and leave the list untouched.
 Future<void> removeAdminReportTarget(WidgetRef ref, AdminReport report) async {
@@ -292,6 +293,9 @@ Future<void> removeAdminReportTarget(WidgetRef ref, AdminReport report) async {
   try {
     if (report.targetType == 'review') {
       await repo.deleteReview(report.targetId);
+    } else if (report.targetType == 'comment') {
+      // admins may delete any comment through the public route
+      await ref.read(commentsRepositoryProvider).delete(report.targetId);
     } else {
       await repo.deleteUpdate(report.targetId);
     }

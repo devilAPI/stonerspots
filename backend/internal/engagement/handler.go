@@ -73,8 +73,8 @@ func (h handler) report(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_request", "invalid JSON body")
 		return
 	}
-	if in.TargetType != "spot" && in.TargetType != "update" && in.TargetType != "review" {
-		httpx.Error(w, http.StatusBadRequest, "invalid_target", "target_type must be spot, update or review")
+	if in.TargetType != "spot" && in.TargetType != "update" && in.TargetType != "review" && in.TargetType != "comment" {
+		httpx.Error(w, http.StatusBadRequest, "invalid_target", "target_type must be spot, update, review or comment")
 		return
 	}
 	if utf8.RuneCountInString(in.Reason) > 500 {
