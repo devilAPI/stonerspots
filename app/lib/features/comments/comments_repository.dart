@@ -6,11 +6,11 @@ import '../../core/providers.dart' show apiClientProvider;
 import 'comment_models.dart';
 
 abstract class CommentsRepository {
-  /// One page of an update's comments, oldest first.
-  Future<CursorPage<Comment>> list(int updateId, {String? cursor});
+  /// One page of a spot's comments, newest first.
+  Future<CursorPage<Comment>> list(int spotId, {String? cursor});
 
-  /// Posts a comment as the current user.
-  Future<Comment> create(int updateId, String body);
+  /// Posts a comment on the spot as the current user.
+  Future<Comment> create(int spotId, String body);
 
   /// Deletes a comment (own, or any as admin). 404 `not_found` is thrown as
   /// [ApiException]: it is gone already, or not the caller's to delete.
@@ -23,18 +23,18 @@ class ApiCommentsRepository implements CommentsRepository {
   final ApiClient _api;
 
   @override
-  Future<CursorPage<Comment>> list(int updateId, {String? cursor}) async {
+  Future<CursorPage<Comment>> list(int spotId, {String? cursor}) async {
     final json = await _api.get<Map<String, dynamic>>(
-      '/updates/$updateId/comments',
+      '/spots/$spotId/comments',
       query: {'limit': 20, 'cursor': ?cursor},
     );
     return CursorPage.fromJson(json, Comment.fromJson);
   }
 
   @override
-  Future<Comment> create(int updateId, String body) async {
+  Future<Comment> create(int spotId, String body) async {
     final json = await _api.post<Map<String, dynamic>>(
-      '/updates/$updateId/comments',
+      '/spots/$spotId/comments',
       data: {'body': body},
     );
     return Comment.fromJson(json);

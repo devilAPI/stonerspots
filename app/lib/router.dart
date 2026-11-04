@@ -144,10 +144,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           final page = BackToHomeScope(
             child: SpotDetailScreen(
               spotId: int.parse(state.pathParameters['id']!),
-              // from a feed card's comments: that update, comments open
-              focusUpdateId: int.tryParse(
-                state.uri.queryParameters['update'] ?? '',
-              ),
             ),
           );
           if (state.extra != kSpotFromSheet) {

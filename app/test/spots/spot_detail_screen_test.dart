@@ -9,6 +9,7 @@ import 'package:app/features/spots/maps_link.dart';
 import 'package:app/features/spots/spot_api.dart';
 import 'package:app/features/spots/spot_detail_screen.dart';
 import 'package:app/features/spots/spot_link.dart';
+import 'package:app/features/spots/update_tile.dart';
 import 'package:app/features/reviews/review_models.dart';
 import 'package:app/features/reviews/reviews_repository.dart';
 import 'package:app/features/saved/saved_repository.dart';
@@ -37,8 +38,10 @@ class _Api implements SpotApi {
     this.authorId = 9,
     this.locked = false,
     this.ownerGone = false,
+    this.commentCount = 0,
   });
   final String? cover;
+  final int commentCount;
   final bool ownerGone;
   bool locked;
   int likes = 0;
@@ -60,6 +63,7 @@ class _Api implements SpotApi {
     tags: tags,
     author: ownerGone ? null : Author(id: authorId, displayName: 'Ann'),
     locked: locked,
+    commentCount: commentCount,
   );
   @override
   Future<LikeResult> setLike(int spotId, {required bool liked}) async {
@@ -132,10 +136,17 @@ Future<_Api> _pump(
   String location = '/spot/5',
   FakeWeather? weather,
   FakeComments? comments,
+  int commentCount = 0,
 }) async {
   final api =
       withApi ??
-      _Api(cover: cover, tags: tags, authorId: authorId, locked: locked);
+      _Api(
+        cover: cover,
+        tags: tags,
+        authorId: authorId,
+        locked: locked,
+        commentCount: commentCount,
+      );
   updates = FakeUpdates(items: items);
   saved = FakeSaved();
   reviews = FakeReviews([
@@ -152,10 +163,7 @@ Future<_Api> _pump(
     routes: [
       GoRoute(
         path: '/spot/:id',
-        builder: (_, s) => SpotDetailScreen(
-          spotId: 5,
-          focusUpdateId: int.tryParse(s.uri.queryParameters['update'] ?? ''),
-        ),
+        builder: (_, _) => const SpotDetailScreen(spotId: 5),
       ),
       GoRoute(
         path: '/user/:id',
@@ -183,8 +191,9 @@ Future<_Api> _pump(
         weatherRepositoryProvider.overrideWithValue(
           weather ?? FakeWeather(error: Exception('offline')),
         ),
-        if (comments != null)
-          commentsRepositoryProvider.overrideWithValue(comments),
+        commentsRepositoryProvider.overrideWithValue(
+          comments ?? FakeComments({}),
+        ),
       ],
       child: MaterialApp.router(
         routerConfig: router,
@@ -1104,18 +1113,30 @@ void main() {
       );
     });
 
-    testWidgets('the map pane has one too, also without photos', (t) async {
-      t.view.physicalSize = const Size(1100, 800);
-      t.view.devicePixelRatio = 1;
-      addTearDown(t.view.reset);
-      await _pump(t, null);
-      expect(find.byKey(const Key('mapHeading')), findsOneWidget);
-      expect(
-        t.getTopLeft(find.byKey(const Key('mapHeading'))).dy,
-        lessThan(t.getTopLeft(find.byKey(const Key('spotLocationMap'))).dy),
-      );
-      expect(t.takeException(), isNull);
-    });
+    for (final size in const [Size(1100, 800), Size(844, 390)]) {
+      testWidgets('the map pane on the left has none, $size', (t) async {
+        t.view.physicalSize = size;
+        t.view.devicePixelRatio = 1;
+        addTearDown(t.view.reset);
+        await _pump(t, null, cover: 'http://test/api/v1/media/a.jpg');
+        expect(find.byKey(const Key('detailTwoPane')), findsOneWidget);
+        expect(find.byKey(const Key('spotLocationMap')), findsOneWidget);
+        expect(find.byKey(const Key('mapHeading')), findsNothing);
+        expect(find.text('Map'), findsNothing);
+        // the map's top lines up with the spot's title next to it (the
+        // lower of the two titles: the other is the app bar's)
+        final titles = find.text('Lake bench');
+        final titleTop = [
+          for (var i = 0; i < titles.evaluate().length; i++)
+            t.getTopLeft(titles.at(i)).dy,
+        ].reduce((a, b) => a > b ? a : b);
+        expect(
+          t.getTopLeft(find.byKey(const Key('spotLocationMap'))).dy,
+          titleTop,
+        );
+        expect(t.takeException(), isNull);
+      });
+    }
 
     testWidgets('the hero map of a spot without photos has none', (t) async {
       _portrait(t);
@@ -1124,39 +1145,151 @@ void main() {
     });
   });
 
-  testWidgets('?update= opens that update with all its comments', (t) async {
-    _portrait(t);
-    final comments = FakeComments({
+  group('comments section', () {
+    const user = User(id: 1, email: 'a@b.de', displayName: 'A');
+    final threeComments = {
       null: CursorPage([
-        for (var i = 1; i <= 3; i++) comment(i, body: 'c$i'),
+        for (var i = 3; i >= 1; i--) comment(i, body: 'c$i'),
       ], null),
+    };
+
+    testWidgets('single column: its own section after the updates', (t) async {
+      _portrait(t);
+      final comments = FakeComments(threeComments);
+      await _pump(
+        t,
+        null,
+        items: [feedItem(body: 'fresh paint')],
+        comments: comments,
+        commentCount: 3,
+      );
+      await _scrollTo(t, find.byKey(const Key('commentsHeading')));
+      final heading = t.widget<Text>(find.byKey(const Key('commentsHeading')));
+      expect(heading.data, 'Comments');
+      final reviews = t.widget<Text>(find.text('Reviews'));
+      expect(heading.style, reviews.style);
+      expect(
+        t.getTopLeft(find.byKey(const Key('commentsHeading'))).dx,
+        t.getTopLeft(find.text('Reviews')).dx,
+      );
+      expect(
+        t.getTopLeft(find.byKey(const Key('commentsHeading'))).dy,
+        greaterThan(t.getTopLeft(find.text('fresh paint')).dy),
+      );
+      await _scrollTo(t, find.text('c1'));
+      for (final b in ['c1', 'c2', 'c3']) {
+        expect(find.text(b), findsOneWidget);
+      }
+      expect(comments.calls, ['list:5:']);
+      // logged out: a login button instead of the composer
+      expect(find.byKey(const Key('commentsLogin')), findsOneWidget);
+      expect(find.byKey(const Key('commentInput')), findsNothing);
     });
-    final other = feedItem(id: 7, body: 'other');
-    final target = FeedItem(
-      id: 8,
-      body: 'target',
-      photos: const [],
-      createdAt: DateTime.now(),
-      author: const Author(id: 1, displayName: 'Ann'),
-      spot: const Spot(id: 5, title: 'Lake bench', lat: 1, lon: 2),
-      commentCount: 3,
-    );
-    await _pump(
+
+    testWidgets('the count comes from the spot', (t) async {
+      _portrait(t);
+      final comments = FakeComments({
+        null: CursorPage([
+          for (var i = 5; i >= 1; i--) comment(i, body: 'c$i'),
+        ], null),
+      });
+      await _pump(t, user, comments: comments, commentCount: 7);
+      await _scrollTo(t, find.byKey(const Key('commentsShowAll')));
+      expect(find.text('Show all 7 comments'), findsOneWidget);
+    });
+
+    testWidgets('no comments: no request, a hint', (t) async {
+      _portrait(t);
+      final comments = FakeComments({});
+      await _pump(t, user, comments: comments);
+      await _scrollTo(t, find.byKey(const Key('commentsEmpty')));
+      expect(find.byKey(const Key('commentInput')), findsOneWidget);
+      expect(comments.calls, isEmpty);
+    });
+
+    testWidgets('update tiles carry no comments', (t) async {
+      _portrait(t);
+      await _pump(t, user, items: [feedItem(body: 'fresh paint')]);
+      await _scrollTo(t, find.text('fresh paint'));
+      final tile = find.ancestor(
+        of: find.text('fresh paint'),
+        matching: find.byType(UpdateTile),
+      );
+      expect(
+        find.descendant(of: tile, matching: find.byType(TextField)),
+        findsNothing,
+      );
+      // the one composer is the comments section's
+      await _scrollTo(t, find.byKey(const Key('commentInput')));
+      expect(find.byKey(const Key('commentInput')), findsOneWidget);
+      expect(
+        find.ancestor(
+          of: find.byKey(const Key('commentInput')),
+          matching: find.byType(UpdateTile),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('scrolled away and back, the section keeps its state', (
       t,
-      null,
-      items: [other, target],
-      location: '/spot/5?update=8',
-      comments: comments,
-    );
-    // scrolled to it
-    expect(find.text('target'), findsOneWidget);
-    expect(
-      t.getTopLeft(find.byKey(const Key('updateComments_8'))).dy,
-      lessThan(800),
-    );
-    for (final b in ['c1', 'c2', 'c3']) {
-      expect(find.text(b), findsOneWidget);
-    }
-    expect(find.byKey(const Key('commentsShowAll_8')), findsNothing);
+    ) async {
+      _portrait(t);
+      final comments = FakeComments(threeComments);
+      await _pump(
+        t,
+        user,
+        items: [for (var i = 1; i <= 8; i++) feedItem(id: i, body: 'u$i')],
+        comments: comments,
+        commentCount: 3,
+      );
+      await _scrollTo(t, find.byKey(const Key('commentInput')));
+      await t.enterText(find.byKey(const Key('commentInput')), 'draft');
+      final list = t.state<ScrollableState>(
+        find.byWidgetPredicate(
+          (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+        ),
+      );
+      list.position.jumpTo(0);
+      await t.pumpAndSettle();
+      await _scrollTo(t, find.byKey(const Key('commentInput')));
+      expect(find.text('draft'), findsOneWidget);
+      expect(comments.calls, ['list:5:']);
+    });
+
+    testWidgets('a locked spot takes no comments from users', (t) async {
+      _portrait(t);
+      await _pump(t, user, locked: true);
+      await _scrollTo(t, find.byKey(const Key('commentsLocked')));
+      expect(find.byKey(const Key('commentInput')), findsNothing);
+    });
+
+    testWidgets('two panes: after the updates', (t) async {
+      t.view.physicalSize = const Size(1100, 800);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      await _pump(t, null, items: [feedItem(body: 'fresh paint')]);
+      await _scrollTo(t, find.byKey(const Key('commentsHeading')));
+      expect(
+        t.getTopLeft(find.byKey(const Key('commentsHeading'))).dy,
+        greaterThan(t.getTopLeft(find.text('fresh paint')).dy),
+      );
+      expect(t.takeException(), isNull);
+    });
+
+    testWidgets('three panes: with the reviews, not the updates', (t) async {
+      t.view.physicalSize = const Size(1600, 1000);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      await _pump(t, null, items: [feedItem(body: 'fresh paint')]);
+      expect(find.byKey(const Key('detailThreePane')), findsOneWidget);
+      await _scrollTo(t, find.byKey(const Key('commentsHeading')));
+      final comments = t.getTopLeft(find.byKey(const Key('commentsHeading')));
+      final reviews = t.getTopLeft(find.text('Reviews'));
+      final updates = t.getTopLeft(find.text('Updates'));
+      expect(comments.dx, reviews.dx);
+      expect(comments.dx, lessThan(updates.dx));
+      expect(t.takeException(), isNull);
+    });
   });
 }

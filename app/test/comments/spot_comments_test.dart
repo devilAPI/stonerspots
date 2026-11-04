@@ -1,10 +1,9 @@
 import 'package:app/core/models.dart';
 import 'package:app/core/paging.dart';
 import 'package:app/features/auth/auth_controller.dart';
-import 'package:app/features/comments/comment_button.dart';
 import 'package:app/features/comments/comment_models.dart';
 import 'package:app/features/comments/comments_repository.dart';
-import 'package:app/features/comments/update_comments.dart';
+import 'package:app/features/comments/spot_comments.dart';
 import 'package:app/features/feed/feed_card.dart';
 import 'package:app/features/spots/spot_api.dart';
 import 'package:app/features/spots/update_tile.dart';
@@ -29,27 +28,36 @@ class _FailingOnce extends FakeComments {
   bool _failed = false;
 
   @override
-  Future<CursorPage<Comment>> list(int updateId, {String? cursor}) {
+  Future<CursorPage<Comment>> list(int spotId, {String? cursor}) {
     if (!_failed) {
       _failed = true;
       return Future.error(apiError(500, 'internal'));
     }
-    return super.list(updateId, cursor: cursor);
+    return super.list(spotId, cursor: cursor);
   }
 }
 
 const me = User(id: 1, email: 'a@b.de', displayName: 'Me');
 const admin = User(id: 1, email: 'a@b.de', displayName: 'Me', isAdmin: true);
 
-/// Pumps [child] (default: the comments of [item]) on a page that can open
-/// profiles, spots and the login page.
+FeedItem update({int id = 7}) => FeedItem(
+  id: id,
+  body: 'hello',
+  photos: const [],
+  createdAt: DateTime(2026, 10, 1),
+  author: const Author(id: 2, displayName: 'Ann'),
+  spot: const Spot(id: 5, title: 'Lake bench', lat: 1, lon: 2),
+);
+
+/// Pumps [child] (default: the comments section of spot 5 with [count]
+/// comments) on a page that can open profiles and the login page.
 Future<void> pump(
   WidgetTester t,
   FakeComments repo, {
   User? user = me,
   FakeSpotApi? spotApi,
-  FeedItem? item,
-  bool expanded = false,
+  int count = 2,
+  bool canWrite = true,
   Widget? child,
 }) async {
   final router = GoRouter(
@@ -60,10 +68,7 @@ Future<void> pump(
           body: SingleChildScrollView(
             child:
                 child ??
-                UpdateComments(
-                  item: item ?? update(comments: 2),
-                  initiallyExpanded: expanded,
-                ),
+                SpotComments(spotId: 5, count: count, canWrite: canWrite),
           ),
         ),
       ),
@@ -74,10 +79,7 @@ Future<void> pump(
       ),
       GoRoute(
         path: '/spot/:id',
-        builder: (_, s) => Text(
-          'spot ${s.pathParameters['id']} '
-          'update ${s.uri.queryParameters['update']}',
-        ),
+        builder: (_, s) => Text('spot ${s.pathParameters['id']}'),
       ),
     ],
   );
@@ -101,113 +103,130 @@ Future<void> pump(
 }
 
 void main() {
-  testWidgets('shows the newest two; "show all" expands the thread', (t) async {
+  testWidgets('a section with a heading; the composer comes first', (t) async {
+    final repo = FakeComments({
+      null: CursorPage([comment(1, body: 'one')], null),
+    });
+    await pump(t, repo, count: 1);
+    expect(find.text('Comments'), findsOneWidget);
+    final heading = t.widget<Text>(find.byKey(const Key('commentsHeading')));
+    final theme = Theme.of(t.element(find.byKey(const Key('commentsHeading'))));
+    expect(heading.style, theme.textTheme.titleLarge);
+    expect(
+      t.getTopLeft(find.byKey(const Key('commentInput'))).dy,
+      lessThan(t.getTopLeft(find.text('one')).dy),
+    );
+  });
+
+  testWidgets('shows the newest three; "show all" expands the section', (
+    t,
+  ) async {
     final repo = FakeComments({
       null: CursorPage([
-        comment(1, body: 'one'),
-        comment(2, body: 'two'),
-        comment(3, body: 'three'),
         comment(4, body: 'four'),
+        comment(3, body: 'three'),
+        comment(2, body: 'two'),
+        comment(1, body: 'one'),
       ], null),
     });
-    await pump(t, repo, item: update(comments: 4));
-    expect(repo.calls, ['list:7:']);
-    expect(find.text('one'), findsNothing);
-    expect(find.text('two'), findsNothing);
-    expect(find.text('three'), findsOneWidget);
+    await pump(t, repo, count: 4);
+    expect(repo.calls, ['list:5:']);
     expect(find.text('four'), findsOneWidget);
+    expect(find.text('three'), findsOneWidget);
+    expect(find.text('two'), findsOneWidget);
+    expect(find.text('one'), findsNothing);
+    // newest first
+    expect(
+      t.getTopLeft(find.text('four')).dy,
+      lessThan(t.getTopLeft(find.text('two')).dy),
+    );
 
-    await t.tap(find.byKey(const Key('commentsShowAll_7')));
+    await t.tap(find.byKey(const Key('commentsShowAll')));
     await t.pumpAndSettle();
     expect(find.text('Show all 4 comments'), findsNothing);
     for (final b in ['one', 'two', 'three', 'four']) {
       expect(find.text(b), findsOneWidget);
     }
-    // oldest first
-    expect(
-      t.getTopLeft(find.text('one')).dy,
-      lessThan(t.getTopLeft(find.text('four')).dy),
-    );
 
-    await t.tap(find.byKey(const Key('commentsShowLess_7')));
+    await t.tap(find.byKey(const Key('commentsShowLess')));
     await t.pumpAndSettle();
     expect(find.text('one'), findsNothing);
     expect(find.text('Show all 4 comments'), findsOneWidget);
   });
 
-  testWidgets('no comments: no request, just the composer', (t) async {
+  testWidgets('no comments: no request, the composer and a hint', (t) async {
     final repo = FakeComments({});
-    await pump(t, repo, item: update(comments: 0));
+    await pump(t, repo, count: 0);
     expect(repo.calls, isEmpty);
-    expect(find.byKey(const Key('commentInput_7')), findsOneWidget);
-    expect(find.byKey(const Key('commentsShowAll_7')), findsNothing);
-    expect(find.text('No comments yet. Be the first!'), findsNothing);
+    expect(find.byKey(const Key('commentInput')), findsOneWidget);
+    expect(find.byKey(const Key('commentsShowAll')), findsNothing);
+    expect(find.text('No comments yet. Be the first!'), findsOneWidget);
   });
 
-  testWidgets('collapsed, it pages on to reach the newest', (t) async {
+  testWidgets('expanded, older pages load on request', (t) async {
     final repo = FakeComments({
-      null: CursorPage([comment(1, body: 'old')], 'c1'),
-      'c1': CursorPage([comment(2, body: 'new')], null),
+      null: CursorPage([
+        comment(5, body: 'e'),
+        comment(4, body: 'd'),
+        comment(3, body: 'c'),
+        comment(2, body: 'b'),
+      ], 'c2'),
+      'c2': CursorPage([comment(1, body: 'a')], null),
     });
-    await pump(t, repo, item: update(comments: 2));
-    expect(repo.calls, ['list:7:', 'list:7:c1']);
-    expect(find.text('old'), findsOneWidget);
-    expect(find.text('new'), findsOneWidget);
-  });
-
-  testWidgets('expanded, more pages load on request', (t) async {
-    final repo = FakeComments({
-      null: CursorPage([comment(1, body: 'one')], 'c1'),
-      'c1': CursorPage([comment(2, body: 'two')], null),
-    });
-    await pump(t, repo, item: update(comments: 2), expanded: true);
-    expect(find.text('one'), findsOneWidget);
-    expect(find.text('two'), findsNothing);
-    await t.tap(find.byKey(const Key('commentsLoadMore_7')));
+    await pump(t, repo, count: 5);
+    expect(find.text('Show all 5 comments'), findsOneWidget);
+    await t.tap(find.byKey(const Key('commentsShowAll')));
     await t.pumpAndSettle();
-    expect(find.text('two'), findsOneWidget);
-    expect(find.byKey(const Key('commentsLoadMore_7')), findsNothing);
-    expect(repo.calls, ['list:7:', 'list:7:c1']);
+    expect(find.text('b'), findsOneWidget);
+    expect(find.text('a'), findsNothing);
+    await t.tap(find.byKey(const Key('commentsLoadMore')));
+    await t.pumpAndSettle();
+    expect(find.text('a'), findsOneWidget);
+    expect(find.byKey(const Key('commentsLoadMore')), findsNothing);
+    expect(repo.calls, ['list:5:', 'list:5:c2']);
   });
 
-  testWidgets('posting adds the comment and raises the count', (t) async {
+  testWidgets('posting puts the comment on top and raises the count', (
+    t,
+  ) async {
     final repo = FakeComments({
-      null: CursorPage([comment(1, body: 'first')], null),
+      null: CursorPage([
+        comment(3, body: 'c'),
+        comment(2, body: 'b'),
+        comment(1, body: 'a'),
+      ], null),
     });
-    final item = update(comments: 1);
-    await pump(
-      t,
-      repo,
-      child: Column(
-        children: [
-          CommentButton(item: item),
-          UpdateComments(item: item),
-        ],
-      ),
-    );
+    await pump(t, repo, count: 3);
+    expect(find.byKey(const Key('commentsShowAll')), findsNothing);
 
     // nothing to send yet
-    final send = find.byKey(const Key('commentSend_7'));
+    final send = find.byKey(const Key('commentSend'));
     expect(t.widget<IconButton>(send).onPressed, isNull);
-    await t.enterText(find.byKey(const Key('commentInput_7')), '  so good  ');
+    await t.enterText(find.byKey(const Key('commentInput')), '  so good  ');
     await t.pump();
     await t.tap(send);
     await t.pumpAndSettle();
 
-    expect(repo.calls, contains('create:7:so good'));
+    expect(repo.calls, contains('create:5:so good'));
     expect(find.text('so good'), findsOneWidget);
-    final input = t.widget<TextField>(find.byKey(const Key('commentInput_7')));
+    expect(
+      t.getTopLeft(find.text('so good')).dy,
+      lessThan(t.getTopLeft(find.text('c')).dy),
+    );
+    final input = t.widget<TextField>(find.byKey(const Key('commentInput')));
     expect(input.controller!.text, isEmpty);
-    expect(t.widget<Text>(find.byKey(const Key('commentCount_7'))).data, '2');
+    // four now: the oldest folds away behind "show all"
+    expect(find.text('a'), findsNothing);
+    expect(find.text('Show all 4 comments'), findsOneWidget);
   });
 
   testWidgets('a failed post says why and keeps the text', (t) async {
     final repo = FakeComments({null: const CursorPage([], null)})
       ..createError = apiError(429, 'quota_exceeded');
     await pump(t, repo);
-    await t.enterText(find.byKey(const Key('commentInput_7')), 'again');
+    await t.enterText(find.byKey(const Key('commentInput')), 'again');
     await t.pump();
-    await t.tap(find.byKey(const Key('commentSend_7')));
+    await t.tap(find.byKey(const Key('commentSend')));
     await t.pumpAndSettle();
     expect(
       find.text(
@@ -219,13 +238,13 @@ void main() {
     expect(find.text('again'), findsOneWidget);
   });
 
-  testWidgets('a thread that cannot load offers a retry', (t) async {
+  testWidgets('a section that cannot load offers a retry', (t) async {
     final repo = _FailingOnce({
       null: CursorPage([comment(1, body: 'back')], null),
     });
     await pump(t, repo);
     expect(find.text('Something went wrong'), findsOneWidget);
-    await t.tap(find.byKey(const Key('commentsRetry_7')));
+    await t.tap(find.byKey(const Key('commentsRetry')));
     await t.pumpAndSettle();
     expect(find.text('back'), findsOneWidget);
   });
@@ -235,10 +254,21 @@ void main() {
       null: CursorPage([comment(1)], null),
     });
     await pump(t, repo, user: null);
-    expect(find.byKey(const Key('commentInput_7')), findsNothing);
-    await t.tap(find.byKey(const Key('commentsLogin_7')));
+    expect(find.byKey(const Key('commentInput')), findsNothing);
+    expect(find.text('Log in to comment'), findsOneWidget);
+    await t.tap(find.byKey(const Key('commentsLogin')));
     await t.pumpAndSettle();
     expect(find.text('LOGIN'), findsOneWidget);
+  });
+
+  testWidgets('locked spot: no composer, comments still show', (t) async {
+    final repo = FakeComments({
+      null: CursorPage([comment(1, body: 'from before')], null),
+    });
+    await pump(t, repo, canWrite: false, count: 1);
+    expect(find.byKey(const Key('commentInput')), findsNothing);
+    expect(find.byKey(const Key('commentsLocked')), findsOneWidget);
+    expect(find.text('from before'), findsOneWidget);
   });
 
   testWidgets('logged out: reporting asks for a login too', (t) async {
@@ -276,8 +306,8 @@ void main() {
   testWidgets('own comments can be deleted, by long press too', (t) async {
     final repo = FakeComments({
       null: CursorPage([
-        comment(1, body: 'mine', mine: true),
         comment(2, body: 'theirs'),
+        comment(1, body: 'mine', mine: true),
       ], null),
     });
     await pump(t, repo);
@@ -325,15 +355,13 @@ void main() {
     expect(find.byKey(const Key('commentReport_2')), findsOneWidget);
   });
 
-  testWidgets('update tiles show their comments inline', (t) async {
-    final repo = FakeComments({
-      null: CursorPage([comment(1, body: 'under it')], null),
-    });
+  testWidgets('update tiles have no comments of their own', (t) async {
+    final repo = FakeComments({});
     await pump(
       t,
       repo,
       child: UpdateTile(
-        item: update(comments: 1),
+        item: update(),
         isMine: false,
         onEdit: () {},
         onDelete: () {},
@@ -341,21 +369,15 @@ void main() {
         onPhotoTap: (_) {},
       ),
     );
-    expect(find.byKey(const Key('updateComments_7')), findsOneWidget);
-    expect(find.text('under it'), findsOneWidget);
-    expect(find.byKey(const Key('commentInput_7')), findsOneWidget);
-    expect(find.byKey(const Key('commentButton_7')), findsNothing);
+    expect(find.text('hello'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    expect(find.byIcon(Icons.chat_bubble_outline), findsNothing);
+    expect(repo.calls, isEmpty);
   });
 
-  testWidgets('a feed card\'s comment button opens the spot at the update', (
-    t,
-  ) async {
-    await pump(t, FakeComments({}), child: FeedCard(item: update(comments: 3)));
-    expect(t.widget<Text>(find.byKey(const Key('commentCount_7'))).data, '3');
-    await t.ensureVisible(find.byKey(const Key('commentButton_7')));
-    await t.pumpAndSettle();
-    await t.tap(find.byKey(const Key('commentButton_7')));
-    await t.pumpAndSettle();
-    expect(find.text('spot 5 update 7'), findsOneWidget);
+  testWidgets('feed cards have no comment button', (t) async {
+    await pump(t, FakeComments({}), child: FeedCard(item: update()));
+    expect(find.text('hello'), findsOneWidget);
+    expect(find.byIcon(Icons.chat_bubble_outline), findsNothing);
   });
 }

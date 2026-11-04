@@ -118,7 +118,7 @@ void main() {
     expect(find.text('Activity'), findsOneWidget);
     expect(find.text('Bob liked Bank am See'), findsOneWidget);
     expect(
-      find.text('Cleo commented on your update at Aussicht: Schöner Ort'),
+      find.text('Cleo commented on your spot Aussicht: Schöner Ort'),
       findsOneWidget,
     );
     expect(find.text('Dana rated Wald'), findsOneWidget);
@@ -132,6 +132,25 @@ void main() {
     await t.pageBack();
     await t.pumpAndSettle();
     expect(_badge(t), isNull);
+  });
+
+  testWidgets('comments from when they hung under updates keep their text', (
+    t,
+  ) async {
+    final repo = FakeActivity(
+      items: [commentOn(2), commentOn(1, oldUpdateId: 5)],
+    );
+    final (router, _) = await _pump(t, repo, locale: const Locale('de'));
+    router.push('/activity');
+    await t.pumpAndSettle();
+    expect(
+      find.text('Cleo hat deinen Spot Aussicht kommentiert: Schöner Ort'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Cleo hat dein Update bei Aussicht kommentiert: Schöner Ort'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a follow opens the profile, anything else the spot', (t) async {
@@ -174,7 +193,7 @@ void main() {
     expect(find.text('Alice folgt dir jetzt'), findsOneWidget);
     expect(find.text('Bob gefällt Bank am See'), findsOneWidget);
     expect(
-      find.text('Cleo hat dein Update bei Aussicht kommentiert: Schöner Ort'),
+      find.text('Cleo hat deinen Spot Aussicht kommentiert: Schöner Ort'),
       findsOneWidget,
     );
     expect(find.text('Dana hat Wald bewertet'), findsOneWidget);

@@ -479,7 +479,6 @@
   "commentsEmpty": "No comments yet. Be the first!",
   "commentsLoadMore": "More comments",
   "commentsQuota": "You have commented a lot today. Please try again tomorrow.",
-  "commentsGone": "This update no longer exists",
   "commentHint": "Write a comment …",
   "commentSend": "Send",
   "commentLoginToWrite": "Log in to comment",
@@ -489,7 +488,7 @@
   "commentDeleteConfirm": "Delete",
   "commentReported": "Thanks, we will look at this comment",
   "adminTargetComment": "Comment",
-  "adminCommentOn": "Comment under an update on {title}",
+  "adminCommentOn": "Comment on {title}",
   "adminRemoveComment": "Remove comment",
   "adminRemoveCommentTitle": "Remove comment?",
   "adminRemoveCommentBody": "This deletes this comment permanently.",
@@ -509,7 +508,7 @@
   "whatsNewFollowingTitle": "Following feed",
   "whatsNewFollowingBody": "Shows only updates from people you follow in the feed.",
   "whatsNewCommentsTitle": "Comments",
-  "whatsNewCommentsBody": "Join the conversation under every update.",
+  "whatsNewCommentsBody": "Join the conversation on every spot, in its own comments section.",
   "whatsNewActivityTitle": "Activity",
   "whatsNewActivityBody": "The bell on your profile shows who followed you, commented, or liked or rated your spots.",
   "whatsNewSearchTitle": "Spot search",
@@ -529,5 +528,9 @@
   "liked": "Liked",
   "commentsShowAll": "{count, plural, =1{Show 1 comment} other{Show all {count} comments}}",
   "@commentsShowAll": {"placeholders": {"count": {"type": "int"}}},
-  "commentsShowLess": "Show less"
+  "commentsShowLess": "Show less",
+  "activitySpotComment": "{name} commented on your spot {spot}: {text}",
+  "commentsLocked": "This spot is locked, comments are closed",
+  "commentsSpotGone": "This spot no longer exists",
+  "commentGone": "This comment no longer exists"
 }

@@ -30,16 +30,19 @@ ActivityItem likeOf(int id, {bool read = false}) => ActivityItem(
   spot: const ActivitySpot(id: 42, title: 'Bank am See'),
 );
 
-ActivityItem commentOn(int id, {bool read = false}) => ActivityItem(
-  id: id,
-  kind: ActivityKind.comment,
-  createdAt: DateTime.now().subtract(const Duration(days: 1)),
-  actor: const Author(id: 9, displayName: 'Cleo'),
-  read: read,
-  spot: const ActivitySpot(id: 43, title: 'Aussicht'),
-  updateId: 5,
-  commentPreview: 'Schöner Ort',
-);
+/// A comment on the user's spot; [oldUpdateId] makes it one from when
+/// comments hung under updates.
+ActivityItem commentOn(int id, {bool read = false, int? oldUpdateId}) =>
+    ActivityItem(
+      id: id,
+      kind: ActivityKind.comment,
+      createdAt: DateTime.now().subtract(const Duration(days: 1)),
+      actor: const Author(id: 9, displayName: 'Cleo'),
+      read: read,
+      spot: const ActivitySpot(id: 43, title: 'Aussicht'),
+      updateId: oldUpdateId,
+      commentPreview: 'Schöner Ort',
+    );
 
 ActivityItem reviewOf(int id, {bool read = false}) => ActivityItem(
   id: id,

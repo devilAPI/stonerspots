@@ -6,11 +6,12 @@ import '../../l10n/app_localizations.dart';
 import 'weather_codes.dart';
 import 'weather_repository.dart';
 
-/// Current weather and the next hours at a spot. Shows nothing while
-/// loading or when the weather service fails: it is a nice extra, not
-/// something the page needs.
-class SpotWeatherCard extends ConsumerWidget {
-  const SpotWeatherCard({
+/// Current weather and the next hours at a spot, as plain section content
+/// like the page's other sections (no card around it). Shows nothing, heading
+/// and divider included, while loading or when the weather service fails: it
+/// is a nice extra, not something the page needs.
+class SpotWeatherSection extends ConsumerWidget {
+  const SpotWeatherSection({
     super.key,
     required this.spotId,
     required this.lat,
@@ -24,10 +25,10 @@ class SpotWeatherCard extends ConsumerWidget {
   final double lat;
   final double lon;
 
-  /// Around the card (and [title]) when it is shown.
+  /// Around the weather (and [title]) when it is shown.
   final EdgeInsetsGeometry padding;
 
-  /// A section heading above the card, hidden with it.
+  /// A section heading above the weather, hidden with it.
   final String? title;
 
   /// A divider above it all, hidden with it, for a section of a page.
@@ -43,7 +44,7 @@ class SpotWeatherCard extends ConsumerWidget {
     final Widget content = Padding(
       padding: padding,
       child: title == null
-          ? _WeatherCard(weather: weather)
+          ? _WeatherContent(weather: weather)
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -53,7 +54,7 @@ class SpotWeatherCard extends ConsumerWidget {
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 12),
-                _WeatherCard(weather: weather),
+                _WeatherContent(weather: weather),
               ],
             ),
     );
@@ -65,8 +66,8 @@ class SpotWeatherCard extends ConsumerWidget {
   }
 }
 
-class _WeatherCard extends StatelessWidget {
-  const _WeatherCard({required this.weather});
+class _WeatherContent extends StatelessWidget {
+  const _WeatherContent({required this.weather});
 
   final SpotWeather weather;
 
@@ -87,74 +88,67 @@ class _WeatherCard extends StatelessWidget {
         ),
     ].join(' · ');
 
-    return Card.outlined(
+    // plain section content, like the reviews and updates: no card
+    return Column(
       key: const Key('spotWeather'),
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Icon(
-                  weatherIcon(condition, day: weather.isDay),
-                  key: const Key('weatherIcon'),
-                  size: 36,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  _degrees(weather.temperature),
-                  key: const Key('weatherTemp'),
-                  style: theme.textTheme.headlineMedium,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        weatherLabel(l, condition),
-                        key: const Key('weatherLabel'),
-                        style: theme.textTheme.titleSmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        details,
-                        key: const Key('weatherDetails'),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: muted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            Icon(
+              weatherIcon(condition, day: weather.isDay),
+              key: const Key('weatherIcon'),
+              size: 36,
             ),
-            if (weather.hours.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Semantics(
-                label: l.weatherNextHours,
-                child: Row(
-                  children: [
-                    for (final h in weather.hours)
-                      Expanded(
-                        child: _Hour(hour: h, locale: locale),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 6),
+            const SizedBox(width: 12),
             Text(
-              l.weatherAttribution,
-              key: const Key('weatherAttribution'),
-              style: theme.textTheme.labelSmall?.copyWith(color: muted),
+              _degrees(weather.temperature),
+              key: const Key('weatherTemp'),
+              style: theme.textTheme.headlineMedium,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    weatherLabel(l, condition),
+                    key: const Key('weatherLabel'),
+                    style: theme.textTheme.titleSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    details,
+                    key: const Key('weatherDetails'),
+                    style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-      ),
+        if (weather.hours.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Semantics(
+            label: l.weatherNextHours,
+            child: Row(
+              children: [
+                for (final h in weather.hours)
+                  Expanded(
+                    child: _Hour(hour: h, locale: locale),
+                  ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
+        Text(
+          l.weatherAttribution,
+          key: const Key('weatherAttribution'),
+          style: theme.textTheme.labelSmall?.copyWith(color: muted),
+        ),
+      ],
     );
   }
 }
