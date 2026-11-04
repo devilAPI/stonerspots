@@ -309,6 +309,50 @@ addr_listens_everywhere() {
   return 1
 }
 
+# pick_backend_url <dev|release> <arch>: the download URL of the backend
+# tarball for <arch> in a GitHub API answer on stdin (a release list, or the
+# one release of releases/latest). The first match wins; the API lists the
+# newest first. Only a file named exactly stonerspots-backend-<tag>-linux-<arch>.tar.gz
+# in the download folder of that same tag counts, so a file named after
+# another tag can't be passed off as this one. Tags: dev-<n> (dev builds,
+# prereleases) or vX.Y.Z (releases).
+pick_backend_url() {
+  local channel=$1 arch=$2 tag_re url tag
+  case "$channel" in
+    dev) tag_re='^dev-[0-9]+$' ;;
+    release) tag_re='^v[0-9]+\.[0-9]+\.[0-9]+$' ;;
+    *) return 1 ;;
+  esac
+  while IFS= read -r url; do
+    case "$url" in
+      "https://github.com/${REPO}/releases/download/"*) ;;
+      *) continue ;;
+    esac
+    tag=$(basename "$(dirname "$url")")
+    [[ "$tag" =~ $tag_re ]] || continue
+    [ "$(basename "$url")" = "stonerspots-backend-${tag}-linux-${arch}.tar.gz" ] || continue
+    printf '%s\n' "$url"
+    return 0
+  done < <(grep -oE '"browser_download_url": *"[^"]+"' | cut -d'"' -f4)
+  return 1
+}
+
+# newest_migration <migrations dir>: the number of its newest *.up.sql
+# (0 when there is none). The API refuses to start on a database that is
+# newer than its migrations, so this tells whether an install would go back.
+newest_migration() {
+  local f n newest=0
+  for f in "$1"/*.up.sql; do
+    [ -e "$f" ] || continue
+    n=$(basename "$f")
+    n=${n%%_*}
+    [[ "$n" =~ ^[0-9]+$ ]] || continue
+    n=$((10#$n))
+    [ "$n" -gt "$newest" ] && newest=$n
+  done
+  echo "$newest"
+}
+
 # Sourced (by the tests): stop here, with the functions defined.
 (return 0 2>/dev/null) && return 0
 
@@ -354,18 +398,16 @@ dev=false
 
 api() { curl -fsSL -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${REPO}/$1"; }
 
-# Download URLs of backend tarballs for this architecture, newest release first.
+# The backend tarball for this architecture: dev builds are the prereleases
+# dev-<n>, releases the regular releases vX.Y.Z (GitHub's "latest").
 if $dev; then
   log "Looking for the newest dev build (linux-${arch})"
-  urls=$(api "releases?per_page=100") || die "cannot reach the GitHub API"
-  pattern="/download/dev-[0-9]+/stonerspots-backend-dev-[0-9]+-linux-${arch}\.tar\.gz"
+  answer=$(api "releases?per_page=100") || die "cannot reach the GitHub API"
 else
   log "Looking for the newest release (linux-${arch})"
-  urls=$(api "releases/latest" 2>/dev/null) || die "no release published yet (use --dev for the newest dev build)"
-  pattern="/stonerspots-backend-[^/\"]+-linux-${arch}\.tar\.gz"
+  answer=$(api "releases/latest" 2>/dev/null) || die "no release published yet (use --dev for the newest dev build)"
 fi
-url=$(printf '%s' "$urls" | grep -oE '"browser_download_url": *"[^"]+"' | cut -d'"' -f4 \
-  | grep -E "$pattern" | head -n1 || true)
+url=$(printf '%s' "$answer" | pick_backend_url "$channel" "$arch" || true)
 [ -n "$url" ] || die "no backend build for linux-${arch} found in the $($dev && echo 'dev builds' || echo 'newest release')"
 tag=$(basename "$(dirname "$url")")
 file=$(basename "$url")
@@ -395,6 +437,18 @@ verify_signature "$tmp/SHA256SUMS.txt" "$(dirname "$url")/SHA256SUMS.txt.sig" "$
 tar -xzf "$tmp/$file" -C "$tmp"
 src="$tmp/${file%.tar.gz}"
 [ -x "$src/api" ] || die "archive does not contain the api binary"
+
+# Never back to a build with older migrations than the installed one (e.g.
+# from a dev build to a release made before it): the database may have them
+# applied already, and the older API would refuse to start on it.
+if [ -d "$INSTALL_DIR/migrations" ]; then
+  have=$(newest_migration "$INSTALL_DIR/migrations")
+  want=$(newest_migration "$src/migrations")
+  if [ "$want" -lt "$have" ]; then
+    die "${tag} has database migrations up to ${want}, the installed ${installed:-version} up to ${have}," \
+      "and the database can't go back. Nothing was changed; keep the installed build until a newer ${channel} build is out."
+  fi
+fi
 
 # An update from the admin page runs the installed copy of this script, which
 # is the one from the last update. Hand over to the copy in the archive, so a
