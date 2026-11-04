@@ -6,12 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import 'admin_actions.dart';
+import 'admin_two_factor_card.dart';
 
 /// How often the tab asks for news while an update is under way.
 const kUpdatePollInterval = Duration(seconds: 3);
 
 /// Admin "Actions" tab: the installed backend version and buttons that make
-/// the server update itself to the newest release or dev build.
+/// the server update itself to the newest release or dev build, and the
+/// admin's own 2FA.
 class AdminSystemTab extends ConsumerStatefulWidget {
   const AdminSystemTab({super.key});
 
@@ -115,115 +117,124 @@ class _AdminSystemTabState extends ConsumerState<AdminSystemTab> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final info = _info;
-    if (info == null) {
-      return Center(
-        child: _loadFailed
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(l10n.errorGeneric),
-                  TextButton(onPressed: _load, child: Text(l10n.retry)),
-                ],
-              )
-            : const CircularProgressIndicator(),
-      );
-    }
-    final theme = Theme.of(context);
-    final canUpdate = info.updatesEnabled && !_updating && !_requesting;
     final gutter = sideGutter(MediaQuery.sizeOf(context).width);
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
         padding: EdgeInsets.fromLTRB(12 + gutter, 12, 12 + gutter, 24),
         children: [
-          Card(
-            margin: EdgeInsets.zero,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          if (info == null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: _loadFailed
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(l10n.errorGeneric),
+                          TextButton(onPressed: _load, child: Text(l10n.retry)),
+                        ],
+                      )
+                    : const CircularProgressIndicator(),
+              ),
+            )
+          else
+            _backend(context, info),
+          const SizedBox(height: 12),
+          const AdminTwoFactorCard(),
+        ],
+      ),
+    );
+  }
+
+  Widget _backend(BuildContext context, SystemInfo info) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final canUpdate = info.updatesEnabled && !_updating && !_requesting;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.dns_outlined),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.adminBackend,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+                IconButton(
+                  key: const Key('system-refresh'),
+                  tooltip: l10n.retry,
+                  onPressed: _updating ? null : _load,
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            ),
+            Text(
+              info.version.isEmpty
+                  ? l10n.adminVersionUnknown
+                  : l10n.adminBackendVersion(info.version),
+              key: const Key('system-version'),
+            ),
+            const SizedBox(height: 12),
+            _UpdateLine(info: info, restarting: _restarting),
+            if (!info.updatesEnabled) ...[
+              const SizedBox(height: 8),
+              Text(
+                l10n.adminUpdatesDisabled,
+                key: const Key('system-updates-disabled'),
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.icon(
+                  key: const Key('update-release'),
+                  onPressed: canUpdate ? () => _update('release') : null,
+                  icon: const Icon(Icons.system_update_alt),
+                  label: Text(l10n.adminUpdateRelease),
+                ),
+                OutlinedButton.icon(
+                  key: const Key('update-dev'),
+                  onPressed: canUpdate ? () => _update('dev') : null,
+                  icon: const Icon(Icons.science_outlined),
+                  label: Text(l10n.adminUpdateDev),
+                ),
+              ],
+            ),
+            if (info.update.log.isNotEmpty)
+              ExpansionTile(
+                key: const Key('update-log'),
+                tilePadding: EdgeInsets.zero,
+                title: Text(l10n.adminUpdateLog),
+                // a failed update opens on its log
+                initiallyExpanded: info.update.state == UpdateState.failed,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.dns_outlined),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          l10n.adminBackend,
-                          style: theme.textTheme.titleMedium,
-                        ),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(8),
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    child: SelectableText(
+                      info.update.log.trimRight(),
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
                       ),
-                      IconButton(
-                        key: const Key('system-refresh'),
-                        tooltip: l10n.retry,
-                        onPressed: _updating ? null : _load,
-                        icon: const Icon(Icons.refresh),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    info.version.isEmpty
-                        ? l10n.adminVersionUnknown
-                        : l10n.adminBackendVersion(info.version),
-                    key: const Key('system-version'),
-                  ),
-                  const SizedBox(height: 12),
-                  _UpdateLine(info: info, restarting: _restarting),
-                  if (!info.updatesEnabled) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.adminUpdatesDisabled,
-                      key: const Key('system-updates-disabled'),
-                      style: theme.textTheme.bodySmall,
                     ),
-                  ],
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      FilledButton.icon(
-                        key: const Key('update-release'),
-                        onPressed: canUpdate ? () => _update('release') : null,
-                        icon: const Icon(Icons.system_update_alt),
-                        label: Text(l10n.adminUpdateRelease),
-                      ),
-                      OutlinedButton.icon(
-                        key: const Key('update-dev'),
-                        onPressed: canUpdate ? () => _update('dev') : null,
-                        icon: const Icon(Icons.science_outlined),
-                        label: Text(l10n.adminUpdateDev),
-                      ),
-                    ],
                   ),
-                  if (info.update.log.isNotEmpty)
-                    ExpansionTile(
-                      key: const Key('update-log'),
-                      tilePadding: EdgeInsets.zero,
-                      title: Text(l10n.adminUpdateLog),
-                      // a failed update opens on its log
-                      initiallyExpanded:
-                          info.update.state == UpdateState.failed,
-                      children: [
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(8),
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          child: SelectableText(
-                            info.update.log.trimRight(),
-                            style: const TextStyle(
-                              fontFamily: 'monospace',
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                 ],
               ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

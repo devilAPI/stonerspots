@@ -2713,6 +2713,168 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Dieser Build sucht nicht nach Updates.'**
   String get settingsNoUpdateChannel;
+
+  /// No description provided for @twoFactorTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Zwei-Faktor-Anmeldung (2FA)'**
+  String get twoFactorTitle;
+
+  /// No description provided for @twoFactorOn.
+  ///
+  /// In de, this message translates to:
+  /// **'Aktiv'**
+  String get twoFactorOn;
+
+  /// No description provided for @twoFactorOff.
+  ///
+  /// In de, this message translates to:
+  /// **'Aus'**
+  String get twoFactorOff;
+
+  /// No description provided for @twoFactorIntro.
+  ///
+  /// In de, this message translates to:
+  /// **'Schütze deine Admin-Rechte mit Codes aus einer Authenticator-App (z. B. Aegis, 2FAS oder Google Authenticator).'**
+  String get twoFactorIntro;
+
+  /// No description provided for @twoFactorEnable.
+  ///
+  /// In de, this message translates to:
+  /// **'2FA einrichten'**
+  String get twoFactorEnable;
+
+  /// No description provided for @twoFactorScan.
+  ///
+  /// In de, this message translates to:
+  /// **'1. Scanne den QR-Code mit deiner Authenticator-App oder gib den Schlüssel von Hand ein.'**
+  String get twoFactorScan;
+
+  /// No description provided for @twoFactorSecret.
+  ///
+  /// In de, this message translates to:
+  /// **'Schlüssel'**
+  String get twoFactorSecret;
+
+  /// No description provided for @twoFactorCopy.
+  ///
+  /// In de, this message translates to:
+  /// **'Schlüssel kopieren'**
+  String get twoFactorCopy;
+
+  /// No description provided for @twoFactorCopied.
+  ///
+  /// In de, this message translates to:
+  /// **'Schlüssel kopiert'**
+  String get twoFactorCopied;
+
+  /// No description provided for @twoFactorEnterCode.
+  ///
+  /// In de, this message translates to:
+  /// **'2. Gib den 6-stelligen Code ein, den die App jetzt zeigt.'**
+  String get twoFactorEnterCode;
+
+  /// No description provided for @twoFactorCode.
+  ///
+  /// In de, this message translates to:
+  /// **'Code'**
+  String get twoFactorCode;
+
+  /// No description provided for @twoFactorConfirm.
+  ///
+  /// In de, this message translates to:
+  /// **'Bestätigen'**
+  String get twoFactorConfirm;
+
+  /// No description provided for @twoFactorEnabledInfo.
+  ///
+  /// In de, this message translates to:
+  /// **'2FA ist jetzt aktiv. Ab sofort fragt die App bei jeder Admin-Aktion nach einem Code. Ein eingegebener Code gilt 15 Minuten lang für alle Admin-Aktionen.'**
+  String get twoFactorEnabledInfo;
+
+  /// No description provided for @twoFactorActiveHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Admin-Aktionen brauchen einen Code aus deiner Authenticator-App. Ein eingegebener Code gilt 15 Minuten lang.'**
+  String get twoFactorActiveHint;
+
+  /// No description provided for @twoFactorDisable.
+  ///
+  /// In de, this message translates to:
+  /// **'2FA ausschalten'**
+  String get twoFactorDisable;
+
+  /// No description provided for @twoFactorDisableText.
+  ///
+  /// In de, this message translates to:
+  /// **'Bestätige mit deinem Passwort und einem aktuellen Code aus der Authenticator-App.'**
+  String get twoFactorDisableText;
+
+  /// No description provided for @twoFactorDisabled.
+  ///
+  /// In de, this message translates to:
+  /// **'2FA ist ausgeschaltet.'**
+  String get twoFactorDisabled;
+
+  /// No description provided for @twoFactorErrInvalid.
+  ///
+  /// In de, this message translates to:
+  /// **'Falscher Code. Versuch es noch mal.'**
+  String get twoFactorErrInvalid;
+
+  /// No description provided for @twoFactorErrReused.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieser Code wurde schon benutzt. Warte auf den nächsten.'**
+  String get twoFactorErrReused;
+
+  /// No description provided for @twoFactorErrDigits.
+  ///
+  /// In de, this message translates to:
+  /// **'Der Code hat 6 Ziffern.'**
+  String get twoFactorErrDigits;
+
+  /// No description provided for @twoFactorErrRateLimited.
+  ///
+  /// In de, this message translates to:
+  /// **'Zu viele Versuche. Warte ein paar Minuten.'**
+  String get twoFactorErrRateLimited;
+
+  /// No description provided for @twoFactorErrNoSecret.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Einrichtung ist abgelaufen. Starte sie neu.'**
+  String get twoFactorErrNoSecret;
+
+  /// No description provided for @twoFactorErrAlreadyOn.
+  ///
+  /// In de, this message translates to:
+  /// **'2FA ist schon aktiv.'**
+  String get twoFactorErrAlreadyOn;
+
+  /// No description provided for @twoFactorErrNotOn.
+  ///
+  /// In de, this message translates to:
+  /// **'2FA ist nicht aktiv.'**
+  String get twoFactorErrNotOn;
+
+  /// No description provided for @adminCodeTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Admin-Bestätigung'**
+  String get adminCodeTitle;
+
+  /// No description provided for @adminCodePrompt.
+  ///
+  /// In de, this message translates to:
+  /// **'Gib den 6-stelligen Code aus deiner Authenticator-App ein. Er gilt dann 15 Minuten lang für alle Admin-Aktionen.'**
+  String get adminCodePrompt;
+
+  /// No description provided for @adminCodeExpired.
+  ///
+  /// In de, this message translates to:
+  /// **'Deine Admin-Sitzung ist abgelaufen. Gib einen neuen Code aus deiner Authenticator-App ein.'**
+  String get adminCodeExpired;
 }
 
 class _AppLocalizationsDelegate

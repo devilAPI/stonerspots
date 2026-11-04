@@ -4,6 +4,7 @@ import 'package:app/features/admin/admin_models.dart';
 import 'package:app/features/admin/admin_repository.dart';
 import 'package:app/features/admin/admin_screen.dart';
 import 'package:app/features/admin/admin_system_tab.dart';
+import 'package:app/features/admin/admin_two_factor.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -115,6 +116,15 @@ class _Actions implements AdminActionsRepository {
   }
 }
 
+/// The actions tab also shows the admin's 2FA: off here.
+class _TwoFactorOff implements TwoFactorRepository {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
+  @override
+  Future<bool> enabled() async => false;
+}
+
 Future<void> _pump(WidgetTester t, _Lists lists, _Actions actions) async {
   t.view.physicalSize = const Size(400, 800);
   t.view.devicePixelRatio = 1;
@@ -124,6 +134,7 @@ Future<void> _pump(WidgetTester t, _Lists lists, _Actions actions) async {
       overrides: [
         adminRepositoryProvider.overrideWithValue(lists),
         adminActionsRepositoryProvider.overrideWithValue(actions),
+        twoFactorRepositoryProvider.overrideWithValue(_TwoFactorOff()),
       ],
       child: MaterialApp.router(
         locale: const Locale('en'),

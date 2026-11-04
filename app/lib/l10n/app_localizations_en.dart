@@ -1581,4 +1581,95 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsNoUpdateChannel =>
       'This build doesn\'t check for updates.';
+
+  @override
+  String get twoFactorTitle => 'Two-factor authentication (2FA)';
+
+  @override
+  String get twoFactorOn => 'On';
+
+  @override
+  String get twoFactorOff => 'Off';
+
+  @override
+  String get twoFactorIntro =>
+      'Protect your admin rights with codes from an authenticator app (e.g. Aegis, 2FAS or Google Authenticator).';
+
+  @override
+  String get twoFactorEnable => 'Set up 2FA';
+
+  @override
+  String get twoFactorScan =>
+      '1. Scan the QR code with your authenticator app, or enter the key by hand.';
+
+  @override
+  String get twoFactorSecret => 'Key';
+
+  @override
+  String get twoFactorCopy => 'Copy key';
+
+  @override
+  String get twoFactorCopied => 'Key copied';
+
+  @override
+  String get twoFactorEnterCode =>
+      '2. Enter the 6-digit code the app shows now.';
+
+  @override
+  String get twoFactorCode => 'Code';
+
+  @override
+  String get twoFactorConfirm => 'Confirm';
+
+  @override
+  String get twoFactorEnabledInfo =>
+      '2FA is on now. From now on the app asks for a code on every admin action. A code you enter is good for all admin actions for 15 minutes.';
+
+  @override
+  String get twoFactorActiveHint =>
+      'Admin actions need a code from your authenticator app. A code you enter is good for 15 minutes.';
+
+  @override
+  String get twoFactorDisable => 'Turn off 2FA';
+
+  @override
+  String get twoFactorDisableText =>
+      'Confirm with your password and a current code from your authenticator app.';
+
+  @override
+  String get twoFactorDisabled => '2FA is off.';
+
+  @override
+  String get twoFactorErrInvalid => 'Wrong code. Try again.';
+
+  @override
+  String get twoFactorErrReused =>
+      'This code was used already. Wait for the next one.';
+
+  @override
+  String get twoFactorErrDigits => 'The code has 6 digits.';
+
+  @override
+  String get twoFactorErrRateLimited =>
+      'Too many attempts. Wait a few minutes.';
+
+  @override
+  String get twoFactorErrNoSecret => 'The setup has expired. Start it again.';
+
+  @override
+  String get twoFactorErrAlreadyOn => '2FA is on already.';
+
+  @override
+  String get twoFactorErrNotOn => '2FA is not on.';
+
+  @override
+  String get adminCodeTitle => 'Admin confirmation';
+
+  @override
+  String get adminCodePrompt =>
+      'Enter the 6-digit code from your authenticator app. It is then good for all admin actions for 15 minutes.';
+
+  @override
+  String get adminCodeExpired =>
+      'Your admin session has expired. Enter a new code from your authenticator app.';
 }

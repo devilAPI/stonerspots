@@ -1597,4 +1597,96 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsNoUpdateChannel =>
       'Dieser Build sucht nicht nach Updates.';
+
+  @override
+  String get twoFactorTitle => 'Zwei-Faktor-Anmeldung (2FA)';
+
+  @override
+  String get twoFactorOn => 'Aktiv';
+
+  @override
+  String get twoFactorOff => 'Aus';
+
+  @override
+  String get twoFactorIntro =>
+      'Schütze deine Admin-Rechte mit Codes aus einer Authenticator-App (z. B. Aegis, 2FAS oder Google Authenticator).';
+
+  @override
+  String get twoFactorEnable => '2FA einrichten';
+
+  @override
+  String get twoFactorScan =>
+      '1. Scanne den QR-Code mit deiner Authenticator-App oder gib den Schlüssel von Hand ein.';
+
+  @override
+  String get twoFactorSecret => 'Schlüssel';
+
+  @override
+  String get twoFactorCopy => 'Schlüssel kopieren';
+
+  @override
+  String get twoFactorCopied => 'Schlüssel kopiert';
+
+  @override
+  String get twoFactorEnterCode =>
+      '2. Gib den 6-stelligen Code ein, den die App jetzt zeigt.';
+
+  @override
+  String get twoFactorCode => 'Code';
+
+  @override
+  String get twoFactorConfirm => 'Bestätigen';
+
+  @override
+  String get twoFactorEnabledInfo =>
+      '2FA ist jetzt aktiv. Ab sofort fragt die App bei jeder Admin-Aktion nach einem Code. Ein eingegebener Code gilt 15 Minuten lang für alle Admin-Aktionen.';
+
+  @override
+  String get twoFactorActiveHint =>
+      'Admin-Aktionen brauchen einen Code aus deiner Authenticator-App. Ein eingegebener Code gilt 15 Minuten lang.';
+
+  @override
+  String get twoFactorDisable => '2FA ausschalten';
+
+  @override
+  String get twoFactorDisableText =>
+      'Bestätige mit deinem Passwort und einem aktuellen Code aus der Authenticator-App.';
+
+  @override
+  String get twoFactorDisabled => '2FA ist ausgeschaltet.';
+
+  @override
+  String get twoFactorErrInvalid => 'Falscher Code. Versuch es noch mal.';
+
+  @override
+  String get twoFactorErrReused =>
+      'Dieser Code wurde schon benutzt. Warte auf den nächsten.';
+
+  @override
+  String get twoFactorErrDigits => 'Der Code hat 6 Ziffern.';
+
+  @override
+  String get twoFactorErrRateLimited =>
+      'Zu viele Versuche. Warte ein paar Minuten.';
+
+  @override
+  String get twoFactorErrNoSecret =>
+      'Die Einrichtung ist abgelaufen. Starte sie neu.';
+
+  @override
+  String get twoFactorErrAlreadyOn => '2FA ist schon aktiv.';
+
+  @override
+  String get twoFactorErrNotOn => '2FA ist nicht aktiv.';
+
+  @override
+  String get adminCodeTitle => 'Admin-Bestätigung';
+
+  @override
+  String get adminCodePrompt =>
+      'Gib den 6-stelligen Code aus deiner Authenticator-App ein. Er gilt dann 15 Minuten lang für alle Admin-Aktionen.';
+
+  @override
+  String get adminCodeExpired =>
+      'Deine Admin-Sitzung ist abgelaufen. Gib einen neuen Code aus deiner Authenticator-App ein.';
 }

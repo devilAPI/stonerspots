@@ -74,6 +74,7 @@ class AuthController extends AsyncNotifier<User?> {
   Future<void> deleteAccount({required String password}) async {
     await ref.read(authRepositoryProvider).deleteAccount(password: password);
     await ref.read(tokenStoreProvider).clear();
+    ref.read(apiClientProvider).clearAdminSession();
     state = const AsyncData(null);
   }
 
@@ -86,6 +87,7 @@ class AuthController extends AsyncNotifier<User?> {
 
   Future<void> logout() async {
     await ref.read(tokenStoreProvider).clear();
+    ref.read(apiClientProvider).clearAdminSession();
     state = const AsyncData(null);
   }
 
@@ -94,6 +96,8 @@ class AuthController extends AsyncNotifier<User?> {
     try {
       final session = await action();
       await ref.read(tokenStoreProvider).write(session.tokens);
+      // another account: the admin session was not its own
+      ref.read(apiClientProvider).clearAdminSession();
       state = AsyncData(session.user);
     } catch (e, st) {
       state = AsyncError(e, st);
