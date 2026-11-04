@@ -160,6 +160,14 @@ class SemVer implements Comparable<SemVer> {
   String toString() => '$major.$minor.$patch';
 }
 
+/// The version of a release tag `vX.Y.Z` (exactly that: the `v`, three
+/// numbers, nothing after them), or null. The release workflow refuses any
+/// other tag, so anything else is not a release of ours.
+SemVer? releaseTagVersion(String tag) =>
+    RegExp(r'^v\d{1,6}\.\d{1,6}\.\d{1,6}$').hasMatch(tag)
+    ? SemVer.tryParse(tag)
+    : null;
+
 /// N of a `dev-N` tag, or null.
 int? devRunNumber(String tag) {
   final m = RegExp(r'^dev-(\d{1,9})$').firstMatch(tag);
@@ -192,9 +200,9 @@ ReleaseInfo? newestRelease(List<ReleaseInfo> releases, UpdateChannel channel) {
         if (!r.prerelease || n == null) continue;
         if (best == null || n > devRunNumber(best.tag)!) best = r;
       case UpdateChannel.release:
-        final v = SemVer.tryParse(r.tag);
+        final v = releaseTagVersion(r.tag);
         if (r.prerelease || v == null) continue;
-        if (best == null || v.compareTo(SemVer.tryParse(best.tag)!) > 0) {
+        if (best == null || v.compareTo(releaseTagVersion(best.tag)!) > 0) {
           best = r;
         }
     }
@@ -215,7 +223,7 @@ bool isNewerThanInstalled(
       final build = installed.build;
       return n != null && build != null && n > build;
     case UpdateChannel.release:
-      final v = SemVer.tryParse(release.tag);
+      final v = releaseTagVersion(release.tag);
       final mine = SemVer.tryParse(installed.version);
       return v != null && mine != null && v.compareTo(mine) > 0;
   }

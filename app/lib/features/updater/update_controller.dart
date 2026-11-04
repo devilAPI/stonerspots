@@ -192,6 +192,9 @@ final releaseSourceProvider = Provider<ReleaseSource>(
   (ref) => ReleaseSource(
     dio: ref.watch(updaterDioProvider),
     store: ref.watch(settingsStoreProvider),
+    url: releasesApiUrlFor(
+      ref.watch(updaterConfigProvider).channel ?? UpdateChannel.dev,
+    ),
   ),
 );
 

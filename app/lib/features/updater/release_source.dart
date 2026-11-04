@@ -10,6 +10,18 @@ import 'release.dart';
 const releasesApiUrl =
     'https://api.github.com/repos/devilAPI/stonerspots/releases?per_page=30';
 
+/// The newest regular release alone (GitHub's "latest": never a draft or a
+/// prerelease). The release channel asks here, because in the list above a
+/// release drops off the first page after 30 dev builds.
+const latestReleaseApiUrl =
+    'https://api.github.com/repos/devilAPI/stonerspots/releases/latest';
+
+/// Where [channel] looks for updates.
+String releasesApiUrlFor(UpdateChannel channel) => switch (channel) {
+  UpdateChannel.dev => releasesApiUrl,
+  UpdateChannel.release => latestReleaseApiUrl,
+};
+
 /// The release list and how fresh it is.
 class ReleaseListResult {
   const ReleaseListResult({
@@ -53,10 +65,17 @@ class ReleaseSource {
   static const _etagKey = 'updater.releases_etag';
   static const _fetchedKey = 'updater.releases_fetched_ms';
   static const _retryKey = 'updater.retry_after_ms';
+  static const _urlKey = 'updater.releases_url';
+
+  /// [url] answers with one release object (`/releases/latest`), not a list.
+  bool get _single => url.endsWith('/releases/latest');
 
   List<ReleaseInfo>? _cached() {
     final body = _store.getString(_bodyKey);
     if (body == null) return null;
+    // a list fetched from another URL (an app of the other channel was
+    // installed over this one) is not this channel's
+    if (_store.getString(_urlKey) != url) return null;
     try {
       return parseReleases(jsonDecode(body));
     } on FormatException {
@@ -126,22 +145,31 @@ class ReleaseSource {
         rateLimited: true,
       );
     }
-    if (status != 200) {
-      return ReleaseListResult(releases: cached, fromCache: true, failed: true);
-    }
     final List<ReleaseInfo> fresh;
-    try {
-      final json = jsonDecode(res.data ?? '');
-      if (json is! List) throw const FormatException('not a list');
-      fresh = parseReleases(json);
-    } on FormatException {
+    if (status == 404 && _single) {
+      fresh = const []; // no release published yet
+    } else if (status != 200) {
       return ReleaseListResult(releases: cached, fromCache: true, failed: true);
+    } else {
+      try {
+        var json = jsonDecode(res.data ?? '');
+        if (_single && json is Map) json = [json];
+        if (json is! List) throw const FormatException('not a list');
+        fresh = parseReleases(json);
+      } on FormatException {
+        return ReleaseListResult(
+          releases: cached,
+          fromCache: true,
+          failed: true,
+        );
+      }
     }
     // Only what the updater needs, not GitHub's whole answer.
     await _store.setString(
       _bodyKey,
       jsonEncode([for (final r in fresh) r.toJson()]),
     );
+    await _store.setString(_urlKey, url);
     await _store.setString(_etagKey, res.headers.value('etag'));
     await _store.setInt(_fetchedKey, now);
     await _store.setInt(_retryKey, null);
