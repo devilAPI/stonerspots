@@ -14,6 +14,8 @@ import 'package:app/features/reviews/reviews_repository.dart';
 import 'package:app/features/saved/saved_repository.dart';
 import 'package:app/features/spots/photo_viewer.dart';
 import 'package:app/features/spots/updates_repository.dart';
+import 'package:app/features/weather/weather_repository.dart';
+import 'package:app/features/comments/comments_repository.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,8 +24,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import '../comments/comment_helpers.dart' show FakeComments, comment;
 import '../reviews/review_helpers.dart';
 import '../saved/saved_helpers.dart' show FakeSaved;
+import '../weather/weather_helpers.dart';
 import 'update_helpers.dart';
 
 class _Api implements SpotApi {
@@ -32,8 +36,10 @@ class _Api implements SpotApi {
     this.tags = const [],
     this.authorId = 9,
     this.locked = false,
+    this.ownerGone = false,
   });
   final String? cover;
+  final bool ownerGone;
   bool locked;
   int likes = 0;
   List<SpotTag> tags;
@@ -52,7 +58,7 @@ class _Api implements SpotApi {
     ratingAvg: 4.5,
     ratingCount: 2,
     tags: tags,
-    author: Author(id: authorId, displayName: 'Ann'),
+    author: ownerGone ? null : Author(id: authorId, displayName: 'Ann'),
     locked: locked,
   );
   @override
@@ -123,6 +129,9 @@ Future<_Api> _pump(
   bool locked = false,
   AdminRepository? admin,
   LinkSharer? sharer,
+  String location = '/spot/5',
+  FakeWeather? weather,
+  FakeComments? comments,
 }) async {
   final api =
       withApi ??
@@ -139,11 +148,19 @@ Future<_Api> _pump(
     ),
   ]);
   final router = GoRouter(
-    initialLocation: '/spot/5',
+    initialLocation: location,
     routes: [
       GoRoute(
         path: '/spot/:id',
-        builder: (_, _) => const SpotDetailScreen(spotId: 5),
+        builder: (_, s) => SpotDetailScreen(
+          spotId: 5,
+          focusUpdateId: int.tryParse(s.uri.queryParameters['update'] ?? ''),
+        ),
+      ),
+      GoRoute(
+        path: '/user/:id',
+        builder: (_, s) =>
+            Scaffold(body: Text('profile ${s.pathParameters['id']}')),
       ),
       GoRoute(
         path: '/login',
@@ -163,6 +180,11 @@ Future<_Api> _pump(
         if (launcher != null) urlLauncherProvider.overrideWithValue(launcher),
         if (admin != null) adminRepositoryProvider.overrideWithValue(admin),
         if (sharer != null) linkSharerProvider.overrideWithValue(sharer),
+        weatherRepositoryProvider.overrideWithValue(
+          weather ?? FakeWeather(error: Exception('offline')),
+        ),
+        if (comments != null)
+          commentsRepositoryProvider.overrideWithValue(comments),
       ],
       child: MaterialApp.router(
         routerConfig: router,
@@ -966,5 +988,175 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const Key('editTagsSave')), findsOneWidget);
+  });
+
+  group('owner', () {
+    testWidgets('shows under the title and opens their profile', (t) async {
+      _portrait(t);
+      await _pump(t, null);
+      expect(find.text('Added by'), findsOneWidget);
+      final owner = find.byKey(const Key('spotOwner'));
+      expect(
+        find.descendant(
+          of: owner,
+          matching: find.byKey(const Key('authorAvatar-9')),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        t.getTopLeft(find.byKey(const Key('spotOwner'))).dy,
+        greaterThan(t.getTopLeft(find.text('Lake bench').last).dy),
+      );
+      await t.tap(
+        find.descendant(
+          of: owner,
+          matching: find.byKey(const Key('authorLink-9')),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.text('profile 9'), findsOneWidget);
+    });
+
+    testWidgets('a deleted account is said so, not a link', (t) async {
+      _portrait(t);
+      await _pump(t, null, withApi: _Api(ownerGone: true));
+      expect(find.byKey(const Key('spotOwnerDeleted')), findsOneWidget);
+      expect(find.text('Deleted account'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('spotOwner')),
+          matching: find.byType(InkWell),
+        ),
+        findsNothing,
+      );
+    });
+  });
+
+  testWidgets('the like count sits with the rating, the buttons stand alone', (
+    t,
+  ) async {
+    _portrait(t);
+    await _pump(t, const User(id: 1, email: 'a@b.de', displayName: 'A'));
+    final stats = find.byKey(const Key('spotStats'));
+    expect(
+      find.descendant(of: stats, matching: find.text('3 likes')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: stats, matching: find.byKey(const Key('spotRating'))),
+      findsOneWidget,
+    );
+    // no count between the like and save buttons any more
+    expect(find.text('3 likes'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('like')),
+        matching: find.text('Like'),
+      ),
+      findsOneWidget,
+    );
+    await t.tap(find.byKey(const Key('like')));
+    await t.pumpAndSettle();
+    expect(
+      find.descendant(of: stats, matching: find.text('4 likes')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('like')),
+        matching: find.text('Liked'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  group('section headings', () {
+    testWidgets('weather gets one, like reviews and updates', (t) async {
+      _portrait(t);
+      await _pump(t, null, weather: FakeWeather());
+      await _scrollTo(t, find.byKey(const Key('weatherHeading')));
+      final heading = t.widget<Text>(find.byKey(const Key('weatherHeading')));
+      expect(heading.data, 'Weather');
+      final reviews = t.widget<Text>(find.text('Reviews'));
+      expect(heading.style, reviews.style);
+      // same left edge as the reviews heading
+      expect(
+        t.getTopLeft(find.byKey(const Key('weatherHeading'))).dx,
+        t.getTopLeft(find.text('Reviews')).dx,
+      );
+    });
+
+    testWidgets('no weather, no heading', (t) async {
+      _portrait(t);
+      await _pump(t, null, weather: FakeWeather(error: Exception('offline')));
+      expect(find.byKey(const Key('weatherHeading')), findsNothing);
+      expect(find.text('Weather'), findsNothing);
+    });
+
+    testWidgets('the small map below the details has one', (t) async {
+      _portrait(t);
+      await _pump(t, null, cover: 'http://test/api/v1/media/a.jpg');
+      await _scrollTo(t, find.byKey(const Key('mapHeading')));
+      expect(find.text('Map'), findsOneWidget);
+      expect(
+        t.getTopLeft(find.byKey(const Key('mapHeading'))).dy,
+        lessThan(t.getTopLeft(find.byKey(const Key('spotLocationMap'))).dy),
+      );
+    });
+
+    testWidgets('the map pane has one too, also without photos', (t) async {
+      t.view.physicalSize = const Size(1100, 800);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      await _pump(t, null);
+      expect(find.byKey(const Key('mapHeading')), findsOneWidget);
+      expect(
+        t.getTopLeft(find.byKey(const Key('mapHeading'))).dy,
+        lessThan(t.getTopLeft(find.byKey(const Key('spotLocationMap'))).dy),
+      );
+      expect(t.takeException(), isNull);
+    });
+
+    testWidgets('the hero map of a spot without photos has none', (t) async {
+      _portrait(t);
+      await _pump(t, null);
+      expect(find.byKey(const Key('mapHeading')), findsNothing);
+    });
+  });
+
+  testWidgets('?update= opens that update with all its comments', (t) async {
+    _portrait(t);
+    final comments = FakeComments({
+      null: CursorPage([
+        for (var i = 1; i <= 3; i++) comment(i, body: 'c$i'),
+      ], null),
+    });
+    final other = feedItem(id: 7, body: 'other');
+    final target = FeedItem(
+      id: 8,
+      body: 'target',
+      photos: const [],
+      createdAt: DateTime.now(),
+      author: const Author(id: 1, displayName: 'Ann'),
+      spot: const Spot(id: 5, title: 'Lake bench', lat: 1, lon: 2),
+      commentCount: 3,
+    );
+    await _pump(
+      t,
+      null,
+      items: [other, target],
+      location: '/spot/5?update=8',
+      comments: comments,
+    );
+    // scrolled to it
+    expect(find.text('target'), findsOneWidget);
+    expect(
+      t.getTopLeft(find.byKey(const Key('updateComments_8'))).dy,
+      lessThan(800),
+    );
+    for (final b in ['c1', 'c2', 'c3']) {
+      expect(find.text(b), findsOneWidget);
+    }
+    expect(find.byKey(const Key('commentsShowAll_8')), findsNothing);
   });
 }

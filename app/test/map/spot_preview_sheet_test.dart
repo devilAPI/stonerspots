@@ -16,6 +16,7 @@ Future<void> pumpSheet(
   Spot spot, {
   Size? size,
   FakeSaved? saved,
+  void Function(int userId)? onOpenAuthor,
 }) async {
   if (size != null) {
     t.view.physicalSize = size;
@@ -33,7 +34,11 @@ Future<void> pumpSheet(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
-          body: SpotPreviewSheet(spot: spot, onOpen: () {}),
+          body: SpotPreviewSheet(
+            spot: spot,
+            onOpen: () {},
+            onOpenAuthor: onOpenAuthor,
+          ),
         ),
       ),
     ),
@@ -170,4 +175,37 @@ void main() {
       expect(t.takeException(), isNull);
     });
   }
+
+  testWidgets('shows who added the spot; tapping opens them', (t) async {
+    final opened = <int>[];
+    await pumpSheet(
+      t,
+      const Spot(
+        id: 1,
+        title: 'Lake bench',
+        lat: 48.1,
+        lon: 11.6,
+        author: Author(id: 4, displayName: 'Ann'),
+      ),
+      onOpenAuthor: opened.add,
+    );
+    expect(find.text('Added by'), findsOneWidget);
+    expect(find.text('Ann'), findsOneWidget);
+    expect(find.byKey(const Key('authorAvatar-4')), findsOneWidget);
+    await t.tap(find.byKey(const Key('authorLink-4')));
+    expect(opened, [4]);
+  });
+
+  testWidgets('an owner who is gone shows as a deleted account', (t) async {
+    await pumpSheet(t, noPhoto);
+    expect(find.byKey(const Key('spotOwnerDeleted')), findsOneWidget);
+    expect(find.text('Deleted account'), findsOneWidget);
+    expect(
+      find.byType(InkWell).evaluate().where((e) {
+        final k = e.widget.key;
+        return k is ValueKey<String> && k.value.startsWith('authorLink-');
+      }),
+      isEmpty,
+    );
+  });
 }
