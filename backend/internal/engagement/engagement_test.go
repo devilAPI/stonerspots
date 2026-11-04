@@ -166,21 +166,28 @@ func status(t *testing.T, db *sql.DB, table string, id uint64) string {
 	return s
 }
 
-func TestThreeReportsHideTarget(t *testing.T) {
+// Updates (and reviews, comments) are hidden after 3 trusted reporters,
+// spots after 5.
+func TestTrustedReportsHideTarget(t *testing.T) {
 	db, h := setup(t)
 	owner := testutil.NewUser(t, db)
 	s := newSpot(t, db, owner)
 	up := newUpdate(t, db, s, owner)
-	for i := 0; i < 3; i++ {
-		if status(t, db, "spots", s) != "active" || status(t, db, "spot_updates", up) != "active" {
-			t.Fatalf("hidden too early at %d", i)
+	for i := 0; i < 5; i++ {
+		if status(t, db, "spots", s) != "active" {
+			t.Fatalf("spot hidden too early at %d", i)
 		}
-		u := testutil.NewUser(t, db)
+		if want := map[bool]string{true: "active", false: "hidden"}[i < 3]; status(t, db, "spot_updates", up) != want {
+			t.Fatalf("update after %d reports: %s, want %s", i, status(t, db, "spot_updates", up), want)
+		}
+		u := testutil.NewTrustedUser(t, db)
 		if w := report(t, h, u, "spot", s); w.Code != 201 {
 			t.Fatalf("spot report %d %s", w.Code, w.Body)
 		}
-		if w := report(t, h, u, "update", up); w.Code != 201 {
-			t.Fatalf("update report %d %s", w.Code, w.Body)
+		if i < 3 {
+			if w := report(t, h, u, "update", up); w.Code != 201 {
+				t.Fatalf("update report %d %s", w.Code, w.Body)
+			}
 		}
 	}
 	if status(t, db, "spots", s) != "hidden" || status(t, db, "spot_updates", up) != "hidden" {
@@ -195,6 +202,107 @@ func TestThreeReportsHideTarget(t *testing.T) {
 	}
 	if w := report(t, h, 0, "spot", s); w.Code != 401 {
 		t.Fatalf("got %d", w.Code)
+	}
+}
+
+// Throwaway accounts cannot hide anything: new accounts, accounts without
+// any visible contribution, banned ones and (with mail on) unverified ones
+// do not count. Their reports are still stored for the admins.
+func TestUntrustedReportsDoNotHide(t *testing.T) {
+	db, h := setup(t)
+	owner := testutil.NewUser(t, db)
+	s := newSpot(t, db, owner)
+	up := newUpdate(t, db, s, owner)
+	var reporters []uint64
+	for i := 0; i < 3; i++ { // fresh accounts with a contribution
+		u := testutil.NewUser(t, db)
+		newSpot(t, db, u)
+		reporters = append(reporters, u)
+	}
+	for i := 0; i < 3; i++ { // old accounts without one
+		u := testutil.NewUser(t, db)
+		db.Exec(`UPDATE users SET created_at = NOW() - INTERVAL 30 DAY WHERE id = ?`, u)
+		reporters = append(reporters, u)
+	}
+	for i := 0; i < 2; i++ { // trusted, but banned
+		u := testutil.NewTrustedUser(t, db)
+		db.Exec(`UPDATE users SET banned_at = NOW() WHERE id = ?`, u)
+		reporters = append(reporters, u)
+	}
+	// a hidden contribution does not count either
+	u := testutil.NewTrustedUser(t, db)
+	db.Exec(`UPDATE spots SET status = 'hidden' WHERE user_id = ?`, u)
+	reporters = append(reporters, u)
+	for _, u := range reporters {
+		if w := report(t, h, u, "update", up); w.Code != 201 {
+			t.Fatalf("report %d %s", w.Code, w.Body)
+		}
+	}
+	if status(t, db, "spot_updates", up) != "active" {
+		t.Fatal("hidden by untrusted reporters")
+	}
+	var n int
+	db.QueryRow(`SELECT COUNT(*) FROM reports WHERE target_type = 'update' AND target_id = ?`, up).Scan(&n)
+	if n != len(reporters) {
+		t.Fatalf("%d reports stored, want %d", n, len(reporters))
+	}
+	// two trusted reporters plus one whose update counts as contribution
+	for i := 0; i < 2; i++ {
+		report(t, h, testutil.NewTrustedUser(t, db), "update", up)
+	}
+	if status(t, db, "spot_updates", up) != "active" {
+		t.Fatal("hidden after 2 trusted reporters")
+	}
+	third := testutil.NewUser(t, db)
+	db.Exec(`UPDATE users SET created_at = NOW() - INTERVAL 8 DAY WHERE id = ?`, third)
+	newUpdate(t, db, s, third)
+	report(t, h, third, "update", up)
+	if status(t, db, "spot_updates", up) != "hidden" {
+		t.Fatal("not hidden after 3 trusted reporters")
+	}
+}
+
+// With mail on, only verified reporters count.
+func TestUnverifiedReportersDoNotCountWithMail(t *testing.T) {
+	db := testutil.NewDB(t)
+	r := chi.NewRouter()
+	engagement.Mount(r, app.Deps{DB: db, Cfg: config.Config{JWTSecret: []byte(testutil.JWTSecret),
+		Mail: config.MailConfig{Host: "smtp.stonerspots.test", From: "a@stonerspots.test"}}}, quotas.NewTracker(quotas.Config{}))
+	owner := testutil.NewUser(t, db)
+	up := newUpdate(t, db, newSpot(t, db, owner), owner)
+	for i := 0; i < 3; i++ {
+		u := testutil.NewTrustedUser(t, db)
+		db.Exec(`UPDATE users SET email_verified = 0 WHERE id = ?`, u)
+		report(t, r, u, "update", up)
+	}
+	if status(t, db, "spot_updates", up) != "active" {
+		t.Fatal("hidden by unverified reporters")
+	}
+	for i := 0; i < 3; i++ {
+		report(t, r, testutil.NewTrustedUser(t, db), "update", up)
+	}
+	if status(t, db, "spot_updates", up) != "hidden" {
+		t.Fatal("verified reporters did not hide it")
+	}
+}
+
+func TestLikesHaveADailyQuota(t *testing.T) {
+	db := testutil.NewDB(t)
+	r := chi.NewRouter()
+	engagement.Mount(r, app.Deps{DB: db, Cfg: config.Config{JWTSecret: []byte(testutil.JWTSecret)}}, quotas.NewTracker(quotas.Config{LikesPerDay: 2}))
+	owner, u := testutil.NewUser(t, db), testutil.NewUser(t, db)
+	s1, s2, s3 := newSpot(t, db, owner), newSpot(t, db, owner), newSpot(t, db, owner)
+	for _, s := range []uint64{s1, s2} {
+		if w := do(t, r, "PUT", fmt.Sprintf("/spots/%d/like", s), u, ""); w.Code != 200 {
+			t.Fatalf("like: %d", w.Code)
+		}
+	}
+	if w := do(t, r, "PUT", fmt.Sprintf("/spots/%d/like", s3), u, ""); w.Code != 429 || !strings.Contains(w.Body.String(), "quota_exceeded") {
+		t.Fatalf("third like: %d %s", w.Code, w.Body)
+	}
+	// unliking stays possible
+	if w := do(t, r, "DELETE", fmt.Sprintf("/spots/%d/like", s1), u, ""); w.Code != 200 {
+		t.Fatalf("unlike: %d", w.Code)
 	}
 }
 

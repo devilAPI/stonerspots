@@ -32,6 +32,14 @@ func NewClient() *Client {
 	}
 }
 
+// NewClientAt returns a client for an HIBP-compatible range API at baseURL
+// (ending in "/range/"; tests point it at a fake).
+func NewClientAt(baseURL string) *Client {
+	c := NewClient()
+	c.baseURL = baseURL
+	return c
+}
+
 // IsBreached reports whether the password appears in known breaches.
 // It returns (breached, error). A network error returns false with the error.
 func (c *Client) IsBreached(ctx context.Context, password string) (bool, error) {

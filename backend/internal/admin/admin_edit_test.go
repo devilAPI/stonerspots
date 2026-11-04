@@ -392,7 +392,10 @@ func (e *env) dismiss(t *testing.T, body string) *httptest.ResponseRecorder {
 func TestDismissSpotAndUpdate(t *testing.T) {
 	e := setup(t)
 	owner := testutil.NewUser(t, e.db)
-	reporters := []uint64{testutil.NewUser(t, e.db), testutil.NewUser(t, e.db), testutil.NewUser(t, e.db)}
+	var reporters []uint64 // a spot needs 5 trusted reporters to be hidden
+	for i := 0; i < 5; i++ {
+		reporters = append(reporters, testutil.NewTrustedUser(t, e.db))
+	}
 
 	// spot without restore
 	sp := newSpot(t, e.db, owner, "Spot A", "active")
@@ -404,7 +407,7 @@ func TestDismissSpotAndUpdate(t *testing.T) {
 	}
 	w := e.dismiss(t, fmt.Sprintf(`{"target_type":"spot","target_id":%d}`, sp))
 	e.expect(t, w, 200, "")
-	if !strings.Contains(w.Body.String(), `"removed":3`) {
+	if !strings.Contains(w.Body.String(), `"removed":5`) {
 		t.Fatalf("body %s", w.Body)
 	}
 	if countReports(t, e.db, "spot", sp) != 0 || statusOf(t, e.db, "spots", sp) != "hidden" {
@@ -418,7 +421,7 @@ func TestDismissSpotAndUpdate(t *testing.T) {
 	}
 	w = e.dismiss(t, fmt.Sprintf(`{"target_type":"spot","target_id":%d,"restore":true}`, sp2))
 	e.expect(t, w, 200, "")
-	if !strings.Contains(w.Body.String(), `"removed":3`) || statusOf(t, e.db, "spots", sp2) != "active" || countReports(t, e.db, "spot", sp2) != 0 {
+	if !strings.Contains(w.Body.String(), `"removed":5`) || statusOf(t, e.db, "spots", sp2) != "active" || countReports(t, e.db, "spot", sp2) != 0 {
 		t.Fatalf("restore wrong: %s", w.Body)
 	}
 
@@ -432,7 +435,7 @@ func TestDismissSpotAndUpdate(t *testing.T) {
 	}
 	w = e.dismiss(t, fmt.Sprintf(`{"target_type":"update","target_id":%d,"restore":true}`, up))
 	e.expect(t, w, 200, "")
-	if !strings.Contains(w.Body.String(), `"removed":3`) || statusOf(t, e.db, "spot_updates", up) != "active" {
+	if !strings.Contains(w.Body.String(), `"removed":5`) || statusOf(t, e.db, "spot_updates", up) != "active" {
 		t.Fatalf("update restore wrong: %s", w.Body)
 	}
 

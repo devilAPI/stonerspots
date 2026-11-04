@@ -8,7 +8,9 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"log"
 	"net/mail"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -33,6 +35,7 @@ var (
 	errBadCredentials = errors.New("invalid credentials")
 	errBadRefresh     = errors.New("invalid refresh token")
 	errBanned         = errors.New("account banned")
+	errNotVerified    = errors.New("email not verified")
 )
 
 // User is the public user representation.
@@ -59,7 +62,45 @@ type service struct {
 	secret    []byte
 	uploadDir string
 	base      string // public base URL, for avatar URLs
-	mail      *mailpkg.Client
+	appURL    string // where users open the app, for the links in mails
+	mail      mailer
+	// async runs mail jobs off the request (go f() when nil; tests make it
+	// synchronous).
+	async func(func())
+}
+
+// mailer is what the service needs from mail.Client.
+type mailer interface {
+	Enabled() bool
+	Send(ctx context.Context, to, subject, body string) error
+}
+
+var _ mailer = (*mailpkg.Client)(nil)
+
+// mailTimeout bounds one mail job (database update plus SMTP dialogue).
+const mailTimeout = 30 * time.Second
+
+func (s *service) mailOn() bool { return s.mail != nil && s.mail.Enabled() }
+
+// background runs job with its own context: the request's context ends when
+// the handler returns, which used to cancel the mail half way.
+func (s *service) background(job func(ctx context.Context)) {
+	run := func() {
+		ctx, cancel := context.WithTimeout(context.Background(), mailTimeout)
+		defer cancel()
+		job(ctx)
+	}
+	if s.async != nil {
+		s.async(run)
+		return
+	}
+	go run()
+}
+
+// appLink is the app URL for path with the token as query parameter, e.g.
+// https://devilapi.github.io/stonerspots/#/reset-password?token=...
+func appLink(appURL, path, token string) string {
+	return strings.TrimRight(appURL, "/") + path + "?token=" + url.QueryEscape(token)
 }
 
 // dummyHash is compared against when the email is unknown so that login
@@ -109,15 +150,18 @@ func byLogin(login string) (string, string) {
 	return "display_name = ?", strings.TrimSpace(login)
 }
 
-// failureKey is the key wrong passwords are counted under: the account
-// when it exists, so switching between email and name gains nothing.
+// failureKey is the key wrong passwords are counted under: the account's
+// id, so switching between email and name gains nothing. Unknown logins
+// give "" and are not counted per account (the per-IP login limit still
+// applies): counting them would let anyone fill the limiter's table with
+// random names and so push out the counters of real accounts.
 func (s *service) failureKey(ctx context.Context, login string) string {
 	where, arg := byLogin(login)
 	var id uint64
 	if err := s.db.QueryRowContext(ctx, `SELECT id FROM users WHERE `+where, arg).Scan(&id); err == nil {
 		return "user:" + strconv.FormatUint(id, 10)
 	}
-	return "login:" + strings.ToLower(arg)
+	return ""
 }
 
 func hashToken(tok string) string {
@@ -133,7 +177,8 @@ func newRefreshToken() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(b[:]), nil
 }
 
-// generateToken returns a URL-safe random token for email verification.
+// generateToken returns a URL-safe random token for email verification and
+// password reset mails. Only its hashToken is stored.
 func generateToken() string {
 	b := make([]byte, 32)
 	_, _ = rand.Read(b)
@@ -142,12 +187,14 @@ func generateToken() string {
 
 // sendVerificationEmail sends the verification email to the user.
 func (s *service) sendVerificationEmail(ctx context.Context, email, token string) {
-	verifyURL := "https://example.com/verify-email?token=" + token // TODO: use config.PublicBaseURL
+	verifyURL := appLink(s.appURL, "/verify-email", token)
 	body := "Please verify your email address by clicking the following link:\n\n" +
 		verifyURL + "\n\n" +
 		"This link expires in 24 hours.\n\n" +
 		"If you did not create an account, please ignore this email."
-	_ = s.mail.Send(ctx, email, "Verify your Stonerspots account", body)
+	if err := s.mail.Send(ctx, email, "Verify your Stonerspots account", body); err != nil {
+		log.Printf("mail: verification mail not sent: %v", err)
+	}
 }
 
 func (s *service) session(ctx context.Context, u User, family string) (*Session, error) {
@@ -178,15 +225,18 @@ func (s *service) register(ctx context.Context, email, password, name string) (*
 	}
 	// Generate email verification token if mail is enabled
 	var verifyToken string
+	var verifyHash *string
 	var verifyExpires *time.Time
-	if s.mail != nil && s.mail.Config().Enabled() {
+	if s.mailOn() {
 		verifyToken = generateToken()
+		h := hashToken(verifyToken)
+		verifyHash = &h
 		expires := time.Now().UTC().Add(24 * time.Hour)
 		verifyExpires = &expires
 	}
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO users (email, password_hash, display_name, adult_confirmed_at, email_verify_token, email_verify_expires) VALUES (?, ?, ?, NOW(), ?, ?)`,
-		email, string(hash), name, verifyToken, verifyExpires)
+		`INSERT INTO users (email, password_hash, display_name, adult_confirmed_at, email_verify_hash, email_verify_expires) VALUES (?, ?, ?, NOW(), ?, ?)`,
+		email, string(hash), name, verifyHash, verifyExpires)
 	if err != nil {
 		var me *mysql.MySQLError
 		if errors.As(err, &me) && me.Number == 1062 {
@@ -200,8 +250,8 @@ func (s *service) register(ctx context.Context, email, password, name string) (*
 	id, _ := res.LastInsertId()
 	user := User{ID: uint64(id), Email: email, DisplayName: name}
 	// Send verification email if mail is enabled
-	if s.mail != nil && s.mail.Config().Enabled() && verifyToken != "" {
-		go s.sendVerificationEmail(context.Background(), email, verifyToken)
+	if verifyToken != "" {
+		s.background(func(ctx context.Context) { s.sendVerificationEmail(ctx, email, verifyToken) })
 	}
 	return s.session(ctx, user, "")
 }
@@ -212,12 +262,13 @@ func (s *service) login(ctx context.Context, login, password string) (*Session, 
 	var u User
 	var hash string
 	var verified sql.NullBool
+	var pendingVerification bool
 	var banned sql.NullTime
 	var avatarKey sql.NullString
 	where, arg := byLogin(login)
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, email, display_name, is_admin, avatar_key, password_hash, email_verified, banned_at FROM users WHERE `+where, arg,
-	).Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin, &avatarKey, &hash, &verified, &banned)
+		`SELECT id, email, display_name, is_admin, avatar_key, password_hash, email_verified, email_verify_hash IS NOT NULL, banned_at FROM users WHERE `+where, arg,
+	).Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin, &avatarKey, &hash, &verified, &pendingVerification, &banned)
 	u.AvatarURL = app.AvatarURL(s.base, avatarKey)
 	if errors.Is(err, sql.ErrNoRows) {
 		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
@@ -229,9 +280,11 @@ func (s *service) login(ctx context.Context, login, password string) (*Session, 
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
 		return nil, errBadCredentials
 	}
-	// If mail is configured and email is not verified, reject login
-	if s.mail != nil && s.mail.Config().Enabled() && !(verified.Valid && verified.Bool) {
-		return nil, errBadCredentials
+	// With mail on, an account whose address still has to be verified
+	// cannot log in. Accounts made while mail was off have nothing pending
+	// and keep working; a password reset also verifies the address.
+	if s.mailOn() && pendingVerification && !(verified.Valid && verified.Bool) {
+		return nil, errNotVerified
 	}
 	// only after the password: a wrong guess does not learn about the ban
 	if banned.Valid {
@@ -289,26 +342,32 @@ func (s *service) refresh(ctx context.Context, token string) (*Session, error) {
 	return s.session(ctx, *u, family)
 }
 
-// sendPasswordResetEmail sends the password reset email to the user.
+// sendPasswordResetEmail stores a new reset token for the account with
+// this email (if there is one and it is not banned) and mails the link. The
+// caller answers the same either way, so nobody learns which emails exist.
 func (s *service) sendPasswordResetEmail(ctx context.Context, email string) {
-	var token string
-	var expires *time.Time
-	if s.mail != nil && s.mail.Config().Enabled() {
-		token = generateToken()
-		exp := time.Now().UTC().Add(1 * time.Hour)
-		expires = &exp
-		_, _ = s.db.ExecContext(ctx,
-			`UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE email = ?`, token, expires, email)
-	}
-	if token == "" {
+	if !s.mailOn() {
 		return
 	}
-	resetURL := "https://example.com/reset-password?token=" + token // TODO: use config.PublicBaseURL
+	token := generateToken()
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE users SET password_reset_hash = ?, password_reset_expires = ? WHERE email = ? AND banned_at IS NULL`,
+		hashToken(token), time.Now().UTC().Add(time.Hour), email)
+	if err != nil {
+		log.Printf("mail: reset token not stored: %v", err)
+		return
+	}
+	if n, _ := res.RowsAffected(); n != 1 {
+		return // no such account: send nothing
+	}
+	resetURL := appLink(s.appURL, "/reset-password", token)
 	body := "Please reset your password by clicking the following link:\n\n" +
 		resetURL + "\n\n" +
 		"This link expires in 1 hour.\n\n" +
 		"If you did not request a password reset, please ignore this email."
-	_ = s.mail.Send(ctx, email, "Reset your Stonerspots password", body)
+	if err := s.mail.Send(ctx, email, "Reset your Stonerspots password", body); err != nil {
+		log.Printf("mail: reset mail not sent: %v", err)
+	}
 }
 
 // newUUID returns a random (v4) UUID string.

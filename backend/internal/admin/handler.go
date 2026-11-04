@@ -20,6 +20,7 @@ import (
 type handler struct {
 	repo   repo
 	photos photos.Storage
+	guard  *auth.Guard
 
 	// updateDir and versionFile: see system.go
 	updateDir   string
@@ -220,7 +221,7 @@ func (h handler) totpEnableStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Store secret temporarily (not enabled yet)
-	if _, err := h.repo.db.ExecContext(r.Context(), `UPDATE users SET totp_secret = ? WHERE id = ?`, secret, id); err != nil {
+	if _, err := h.repo.db.ExecContext(r.Context(), `UPDATE users SET totp_secret = ?, totp_last_step = NULL WHERE id = ?`, secret, id); err != nil {
 		serverError(w)
 		return
 	}
@@ -247,22 +248,12 @@ func (h handler) totpVerify(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_code", "code must be 6 digits")
 		return
 	}
-	var secret sql.NullString
-	err := h.repo.db.QueryRowContext(r.Context(), `SELECT totp_secret FROM users WHERE id = ?`, id).Scan(&secret)
-	if errors.Is(err, sql.ErrNoRows) || !secret.Valid {
-		httpx.Error(w, http.StatusBadRequest, "no_secret", "2FA enrollment not started")
+	// counted and used up like an X-TOTP code (no_secret without enrollment)
+	if !h.guard.CheckCode(w, r, id, in.Code, false) {
 		return
 	}
-	if err != nil {
-		serverError(w)
-		return
-	}
-	if !totp.Validate(secret.String, in.Code) {
-		httpx.Error(w, http.StatusBadRequest, "invalid_code", "invalid or expired code")
-		return
-	}
-	// Enable 2FA
-	if _, err := h.repo.db.ExecContext(r.Context(), `UPDATE users SET totp_enabled = 1 WHERE id = ?`, id); err != nil {
+	if _, err := h.repo.db.ExecContext(r.Context(),
+		`UPDATE users SET totp_enabled = 1 WHERE id = ? AND totp_secret IS NOT NULL`, id); err != nil {
 		serverError(w)
 		return
 	}
@@ -274,6 +265,8 @@ type totpDisableReq struct {
 	Code     string `json:"code"`
 }
 
+// totpDisable turns 2FA off. Besides passing RequireAdmin (which asks for
+// 2FA itself), the body must carry the account password and a current code.
 func (h handler) totpDisable(w http.ResponseWriter, r *http.Request) {
 	id, ok := auth.UserID(r.Context())
 	if !ok {
@@ -289,10 +282,9 @@ func (h handler) totpDisable(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_code", "code must be 6 digits")
 		return
 	}
-	var secret sql.NullString
-	var hash string
-	err := h.repo.db.QueryRowContext(r.Context(), `SELECT totp_secret, password_hash FROM users WHERE id = ?`, id).Scan(&secret, &hash)
-	if errors.Is(err, sql.ErrNoRows) || !secret.Valid {
+	var enabled bool
+	err := h.repo.db.QueryRowContext(r.Context(), `SELECT totp_enabled FROM users WHERE id = ?`, id).Scan(&enabled)
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && !enabled) {
 		httpx.Error(w, http.StatusBadRequest, "not_enabled", "2FA is not enabled")
 		return
 	}
@@ -300,12 +292,16 @@ func (h handler) totpDisable(w http.ResponseWriter, r *http.Request) {
 		serverError(w)
 		return
 	}
-	if !totp.Validate(secret.String, in.Code) {
-		httpx.Error(w, http.StatusBadRequest, "invalid_code", "invalid or expired code")
+	if !h.guard.CheckPassword(w, r, id, in.Password) {
 		return
 	}
-	// Disable 2FA (password was already verified by RequireAdmin middleware)
-	if _, err := h.repo.db.ExecContext(r.Context(), `UPDATE users SET totp_enabled = 0, totp_secret = NULL WHERE id = ?`, id); err != nil {
+	// The code may be the one this request already sent as X-TOTP: the
+	// password is checked as well.
+	if !h.guard.CheckCode(w, r, id, in.Code, true) {
+		return
+	}
+	if _, err := h.repo.db.ExecContext(r.Context(),
+		`UPDATE users SET totp_enabled = 0, totp_secret = NULL, totp_last_step = NULL WHERE id = ?`, id); err != nil {
 		serverError(w)
 		return
 	}

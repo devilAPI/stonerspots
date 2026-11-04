@@ -3,6 +3,7 @@ package server_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"stonerspots/backend/internal/app"
@@ -34,6 +35,12 @@ func TestCORSPreflightAllowedOrigin(t *testing.T) {
 	}
 	if h.Get("Access-Control-Allow-Methods") == "" || h.Get("Access-Control-Allow-Headers") == "" {
 		t.Fatalf("missing allow-methods/headers: %v", h)
+	}
+	// the web app's admin page sends its 2FA in these
+	for _, want := range []string{"X-TOTP", "X-Admin-Session"} {
+		if !strings.Contains(h.Get("Access-Control-Allow-Headers"), want) {
+			t.Fatalf("allow-headers %q lacks %s", h.Get("Access-Control-Allow-Headers"), want)
+		}
 	}
 }
 

@@ -97,6 +97,12 @@ func CreateUpdate(ctx context.Context, db *sql.DB, userID, spotID uint64, body s
 
 // CreateUpdateTagged is CreateUpdate with a tag (see ValidTag); "" means "note".
 func CreateUpdateTagged(ctx context.Context, db *sql.DB, userID, spotID uint64, body, tag string, photoIDs []uint64) (uint64, error) {
+	return createUpdate(ctx, db, userID, spotID, body, tag, photoIDs, false)
+}
+
+// createUpdate is CreateUpdateTagged; asAdmin lets it write on a locked spot
+// (the handler sets it only for admins who passed their 2FA check).
+func createUpdate(ctx context.Context, db *sql.DB, userID, spotID uint64, body, tag string, photoIDs []uint64, asAdmin bool) (uint64, error) {
 	if tag == "" {
 		tag = "note"
 	}
@@ -124,16 +130,15 @@ func CreateUpdateTagged(ctx context.Context, db *sql.DB, userID, spotID uint64, 
 	}
 	defer tx.Rollback()
 
-	var locked, admin bool
+	var locked bool
 	err = tx.QueryRowContext(ctx,
-		"SELECT s.locked, COALESCE((SELECT is_admin FROM users WHERE id = ?), 0) FROM spots s WHERE s.id = ? AND s.status = 'active'",
-		userID, spotID).Scan(&locked, &admin)
+		"SELECT s.locked FROM spots s WHERE s.id = ? AND s.status = 'active'", spotID).Scan(&locked)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, ErrSpotNotFound
 	} else if err != nil {
 		return 0, err
 	}
-	if locked && !admin {
+	if locked && !asAdmin {
 		return 0, ErrSpotLocked
 	}
 

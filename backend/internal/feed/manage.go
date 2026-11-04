@@ -23,14 +23,14 @@ var (
 )
 
 // lockOwn locks an active update and checks that userID wrote it and that
-// its spot is not locked (admins may change their updates on locked spots).
-func lockOwn(ctx context.Context, tx *sql.Tx, id, userID uint64) (body string, err error) {
+// its spot is not locked (asAdmin: admins, past their 2FA check, may change
+// their updates on locked spots).
+func lockOwn(ctx context.Context, tx *sql.Tx, id, userID uint64, asAdmin bool) (body string, err error) {
 	var owner uint64
-	var locked, admin bool
-	err = tx.QueryRowContext(ctx, `SELECT u.user_id, u.body, s.locked,
-			COALESCE((SELECT is_admin FROM users WHERE id = ?), 0)
+	var locked bool
+	err = tx.QueryRowContext(ctx, `SELECT u.user_id, u.body, s.locked
 		FROM spot_updates u JOIN spots s ON s.id = u.spot_id
-		WHERE u.id = ? AND u.status = 'active' FOR UPDATE`, userID, id).Scan(&owner, &body, &locked, &admin)
+		WHERE u.id = ? AND u.status = 'active' FOR UPDATE`, id).Scan(&owner, &body, &locked)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", errNotFound
 	}
@@ -40,20 +40,20 @@ func lockOwn(ctx context.Context, tx *sql.Tx, id, userID uint64) (body string, e
 	if owner != userID {
 		return "", errForbidden
 	}
-	if locked && !admin {
+	if locked && !asAdmin {
 		return "", ErrSpotLocked
 	}
 	return body, nil
 }
 
 // editUpdate applies a partial edit (nil = unchanged) by the update's author.
-func editUpdate(ctx context.Context, db *sql.DB, id, userID uint64, body, tag *string) error {
+func editUpdate(ctx context.Context, db *sql.DB, id, userID uint64, body, tag *string, asAdmin bool) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback() //nolint:errcheck
-	cur, err := lockOwn(ctx, tx, id, userID)
+	cur, err := lockOwn(ctx, tx, id, userID, asAdmin)
 	if err != nil {
 		return err
 	}
@@ -80,20 +80,20 @@ func editUpdate(ctx context.Context, db *sql.DB, id, userID uint64, body, tag *s
 
 // deleteUpdate removes the update, its photo rows and its reports, then the
 // photo files best-effort.
-func deleteUpdate(ctx context.Context, db *sql.DB, uploadDir string, id, userID uint64) error {
-	return removeUpdate(ctx, db, uploadDir, id, &userID)
+func deleteUpdate(ctx context.Context, db *sql.DB, uploadDir string, id, userID uint64, asAdmin bool) error {
+	return removeUpdate(ctx, db, uploadDir, id, &userID, asAdmin)
 }
 
 // removeUpdate is the shared delete. With ownerID set only the author may
 // delete an active update; nil (admin) deletes any update.
-func removeUpdate(ctx context.Context, db *sql.DB, uploadDir string, id uint64, ownerID *uint64) error {
+func removeUpdate(ctx context.Context, db *sql.DB, uploadDir string, id uint64, ownerID *uint64, asAdmin bool) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback() //nolint:errcheck
 	if ownerID != nil {
-		if _, err := lockOwn(ctx, tx, id, *ownerID); err != nil {
+		if _, err := lockOwn(ctx, tx, id, *ownerID, asAdmin); err != nil {
 			return err
 		}
 	} else {
@@ -231,7 +231,13 @@ func (h *handler) patchUpdate(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "empty_patch", "provide body and/or tag")
 		return
 	}
-	if err := editUpdate(r.Context(), h.db, id, uid, body, tag); err != nil {
+	err, handled := h.asAdmin(w, r, func(admin bool) error {
+		return editUpdate(r.Context(), h.db, id, uid, body, tag, admin)
+	})
+	if handled {
+		return
+	}
+	if err != nil {
 		manageError(w, err)
 		return
 	}
@@ -248,7 +254,13 @@ func (h *handler) deleteUpdate(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := deleteUpdate(r.Context(), h.db, h.uploadDir, id, uid); err != nil {
+	err, handled := h.asAdmin(w, r, func(admin bool) error {
+		return deleteUpdate(r.Context(), h.db, h.uploadDir, id, uid, admin)
+	})
+	if handled {
+		return
+	}
+	if err != nil {
 		manageError(w, err)
 		return
 	}

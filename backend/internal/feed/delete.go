@@ -14,7 +14,7 @@ var ErrUpdateNotFound = errNotFound
 // photo files (best-effort) and reports, for moderation. The author-only
 // checks stay in the public route.
 func DeleteUpdateByID(ctx context.Context, db *sql.DB, uploadDir string, id uint64) error {
-	return removeUpdate(ctx, db, uploadDir, id, nil)
+	return removeUpdate(ctx, db, uploadDir, id, nil, true)
 }
 
 // ErrInvalidStatus: an update status other than active or hidden.

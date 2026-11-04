@@ -101,6 +101,62 @@ func TestMemoryIsBounded(t *testing.T) {
 	}
 }
 
+func TestBlockedCreatesNoBuckets(t *testing.T) {
+	l, _ := newAt(Rule{N: 2, Per: time.Hour})
+	for i := 0; i < 100; i++ {
+		l.Blocked(fmt.Sprint("probe", i))
+	}
+	if n := len(l.buckets); n != 0 {
+		t.Fatalf("Blocked created %d buckets", n)
+	}
+}
+
+// An attacker flooding fresh keys must not flush the counter of a key that
+// is in use (e.g. the failed logins of the account under attack): eviction
+// takes the least recently used buckets, never random ones.
+func TestFloodDoesNotResetActiveKey(t *testing.T) {
+	l, c := newAt(Rule{N: 3, Per: time.Hour})
+	l.max = 1000
+	l.Allow("victim")
+	l.Allow("victim")
+	l.Allow("victim") // exhausted
+	for i := 0; i < 20*l.max; i++ {
+		c.add(time.Millisecond)
+		l.Allow(fmt.Sprint("flood", i))
+		if i%100 == 0 {
+			// the attacker keeps guessing the victim's password
+			if b, _ := l.Blocked("victim"); !b {
+				t.Fatalf("victim counter reset after %d flood keys", i)
+			}
+			l.Allow("victim")
+		}
+	}
+	if n := len(l.buckets); n > l.max {
+		t.Fatalf("%d buckets, max %d", n, l.max)
+	}
+}
+
+func TestSweepEvictsOldestFirst(t *testing.T) {
+	l, c := newAt(Rule{N: 1, Per: time.Hour})
+	l.max = 8
+	for i := 0; i < 8; i++ {
+		c.add(time.Second)
+		l.Allow(fmt.Sprint(i))
+	}
+	c.add(time.Second)
+	l.Allow("new") // triggers the sweep: the oldest quarter (0, 1) goes
+	for _, k := range []string{"0", "1"} {
+		if _, ok := l.buckets[k]; ok {
+			t.Fatalf("oldest key %s kept", k)
+		}
+	}
+	for _, k := range []string{"2", "7", "new"} {
+		if _, ok := l.buckets[k]; !ok {
+			t.Fatalf("recent key %s evicted", k)
+		}
+	}
+}
+
 func TestMiddlewareAnswers429(t *testing.T) {
 	l, _ := newAt(Rule{N: 1, Per: time.Minute})
 	h := ByIP(l)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

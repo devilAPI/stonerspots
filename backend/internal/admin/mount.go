@@ -17,8 +17,9 @@ func Mount(r chi.Router, d app.Deps) {
 		photos:      photos.StorageFor(d),
 		updateDir:   d.Cfg.UpdateDir,
 		versionFile: versionFileNextTo(),
+		guard:       auth.GuardFor(d),
 	}
-	g := r.With(auth.Middleware(d.Cfg.JWTSecret), auth.RequireAdmin(d.DB))
+	g := r.With(auth.Middleware(d.Cfg.JWTSecret), auth.RequireAdmin(d))
 	g.Get("/admin/reports", h.reports)
 	g.Get("/admin/users", h.users)
 	g.Get("/admin/spots", h.spots)
@@ -48,9 +49,12 @@ func Mount(r chi.Router, d app.Deps) {
 	g.Post("/admin/photos/{id}/rotate", h.rotatePhoto)
 	g.Delete("/admin/photos/{id}", h.deletePhoto)
 
-	// TOTP 2FA for admins (require admin + 2FA if enabled)
-	g.Get("/admin/2fa", h.totpStatus)
-	g.Post("/admin/2fa/enable", h.totpEnableStart)
-	g.Post("/admin/2fa/verify", h.totpVerify)
+	// TOTP 2FA for admins (see auth/guard.go). Setting it up stays open to
+	// admins without 2FA when require_admin_totp refuses them elsewhere.
+	setup := r.With(auth.Middleware(d.Cfg.JWTSecret), auth.RequireAdminSetup(d))
+	setup.Get("/admin/2fa", h.totpStatus)
+	setup.Post("/admin/2fa/enable", h.totpEnableStart)
+	setup.Post("/admin/2fa/verify", h.totpVerify)
 	g.Post("/admin/2fa/disable", h.totpDisable)
+	g.Post("/admin/2fa/session", h.guard.NewAdminSession)
 }

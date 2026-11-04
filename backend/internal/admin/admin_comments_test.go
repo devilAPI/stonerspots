@@ -22,7 +22,7 @@ func TestCommentReportsHideListAndDelete(t *testing.T) {
 	keep := newComment(t, e, up, author, "fine")
 
 	for i := 0; i < 3; i++ {
-		e.reportVia(t, testutil.NewUser(t, e.db), "comment", c)
+		e.reportVia(t, testutil.NewTrustedUser(t, e.db), "comment", c)
 	}
 	if statusOf(t, e.db, "comments", c) != "hidden" {
 		t.Fatal("comment not auto-hidden after 3 reports")

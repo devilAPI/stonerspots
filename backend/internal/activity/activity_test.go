@@ -54,7 +54,7 @@ func setup(t *testing.T) (*sql.DB, http.Handler) {
 	}}
 	r := chi.NewRouter()
 	auth.MountWithOptions(r, d, auth.MountOptions{DisablePoW: true, UnreadActivity: activity.UnreadCounter(db)})
-	users.Mount(r, d)
+	users.Mount(r, d, nil)
 	comments.Mount(r, d, nil)
 	engagement.Mount(r, d, nil)
 	reviews.Mount(r, d, nil)

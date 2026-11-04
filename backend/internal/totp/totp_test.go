@@ -56,3 +56,26 @@ func decodeBase32(s string) []byte {
 	b, _ := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(s)
 	return b
 }
+func TestMatchReturnsStepAndSkew(t *testing.T) {
+	secret := "JBSWY3DPEHPK3PXP"
+	now := time.Unix(1_800_000_015, 0)
+	cur := now.Unix() / 30
+	for _, d := range []int64{-1, 0, 1} {
+		code := Code(secret, now.Add(time.Duration(d)*Step))
+		step, ok := Match(secret, code, now)
+		if !ok || step != cur+d {
+			t.Fatalf("offset %d: ok=%v step=%d want %d", d, ok, step, cur+d)
+		}
+	}
+	if _, ok := Match(secret, Code(secret, now.Add(2*Step)), now); ok {
+		t.Fatal("code two steps ahead accepted")
+	}
+	for _, bad := range []string{"", "12345", "1234567", "abcdef"} {
+		if _, ok := Match(secret, bad, now); ok {
+			t.Fatalf("%q accepted", bad)
+		}
+	}
+	if _, ok := Match("not base32!", Code(secret, now), now); ok {
+		t.Fatal("broken secret accepted")
+	}
+}

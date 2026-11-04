@@ -83,16 +83,6 @@ func (r *Repo) OwnerAndLock(ctx context.Context, id uint64) (owner uint64, locke
 	return owner, locked, err
 }
 
-// IsAdmin reports whether the user has the admin flag.
-func (r *Repo) IsAdmin(ctx context.Context, userID uint64) (bool, error) {
-	var a bool
-	err := r.DB.QueryRowContext(ctx, `SELECT is_admin FROM users WHERE id = ?`, userID).Scan(&a)
-	if err == sql.ErrNoRows {
-		return false, nil
-	}
-	return a, err
-}
-
 // attachTags loads the tags of all spots with a single query; spots without tags get [].
 func (r *Repo) attachTags(ctx context.Context, list []Spot) error {
 	ids := make([]uint64, len(list))

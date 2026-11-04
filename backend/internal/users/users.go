@@ -19,6 +19,7 @@ import (
 	"stonerspots/backend/internal/auth"
 	"stonerspots/backend/internal/feed"
 	"stonerspots/backend/internal/httpx"
+	"stonerspots/backend/internal/quotas"
 	"stonerspots/backend/internal/spots"
 )
 
@@ -46,11 +47,13 @@ type Profile struct {
 
 // Mount registers profile and follow routes with full paths on the /api/v1
 // router.
-func Mount(r chi.Router, d app.Deps) {
+// Following is limited per day by quota (nil: unlimited).
+func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
 	h := &handler{
 		db:    d.DB,
 		base:  d.Cfg.PublicBaseURL,
 		spots: &spots.Repo{DB: d.DB, PublicBaseURL: d.Cfg.PublicBaseURL},
+		quota: quota,
 	}
 	optional := r.With(auth.Optional(d.Cfg.JWTSecret))
 	optional.Get("/users/{id}", h.get)
@@ -65,6 +68,7 @@ type handler struct {
 	db    *sql.DB
 	base  string
 	spots *spots.Repo
+	quota *quotas.Tracker
 }
 
 func notFound(w http.ResponseWriter) {
@@ -303,6 +307,11 @@ func (h *handler) followTarget(w http.ResponseWriter, r *http.Request) (uint64, 
 func (h *handler) follow(w http.ResponseWriter, r *http.Request) {
 	uid, id, ok := h.followTarget(w, r)
 	if !ok {
+		return
+	}
+	// each follow notifies someone: limited per day (unfollowing is free)
+	if h.quota != nil && !h.quota.Allow(uid, quotas.Follows) {
+		httpx.Error(w, http.StatusTooManyRequests, "quota_exceeded", "daily follow limit reached")
 		return
 	}
 	if err := h.setFollow(r.Context(), uid, id, true); err != nil {

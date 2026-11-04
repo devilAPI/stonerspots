@@ -40,7 +40,7 @@ var (
 
 // Mount registers comment routes with full paths on the /api/v1 router.
 func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
-	h := &handler{db: d.DB, quota: quota, base: d.Cfg.PublicBaseURL}
+	h := &handler{db: d.DB, quota: quota, base: d.Cfg.PublicBaseURL, guard: auth.GuardFor(d)}
 	r.With(auth.Optional(d.Cfg.JWTSecret)).Get("/updates/{id}/comments", h.list)
 	authed := r.With(auth.Middleware(d.Cfg.JWTSecret))
 	authed.Post("/updates/{id}/comments", h.create)
@@ -51,6 +51,7 @@ type handler struct {
 	db    *sql.DB
 	quota *quotas.Tracker
 	base  string // public base URL, for avatar URLs
+	guard *auth.Guard
 }
 
 type author struct {
@@ -271,10 +272,13 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// errNotAuthor: the comment exists but byUserID did not write it.
+var errNotAuthor = errors.New("comments: not the author")
+
 // Delete removes a comment with the reports about it (reports are
-// polymorphic, no FK). With byUserID set only the author or an admin may
-// delete it; otherwise it answers ErrNotFound. byUserID 0 skips the check
-// (moderation).
+// polymorphic, no FK). With byUserID set only the author may delete it
+// (errNotAuthor otherwise); byUserID 0 skips the check (admins, who have
+// passed their 2FA check).
 func Delete(ctx context.Context, db *sql.DB, id, byUserID uint64) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -290,14 +294,7 @@ func Delete(ctx context.Context, db *sql.DB, id, byUserID uint64) error {
 		return err
 	}
 	if byUserID != 0 && owner != byUserID {
-		var admin bool
-		err := tx.QueryRowContext(ctx, `SELECT is_admin FROM users WHERE id = ?`, byUserID).Scan(&admin)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return err
-		}
-		if !admin {
-			return ErrNotFound
-		}
+		return errNotAuthor
 	}
 	for _, q := range []string{
 		`DELETE FROM reports WHERE target_type = 'comment' AND target_id = ?`,
@@ -322,7 +319,19 @@ func (h *handler) delete(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusNotFound, "not_found", "comment not found")
 		return
 	}
-	switch err := Delete(r.Context(), h.db, id, uid); {
+	err := Delete(r.Context(), h.db, id, uid)
+	if errors.Is(err, errNotAuthor) {
+		// someone else's comment: only an admin, with 2FA, may delete it
+		admin, handled := h.guard.AdminPowers(w, r)
+		if handled {
+			return
+		}
+		err = ErrNotFound
+		if admin {
+			err = Delete(r.Context(), h.db, id, 0)
+		}
+	}
+	switch {
 	case errors.Is(err, ErrNotFound):
 		httpx.Error(w, http.StatusNotFound, "not_found", "comment not found")
 	case err != nil:

@@ -54,6 +54,8 @@ func New(d app.Deps) http.Handler {
 		// CORS first, so the web app can read a 429 instead of a CORS error
 		cors(d.Cfg.AllowedOrigins),
 		ratelimit.ByIP(ratelimit.New(d.Cfg.Limits.PerIP)),
+		// tokens of banned or deleted users stop working at once
+		auth.CheckAccount(d),
 		bodyLimit(d.Cfg.MaxBodyBytes),
 	)
 
@@ -64,6 +66,8 @@ func New(d app.Deps) http.Handler {
 		ReportsPerDay: d.Cfg.Limits.ReportsPerDay,
 
 		CommentsPerDay: d.Cfg.Limits.CommentsPerDay,
+		FollowsPerDay:  d.Cfg.Limits.FollowsPerDay,
+		LikesPerDay:    d.Cfg.Limits.LikesPerDay,
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {
@@ -78,7 +82,7 @@ func New(d app.Deps) http.Handler {
 		engagement.Mount(r, d, quotaTracker)
 		reviews.Mount(r, d, quotaTracker)
 		lists.Mount(r, d)
-		users.Mount(r, d)
+		users.Mount(r, d, quotaTracker)
 		comments.Mount(r, d, quotaTracker)
 		activity.Mount(r, d)
 		geocode.Mount(r, d)

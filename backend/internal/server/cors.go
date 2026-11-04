@@ -20,7 +20,8 @@ func cors(allowed []string) func(http.Handler) http.Handler {
 			h.Set("Access-Control-Allow-Origin", origin)
 			if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
 				h.Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-				h.Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+				// X-TOTP and X-Admin-Session carry the admin 2FA (auth/guard.go)
+				h.Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-TOTP, X-Admin-Session")
 				h.Set("Access-Control-Max-Age", "600")
 				w.WriteHeader(http.StatusNoContent)
 				return

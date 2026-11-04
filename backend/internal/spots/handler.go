@@ -16,6 +16,7 @@ import (
 	"stonerspots/backend/internal/feed"
 	"stonerspots/backend/internal/httpx"
 	"stonerspots/backend/internal/quotas"
+	"stonerspots/backend/internal/ratelimit"
 	"stonerspots/backend/internal/spots/tagset"
 )
 
@@ -24,10 +25,12 @@ func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
 	h := &handler{
 		repo:  &Repo{DB: d.DB, PublicBaseURL: strings.TrimRight(d.Cfg.PublicBaseURL, "/")},
 		quota: quota,
+		guard: auth.GuardFor(d),
 	}
 	r.With(auth.Middleware(d.Cfg.JWTSecret)).Post("/spots", h.create)
 	r.Get("/spots/nearby", h.nearby)
-	r.Get("/spots/search", h.search)
+	// a full scan per request: its own, tighter per-IP limit
+	r.With(ratelimit.ByIP(ratelimit.New(d.Cfg.Limits.Search))).Get("/spots/search", h.search)
 	r.With(auth.Middleware(d.Cfg.JWTSecret)).Put("/spots/{id}/tags", h.putTags)
 	r.Get("/spots/{id}", h.get)
 	r.Get("/spots", h.list)
@@ -52,6 +55,7 @@ func (h *handler) tags(w http.ResponseWriter, r *http.Request) {
 type handler struct {
 	repo  *Repo
 	quota *quotas.Tracker
+	guard *auth.Guard
 }
 
 type createReq struct {
@@ -112,9 +116,9 @@ func (h *handler) putTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if owner != uid || locked {
-		isAdmin, err := h.repo.IsAdmin(r.Context(), uid)
-		if err != nil {
-			internal(w, err)
+		// someone else's or a locked spot: only an admin, with 2FA
+		isAdmin, handled := h.guard.AdminPowers(w, r)
+		if handled {
 			return
 		}
 		switch {

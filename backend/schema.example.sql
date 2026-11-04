@@ -243,19 +243,22 @@ CREATE TABLE `users` (
   `totp_secret` varchar(255) DEFAULT NULL,
   `totp_enabled` tinyint(1) NOT NULL DEFAULT 0,
   `email_verified` tinyint(1) NOT NULL DEFAULT 0,
-  `email_verify_token` varchar(255) DEFAULT NULL,
+  `email_verify_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
   `email_verify_expires` timestamp NULL DEFAULT NULL,
-  `password_reset_token` varchar(255) DEFAULT NULL,
+  `password_reset_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
   `password_reset_expires` timestamp NULL DEFAULT NULL,
   `banned_at` datetime DEFAULT NULL,
   `avatar_key` varchar(255) DEFAULT NULL,
+  `totp_last_step` bigint(20) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_users_email` (`email`),
   UNIQUE KEY `uq_users_display_name` (`display_name`),
-  UNIQUE KEY `uq_users_avatar_key` (`avatar_key`)
+  UNIQUE KEY `uq_users_avatar_key` (`avatar_key`),
+  UNIQUE KEY `uq_users_email_verify_hash` (`email_verify_hash`),
+  UNIQUE KEY `uq_users_password_reset_hash` (`password_reset_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (25, 0);
+INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (26, 0);
 
 INSERT INTO `tags` (`tag`, `name_de`, `name_en`, `icon`, `sort`) VALUES
   ('roof', 'Überdacht', 'Roof', 'roof', 10),

@@ -17,6 +17,8 @@ type Tracker struct {
 	limitReports int
 
 	limitComments int
+	limitFollows  int
+	limitLikes    int
 }
 
 type userCounters struct {
@@ -27,6 +29,8 @@ type userCounters struct {
 	reports int
 
 	comments int
+	follows  int
+	likes    int
 }
 
 // Config holds the daily limits per user. Zero means unlimited.
@@ -37,6 +41,8 @@ type Config struct {
 	ReportsPerDay int
 
 	CommentsPerDay int
+	FollowsPerDay  int
+	LikesPerDay    int
 }
 
 // NewTracker returns a quota tracker with the given config.
@@ -56,6 +62,12 @@ func NewTracker(cfg Config) *Tracker {
 	if cfg.CommentsPerDay == 0 {
 		cfg.CommentsPerDay = 100
 	}
+	if cfg.FollowsPerDay == 0 {
+		cfg.FollowsPerDay = 200
+	}
+	if cfg.LikesPerDay == 0 {
+		cfg.LikesPerDay = 300
+	}
 	return &Tracker{
 		counters:     make(map[uint64]*userCounters),
 		limitSpots:   cfg.SpotsPerDay,
@@ -64,6 +76,8 @@ func NewTracker(cfg Config) *Tracker {
 		limitReports: cfg.ReportsPerDay,
 
 		limitComments: cfg.CommentsPerDay,
+		limitFollows:  cfg.FollowsPerDay,
+		limitLikes:    cfg.LikesPerDay,
 	}
 }
 
@@ -117,6 +131,16 @@ func (t *Tracker) Allow(uid uint64, kind Kind) bool {
 			return false
 		}
 		uc.comments++
+	case Follows:
+		if t.limitFollows > 0 && uc.follows >= t.limitFollows {
+			return false
+		}
+		uc.follows++
+	case Likes:
+		if t.limitLikes > 0 && uc.likes >= t.limitLikes {
+			return false
+		}
+		uc.likes++
 	}
 	return true
 }
@@ -130,4 +154,6 @@ const (
 	Reviews
 	Reports
 	Comments
+	Follows
+	Likes
 )
