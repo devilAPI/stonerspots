@@ -5,6 +5,7 @@ package ratelimit
 
 import (
 	"net/http"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -22,9 +23,14 @@ type Rule struct {
 // Off reports whether the rule limits nothing.
 func (r Rule) Off() bool { return r.N <= 0 || r.Per <= 0 }
 
-// maxKeys bounds memory: past it, idle buckets are dropped, and if that is
-// not enough the oldest-looking half goes (those clients start fresh).
+// maxKeys bounds memory: past it, idle buckets are dropped first, then the
+// least recently used ones (never random ones: an attacker flooding new keys
+// must not be able to reset the counter of a key that is in active use).
 const maxKeys = 100_000
+
+// evictFraction of the buckets goes when idle ones are not enough, so the
+// sort behind it runs once per that many new keys, not on every insert.
+const evictFraction = 4
 
 type bucket struct {
 	tokens float64
@@ -35,6 +41,8 @@ type bucket struct {
 type Limiter struct {
 	rule Rule
 	now  func() time.Time
+	// max is the bucket count that triggers a sweep (maxKeys; tests lower it).
+	max int
 
 	mu      sync.Mutex
 	buckets map[string]*bucket
@@ -45,14 +53,18 @@ func New(rule Rule) *Limiter {
 	if rule.Off() {
 		return nil
 	}
-	return &Limiter{rule: rule, now: time.Now, buckets: map[string]*bucket{}}
+	return &Limiter{rule: rule, now: time.Now, max: maxKeys, buckets: map[string]*bucket{}}
 }
 
-// refill brings b up to date and returns it; callers hold mu.
-func (l *Limiter) refill(key string, now time.Time) *bucket {
+// refill brings b up to date and returns it, creating it when create is
+// set (nil otherwise); callers hold mu.
+func (l *Limiter) refill(key string, now time.Time, create bool) *bucket {
 	b := l.buckets[key]
 	if b == nil {
-		if len(l.buckets) >= maxKeys {
+		if !create {
+			return nil
+		}
+		if len(l.buckets) >= l.max {
 			l.sweep(now)
 		}
 		b = &bucket{tokens: float64(l.rule.N), last: now}
@@ -65,22 +77,28 @@ func (l *Limiter) refill(key string, now time.Time) *bucket {
 	return b
 }
 
-// sweep drops full (idle) buckets, then half of the rest if still too many.
+// sweep drops idle buckets (full again, so dropping them changes nothing),
+// then, if still too many, the least recently used quarter.
 func (l *Limiter) sweep(now time.Time) {
 	for k, b := range l.buckets {
 		if now.Sub(b.last) >= l.rule.Per {
 			delete(l.buckets, k)
 		}
 	}
-	if len(l.buckets) < maxKeys {
+	if len(l.buckets) < l.max {
 		return
 	}
-	n := 0
-	for k := range l.buckets {
-		if n%2 == 0 {
-			delete(l.buckets, k)
-		}
-		n++
+	type entry struct {
+		key  string
+		last time.Time
+	}
+	all := make([]entry, 0, len(l.buckets))
+	for k, b := range l.buckets {
+		all = append(all, entry{k, b.last})
+	}
+	slices.SortFunc(all, func(a, b entry) int { return a.last.Compare(b.last) })
+	for _, e := range all[:max(len(all)/evictFraction, 1)] {
+		delete(l.buckets, e.key)
 	}
 }
 
@@ -93,7 +111,7 @@ func (l *Limiter) Allow(key string) (bool, time.Duration) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	now := l.now()
-	b := l.refill(key, now)
+	b := l.refill(key, now, true)
 	if b.tokens >= 1 {
 		b.tokens--
 		return true, 0
@@ -102,15 +120,16 @@ func (l *Limiter) Allow(key string) (bool, time.Duration) {
 }
 
 // Blocked reports whether key has no token left, without taking one (for
-// limits that only count failures, like wrong passwords).
+// limits that only count failures, like wrong passwords). It never creates
+// a bucket, so probing keys costs no memory.
 func (l *Limiter) Blocked(key string) (bool, time.Duration) {
 	if l == nil {
 		return false, 0
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	b := l.refill(key, l.now())
-	if b.tokens >= 1 {
+	b := l.refill(key, l.now(), false)
+	if b == nil || b.tokens >= 1 {
 		return false, 0
 	}
 	return true, l.wait(b)
