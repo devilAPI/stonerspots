@@ -56,6 +56,9 @@ List<ThumbTile> satelliteThumbTiles({
   ];
 }
 
+/// Thumbnails narrower than this show no dot on the spot.
+const double kThumbMarkerMinWidth = 120;
+
 /// Non-interactive top-down satellite picture of a spot, used where a post
 /// has no photo of its own. Drawn from a few disk-cached tile images rather
 /// than a full map widget, so long feeds scroll smoothly.
@@ -101,20 +104,23 @@ class SatelliteThumb extends StatelessWidget {
                       errorBuilder: (_, _, _) => const SizedBox.shrink(),
                     ),
                   ),
-                Center(
-                  child: Container(
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      color: kAccent,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                      boxShadow: const [
-                        BoxShadow(blurRadius: 4, color: Colors.black54),
-                      ],
+                // on small thumbnails (list rows) the dot would hide the
+                // place itself; there the picture is centred on it anyway
+                if (c.maxWidth >= kThumbMarkerMinWidth)
+                  Center(
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: kAccent,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: const [
+                          BoxShadow(blurRadius: 4, color: Colors.black54),
+                        ],
+                      ),
                     ),
                   ),
-                ),
                 const Positioned(
                   right: 6,
                   bottom: 4,
