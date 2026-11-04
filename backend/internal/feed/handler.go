@@ -21,6 +21,22 @@ type handler struct {
 	base      string
 	uploadDir string
 	quota     *quotas.Tracker
+	guard     *auth.Guard
+}
+
+// asAdmin runs op as the caller; when that fails with ErrSpotLocked and the
+// caller is an admin who passes the 2FA check, it runs op again with admin
+// rights. handled: an error answer was written already.
+func (h *handler) asAdmin(w http.ResponseWriter, r *http.Request, op func(admin bool) error) (err error, handled bool) {
+	err = op(false)
+	if !errors.Is(err, ErrSpotLocked) {
+		return err, false
+	}
+	admin, handled := h.guard.AdminPowers(w, r)
+	if handled || !admin {
+		return err, handled
+	}
+	return op(true), false
 }
 
 func (h *handler) postUpdate(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +63,14 @@ func (h *handler) postUpdate(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_json", "request body must be valid JSON")
 		return
 	}
-	id, err := CreateUpdateTagged(r.Context(), h.db, uid, spotID, in.Body, in.Tag, in.PhotoIDs)
+	var id uint64
+	err, handled := h.asAdmin(w, r, func(admin bool) (err error) {
+		id, err = createUpdate(r.Context(), h.db, uid, spotID, in.Body, in.Tag, in.PhotoIDs, admin)
+		return err
+	})
+	if handled {
+		return
+	}
 	switch {
 	case errors.Is(err, ErrInvalidTag):
 		httpx.Error(w, http.StatusBadRequest, "invalid_tag", "tag must be one of note, still_good, crowded, dirty, closed")

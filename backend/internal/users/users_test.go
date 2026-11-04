@@ -63,7 +63,7 @@ func setup(t *testing.T) (*sql.DB, http.Handler) {
 	r := chi.NewRouter()
 	users.Mount(r, app.Deps{DB: db, Cfg: config.Config{
 		JWTSecret: []byte(testutil.JWTSecret), PublicBaseURL: "http://test",
-	}})
+	}}, nil)
 	return db, r
 }
 

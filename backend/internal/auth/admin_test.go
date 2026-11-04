@@ -68,7 +68,8 @@ func TestIsAdminInResponsesAndNotSettable(t *testing.T) {
 func TestRequireAdmin(t *testing.T) {
 	db := testutil.NewDB(t)
 	secret := []byte(testutil.JWTSecret)
-	h := auth.Middleware(secret)(auth.RequireAdmin(db)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	d := app.Deps{DB: db, Cfg: config.Config{JWTSecret: secret}}
+	h := auth.Middleware(secret)(auth.RequireAdmin(d)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(204)
 	})))
 	call := func(tok string) int {

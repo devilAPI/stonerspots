@@ -17,7 +17,7 @@ import (
 
 // Mount registers like and report routes on the /api/v1 router.
 func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
-	h := handler{repo: repo{db: d.DB}, quota: quota}
+	h := handler{repo: repo{db: d.DB, requireVerified: d.Cfg.MailEnabled()}, quota: quota}
 	authed := r.With(auth.Middleware(d.Cfg.JWTSecret))
 	authed.Put("/spots/{id}/like", h.like(true))
 	authed.Delete("/spots/{id}/like", h.like(false))
@@ -39,6 +39,11 @@ func (h handler) like(liked bool) http.HandlerFunc {
 		id, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)
 		if err != nil {
 			httpx.Error(w, http.StatusNotFound, "not_found", "spot not found")
+			return
+		}
+		// each like notifies the spot's author: limited per day (unliking is free)
+		if liked && h.quota != nil && !h.quota.Allow(uid, quotas.Likes) {
+			httpx.Error(w, http.StatusTooManyRequests, "quota_exceeded", "daily like limit reached")
 			return
 		}
 		count, err := h.repo.SetLike(r.Context(), uid, id, liked)
