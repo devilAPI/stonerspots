@@ -444,3 +444,63 @@ The database credentials are only ever set on the backend server (its
   a commercial launch.
 
 Map data © OpenStreetMap contributors.
+
+## Verbotszonen
+
+The map can show where § 5 KCanG (Germany) forbids consuming cannabis, and
+spots say whether they lie in such a zone:
+
+- within sight of schools, children's and youth facilities, public
+  playgrounds and public sports facilities. The law takes "within sight" as
+  given within 100 m of the entrance area; like bubatzkarte, the app draws
+  100 m around the whole site (red);
+- pedestrian zones between 7 and 20 h German time (yellow while forbidden,
+  green outside those hours; computed from UTC with the EU summer-time rule,
+  so the device's time zone does not matter);
+- places tagged `smoking:cannabis=no` (the place itself, 15 m around a point).
+
+How it works:
+
+- `GET /api/v1/zones?south=&west=&north=&east=` (public, own per-IP limit
+  `limits.zones`, boxes up to 0.05° × 0.08°, larger ones get 400) answers with
+  the places and their geometry (`[lat, lon]` arrays, simplified to 2 m).
+  The 100 m buffer is drawn and checked by the app.
+- The server asks Overpass by 0.02° tile with one query per tile (OSM tags:
+  `amenity=school|kindergarten|childcare`, `building=kindergarten`,
+  `amenity=social_facility` + `social_facility:for=child|juvenile|childcare`,
+  `amenity=community_centre` + `community_centre=youth_centre`,
+  `leisure=playground`, `leisure=pitch|sports_centre|sports_hall|stadium|track|
+  swimming_pool|water_park|horse_riding|golf_course` (not `access=private|no`),
+  `smoking:cannabis=no`, `highway=pedestrian` ways and areas). At most two
+  queries run at once; each tile is cached for 7 days in memory and in the
+  `zone_tiles` table, so a restart does not refetch. When Overpass fails, the
+  last copy is served with `"stale": true`. Only the query goes upstream,
+  with a User-Agent naming the project and `public_base_url`; never client
+  addresses or user data. A dense city tile (central Munich) is about 280 kB
+  from Overpass and 77 kB of JSON (13 kB gzipped) to the app.
+- The app asks by the same tiles (deduplicated, cached for the session), only
+  from zoom 15 on, and keeps each tile's shapes as ready-made paths, so a
+  frame only transforms and fills them. A spot's status needs the tile it is
+  in (plus a neighbour near a tile edge).
+- The first time zones would show, the app explains their limits (OSM data
+  can be incomplete or wrong; 100 m around the whole site is only an
+  approximation; clubs, minors, state and municipal bans and the law of
+  Austria, Switzerland and Liechtenstein are not covered; no legal advice).
+  Cancelling turns the zones off; the button on the map turns them on again.
+- Adding a spot in a zone shows a warning first, but never blocks (OSM can be
+  wrong).
+
+Config (`config.yaml`, env in brackets):
+
+```yaml
+zones:
+  enabled: true        # [ZONES_ENABLED]; false: GET /zones answers 404
+  overpass_url: "https://overpass-api.de/api/interpreter"   # [ZONES_OVERPASS_URL]
+limits:
+  zones: { n: 120, per: "1m" }   # per client IP
+```
+
+Data © OpenStreetMap contributors, under the ODbL; the map credits it while
+the zones show. The idea comes from [bubatzkarte.de](https://bubatzkarte.de)
+and [kifferkarte](https://github.com/Y0ngg4n/kifferkarte), thanks to both.
+Stonerspots' implementation is its own (no code taken from either).
