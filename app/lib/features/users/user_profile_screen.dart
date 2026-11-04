@@ -223,6 +223,11 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
               item: (u) => FeedCard(
                 key: ValueKey('u${u.id}'),
                 item: u,
+                // like the feed: a 4:3 picture on top would be taller than
+                // a landscape phone
+                layout: context.isPhoneLandscape
+                    ? FeedCardLayout.side
+                    : FeedCardLayout.stacked,
                 margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               ),
             ),
