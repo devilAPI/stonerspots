@@ -8,6 +8,7 @@ import '../saved/save_spot_button.dart';
 import '../spots/spot_media.dart';
 import '../reviews/rating_widgets.dart';
 import '../users/author_link.dart';
+import '../zones/zone_status.dart';
 
 class SpotPreviewSheet extends StatelessWidget {
   const SpotPreviewSheet({
@@ -93,6 +94,8 @@ class SpotPreviewSheet extends StatelessWidget {
                 RatingBadge(avg: spot.ratingAvg, count: spot.ratingCount),
               ],
             ),
+            const SizedBox(height: 6),
+            ZoneStatusChip(lat: spot.lat, lon: spot.lon, compact: true),
             if (spot.tags.isNotEmpty) ...[
               const SizedBox(height: 8),
               SpotTagChips(

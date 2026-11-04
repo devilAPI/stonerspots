@@ -9,6 +9,7 @@ import '../../core/responsive.dart';
 import '../../core/spot_tag_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
+import '../zones/zone_warning.dart';
 import 'add_spot_controller.dart';
 import 'add_spot_errors.dart';
 import 'location_picker.dart';
@@ -25,6 +26,21 @@ class AddSpotScreen extends ConsumerStatefulWidget {
 class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
   late final Future<LatLng?> _location;
   bool _locationDenied = false;
+  bool _checkingZones = false;
+
+  /// Saves, after warning when the place lies in a no-consumption zone.
+  Future<void> _save() async {
+    final point = ref.read(addSpotControllerProvider).point;
+    if (point != null) {
+      setState(() => _checkingZones = true);
+      final hit = await zoneForNewSpot(context, ref, point);
+      if (!mounted) return;
+      setState(() => _checkingZones = false);
+      if (hit != null && !await confirmZoneWarning(context, hit)) return;
+      if (!mounted) return;
+    }
+    ref.read(addSpotControllerProvider.notifier).submit();
+  }
 
   @override
   void initState() {
@@ -181,8 +197,8 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
         ),
       FilledButton(
         key: const Key('save'),
-        onPressed: s.canSubmit ? () => ctrl.submit() : null,
-        child: s.submitting
+        onPressed: s.canSubmit && !_checkingZones ? _save : null,
+        child: s.submitting || _checkingZones
             ? const SizedBox(
                 width: 20,
                 height: 20,

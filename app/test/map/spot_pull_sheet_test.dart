@@ -1,3 +1,5 @@
+import 'package:app/core/settings.dart';
+import 'package:app/features/zones/zone_consent.dart';
 import 'package:app/core/models.dart';
 import 'package:app/features/map/spot_preview_sheet.dart';
 import 'package:app/features/map/spot_pull_sheet.dart';
@@ -17,6 +19,10 @@ Future<List<int>> openSheet(WidgetTester t) async {
   final expanded = <int>[];
   await t.pumpWidget(
     ProviderScope(
+      overrides: [
+        // zones (and their first-use disclaimer) are tested in test/zones
+        zonesEnabledProvider.overrideWith(() => BoolSetting('zones_enabled')),
+      ],
       child: MaterialApp(
         locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,

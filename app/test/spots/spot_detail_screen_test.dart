@@ -1,3 +1,5 @@
+import 'package:app/core/settings.dart';
+import 'package:app/features/zones/zone_consent.dart';
 import 'package:app/core/api_client.dart';
 import 'package:app/core/models.dart';
 import 'package:app/core/responsive.dart';
@@ -180,6 +182,8 @@ Future<_Api> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        // zones (and their first-use disclaimer) are tested in test/zones
+        zonesEnabledProvider.overrideWith(() => BoolSetting('zones_enabled')),
         spotApiProvider.overrideWithValue(api),
         spotUpdatesRepositoryProvider.overrideWithValue(updates),
         reviewsRepositoryProvider.overrideWithValue(reviews),

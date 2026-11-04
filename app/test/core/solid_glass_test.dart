@@ -1,3 +1,6 @@
+import 'package:app/core/settings.dart';
+import 'package:app/features/zones/zone_consent.dart';
+
 import 'dart:ui' as ui;
 
 import 'package:app/core/adaptive_nav.dart';
@@ -74,6 +77,8 @@ Future<void> pumpIn(
       enabled: solid,
       child: ProviderScope(
         overrides: [
+          // zones (and their first-use disclaimer) are tested in test/zones
+          zonesEnabledProvider.overrideWith(() => BoolSetting('zones_enabled')),
           mapSpotsRepositoryProvider.overrideWithValue(_Spots()),
           locationServiceProvider.overrideWithValue(_Location()),
           mapDebounceProvider.overrideWithValue(Duration.zero),
