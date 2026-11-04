@@ -1689,4 +1689,145 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get adminCodeExpired =>
       'Deine Admin-Sitzung ist abgelaufen. Gib einen neuen Code aus deiner Authenticator-App ein.';
+
+  @override
+  String get zonesTitle => 'Verbotszonen';
+
+  @override
+  String get zonesShow => 'Verbotszonen einblenden';
+
+  @override
+  String get zonesHide => 'Verbotszonen ausblenden';
+
+  @override
+  String get zonesInfo => 'Über die Verbotszonen';
+
+  @override
+  String get zonesZoomHint => 'Reinzoomen, um Verbotszonen zu sehen';
+
+  @override
+  String get zonesLoadFailed => 'Verbotszonen konnten nicht geladen werden';
+
+  @override
+  String get zonesAttribution => 'Zonen: © OpenStreetMap-Mitwirkende';
+
+  @override
+  String get zonesDisclaimerData =>
+      'Die Zonen werden aus OpenStreetMap-Daten berechnet. Die können unvollständig oder falsch sein, z. B. fehlende Kitas oder Jugendeinrichtungen oder Einrichtungen, die nur als Punkt eingetragen sind.';
+
+  @override
+  String get zonesDisclaimerDistance =>
+      'Gezeichnet werden 100 m um das ganze Gelände. Das Gesetz misst ab dem Eingangsbereich und nur, wo die Einrichtung in Sichtweite ist. Die echte Zone kann also kleiner sein, oder größer, wo Daten fehlen.';
+
+  @override
+  String get zonesDisclaimerMissing =>
+      'Nicht enthalten: Anbauvereinigungen, die Anwesenheit von Minderjährigen, Verbote von Ländern oder Gemeinden (z. B. Bayern: Volksfeste, Biergärten, Parks) und die Regeln in Österreich, der Schweiz und Liechtenstein. Gezeigt wird nur die deutsche Regel (§ 5 KCanG).';
+
+  @override
+  String get zonesDisclaimerLaw =>
+      'Keine Rechtsberatung: Du bist selbst dafür verantwortlich, dich an das Gesetz zu halten.';
+
+  @override
+  String get zonesDisclaimerOk => 'Verstanden';
+
+  @override
+  String get zonesSource =>
+      'Daten: © OpenStreetMap-Mitwirkende (ODbL), über Overpass.';
+
+  @override
+  String get zonesStaleNote =>
+      'Die Daten konnten gerade nicht aktualisiert werden und sind vielleicht veraltet.';
+
+  @override
+  String get zoneKindSchool => 'Schule';
+
+  @override
+  String get zoneKindKindergarten => 'Kita';
+
+  @override
+  String get zoneKindChildcare => 'Kinderbetreuung';
+
+  @override
+  String get zoneKindYouth => 'Kinder- und Jugendeinrichtung';
+
+  @override
+  String get zoneKindPlayground => 'Spielplatz';
+
+  @override
+  String get zoneKindSports => 'Sportstätte';
+
+  @override
+  String get zoneKindExplicit => 'Ausdrückliches Konsumverbot';
+
+  @override
+  String get zoneKindPedestrian => 'Fußgängerzone';
+
+  @override
+  String zoneTitleNamed(String name, String kind) {
+    return '$name ($kind)';
+  }
+
+  @override
+  String zoneTapRadius(String title) {
+    return '$title — 100 m Verbotszone';
+  }
+
+  @override
+  String zoneTapExplicit(String title) {
+    return '$title — in OSM als Ort mit Cannabis-Verbot eingetragen';
+  }
+
+  @override
+  String zoneTapPedestrianNow(String title) {
+    return '$title — Konsum 7–20 Uhr verboten, gerade verboten';
+  }
+
+  @override
+  String zoneTapPedestrianLater(String title) {
+    return '$title — Konsum 7–20 Uhr verboten, gerade erlaubt';
+  }
+
+  @override
+  String zoneStatusForbiddenAt(String kind, String metres) {
+    return 'In einer Verbotszone ($kind, $metres m)';
+  }
+
+  @override
+  String zoneStatusForbiddenIn(String kind) {
+    return 'In einer Verbotszone ($kind)';
+  }
+
+  @override
+  String get zoneStatusPedestrian => 'Fußgängerzone: Konsum 7–20 Uhr verboten';
+
+  @override
+  String get zoneStatusClear => 'Keine Verbotszone in OSM-Daten gefunden';
+
+  @override
+  String get zoneStatusUnknown => 'Zonen konnten nicht geprüft werden';
+
+  @override
+  String get zoneStatusChecking => 'Verbotszonen werden geprüft …';
+
+  @override
+  String get addSpotZoneTitle => 'Verbotszone';
+
+  @override
+  String addSpotZoneWarning(String reason) {
+    return 'Dieser Ort liegt in einer Verbotszone ($reason). Dort ist Kiffen nach § 5 KCanG verboten. Trotzdem hinzufügen?';
+  }
+
+  @override
+  String addSpotZonePedestrian(String reason) {
+    return 'Dieser Ort liegt in einer Fußgängerzone ($reason). Dort ist Kiffen von 7 bis 20 Uhr verboten. Trotzdem hinzufügen?';
+  }
+
+  @override
+  String addSpotZoneExplicit(String reason) {
+    return 'Dieser Ort ist in OpenStreetMap ausdrücklich mit Cannabis-Verbot eingetragen ($reason). Trotzdem hinzufügen?';
+  }
+
+  @override
+  String get addSpotZoneNote =>
+      'Die Zonen stammen aus OpenStreetMap und können falsch sein.';
 }

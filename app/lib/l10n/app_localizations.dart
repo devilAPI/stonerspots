@@ -2875,6 +2875,234 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Deine Admin-Sitzung ist abgelaufen. Gib einen neuen Code aus deiner Authenticator-App ein.'**
   String get adminCodeExpired;
+
+  /// No description provided for @zonesTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Verbotszonen'**
+  String get zonesTitle;
+
+  /// No description provided for @zonesShow.
+  ///
+  /// In de, this message translates to:
+  /// **'Verbotszonen einblenden'**
+  String get zonesShow;
+
+  /// No description provided for @zonesHide.
+  ///
+  /// In de, this message translates to:
+  /// **'Verbotszonen ausblenden'**
+  String get zonesHide;
+
+  /// No description provided for @zonesInfo.
+  ///
+  /// In de, this message translates to:
+  /// **'Über die Verbotszonen'**
+  String get zonesInfo;
+
+  /// No description provided for @zonesZoomHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Reinzoomen, um Verbotszonen zu sehen'**
+  String get zonesZoomHint;
+
+  /// No description provided for @zonesLoadFailed.
+  ///
+  /// In de, this message translates to:
+  /// **'Verbotszonen konnten nicht geladen werden'**
+  String get zonesLoadFailed;
+
+  /// No description provided for @zonesAttribution.
+  ///
+  /// In de, this message translates to:
+  /// **'Zonen: © OpenStreetMap-Mitwirkende'**
+  String get zonesAttribution;
+
+  /// No description provided for @zonesDisclaimerData.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Zonen werden aus OpenStreetMap-Daten berechnet. Die können unvollständig oder falsch sein, z. B. fehlende Kitas oder Jugendeinrichtungen oder Einrichtungen, die nur als Punkt eingetragen sind.'**
+  String get zonesDisclaimerData;
+
+  /// No description provided for @zonesDisclaimerDistance.
+  ///
+  /// In de, this message translates to:
+  /// **'Gezeichnet werden 100 m um das ganze Gelände. Das Gesetz misst ab dem Eingangsbereich und nur, wo die Einrichtung in Sichtweite ist. Die echte Zone kann also kleiner sein, oder größer, wo Daten fehlen.'**
+  String get zonesDisclaimerDistance;
+
+  /// No description provided for @zonesDisclaimerMissing.
+  ///
+  /// In de, this message translates to:
+  /// **'Nicht enthalten: Anbauvereinigungen, die Anwesenheit von Minderjährigen, Verbote von Ländern oder Gemeinden (z. B. Bayern: Volksfeste, Biergärten, Parks) und die Regeln in Österreich, der Schweiz und Liechtenstein. Gezeigt wird nur die deutsche Regel (§ 5 KCanG).'**
+  String get zonesDisclaimerMissing;
+
+  /// No description provided for @zonesDisclaimerLaw.
+  ///
+  /// In de, this message translates to:
+  /// **'Keine Rechtsberatung: Du bist selbst dafür verantwortlich, dich an das Gesetz zu halten.'**
+  String get zonesDisclaimerLaw;
+
+  /// No description provided for @zonesDisclaimerOk.
+  ///
+  /// In de, this message translates to:
+  /// **'Verstanden'**
+  String get zonesDisclaimerOk;
+
+  /// No description provided for @zonesSource.
+  ///
+  /// In de, this message translates to:
+  /// **'Daten: © OpenStreetMap-Mitwirkende (ODbL), über Overpass.'**
+  String get zonesSource;
+
+  /// No description provided for @zonesStaleNote.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Daten konnten gerade nicht aktualisiert werden und sind vielleicht veraltet.'**
+  String get zonesStaleNote;
+
+  /// No description provided for @zoneKindSchool.
+  ///
+  /// In de, this message translates to:
+  /// **'Schule'**
+  String get zoneKindSchool;
+
+  /// No description provided for @zoneKindKindergarten.
+  ///
+  /// In de, this message translates to:
+  /// **'Kita'**
+  String get zoneKindKindergarten;
+
+  /// No description provided for @zoneKindChildcare.
+  ///
+  /// In de, this message translates to:
+  /// **'Kinderbetreuung'**
+  String get zoneKindChildcare;
+
+  /// No description provided for @zoneKindYouth.
+  ///
+  /// In de, this message translates to:
+  /// **'Kinder- und Jugendeinrichtung'**
+  String get zoneKindYouth;
+
+  /// No description provided for @zoneKindPlayground.
+  ///
+  /// In de, this message translates to:
+  /// **'Spielplatz'**
+  String get zoneKindPlayground;
+
+  /// No description provided for @zoneKindSports.
+  ///
+  /// In de, this message translates to:
+  /// **'Sportstätte'**
+  String get zoneKindSports;
+
+  /// No description provided for @zoneKindExplicit.
+  ///
+  /// In de, this message translates to:
+  /// **'Ausdrückliches Konsumverbot'**
+  String get zoneKindExplicit;
+
+  /// No description provided for @zoneKindPedestrian.
+  ///
+  /// In de, this message translates to:
+  /// **'Fußgängerzone'**
+  String get zoneKindPedestrian;
+
+  /// No description provided for @zoneTitleNamed.
+  ///
+  /// In de, this message translates to:
+  /// **'{name} ({kind})'**
+  String zoneTitleNamed(String name, String kind);
+
+  /// No description provided for @zoneTapRadius.
+  ///
+  /// In de, this message translates to:
+  /// **'{title} — 100 m Verbotszone'**
+  String zoneTapRadius(String title);
+
+  /// No description provided for @zoneTapExplicit.
+  ///
+  /// In de, this message translates to:
+  /// **'{title} — in OSM als Ort mit Cannabis-Verbot eingetragen'**
+  String zoneTapExplicit(String title);
+
+  /// No description provided for @zoneTapPedestrianNow.
+  ///
+  /// In de, this message translates to:
+  /// **'{title} — Konsum 7–20 Uhr verboten, gerade verboten'**
+  String zoneTapPedestrianNow(String title);
+
+  /// No description provided for @zoneTapPedestrianLater.
+  ///
+  /// In de, this message translates to:
+  /// **'{title} — Konsum 7–20 Uhr verboten, gerade erlaubt'**
+  String zoneTapPedestrianLater(String title);
+
+  /// No description provided for @zoneStatusForbiddenAt.
+  ///
+  /// In de, this message translates to:
+  /// **'In einer Verbotszone ({kind}, {metres} m)'**
+  String zoneStatusForbiddenAt(String kind, String metres);
+
+  /// No description provided for @zoneStatusForbiddenIn.
+  ///
+  /// In de, this message translates to:
+  /// **'In einer Verbotszone ({kind})'**
+  String zoneStatusForbiddenIn(String kind);
+
+  /// No description provided for @zoneStatusPedestrian.
+  ///
+  /// In de, this message translates to:
+  /// **'Fußgängerzone: Konsum 7–20 Uhr verboten'**
+  String get zoneStatusPedestrian;
+
+  /// No description provided for @zoneStatusClear.
+  ///
+  /// In de, this message translates to:
+  /// **'Keine Verbotszone in OSM-Daten gefunden'**
+  String get zoneStatusClear;
+
+  /// No description provided for @zoneStatusUnknown.
+  ///
+  /// In de, this message translates to:
+  /// **'Zonen konnten nicht geprüft werden'**
+  String get zoneStatusUnknown;
+
+  /// No description provided for @zoneStatusChecking.
+  ///
+  /// In de, this message translates to:
+  /// **'Verbotszonen werden geprüft …'**
+  String get zoneStatusChecking;
+
+  /// No description provided for @addSpotZoneTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Verbotszone'**
+  String get addSpotZoneTitle;
+
+  /// No description provided for @addSpotZoneWarning.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieser Ort liegt in einer Verbotszone ({reason}). Dort ist Kiffen nach § 5 KCanG verboten. Trotzdem hinzufügen?'**
+  String addSpotZoneWarning(String reason);
+
+  /// No description provided for @addSpotZonePedestrian.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieser Ort liegt in einer Fußgängerzone ({reason}). Dort ist Kiffen von 7 bis 20 Uhr verboten. Trotzdem hinzufügen?'**
+  String addSpotZonePedestrian(String reason);
+
+  /// No description provided for @addSpotZoneExplicit.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieser Ort ist in OpenStreetMap ausdrücklich mit Cannabis-Verbot eingetragen ({reason}). Trotzdem hinzufügen?'**
+  String addSpotZoneExplicit(String reason);
+
+  /// No description provided for @addSpotZoneNote.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Zonen stammen aus OpenStreetMap und können falsch sein.'**
+  String get addSpotZoneNote;
 }
 
 class _AppLocalizationsDelegate
