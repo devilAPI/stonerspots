@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+// PrefixLen is how many hex characters of the SHA-1 hash are sent: the
+// range API takes exactly 5 and answers 400 to anything else.
+const PrefixLen = 5
+
 const (
 	defaultAPI = "https://api.pwnedpasswords.com/range/"
 	timeout    = 5 * time.Second
@@ -43,9 +47,11 @@ func NewClientAt(baseURL string) *Client {
 // IsBreached reports whether the password appears in known breaches.
 // It returns (breached, error). A network error returns false with the error.
 func (c *Client) IsBreached(ctx context.Context, password string) (bool, error) {
-	hash := sha1.Sum([]byte(password))
-	prefix := hex.EncodeToString(hash[:5])
-	suffix := strings.ToUpper(hex.EncodeToString(hash[5:]))
+	sum := sha1.Sum([]byte(password))
+	hash := strings.ToUpper(hex.EncodeToString(sum[:]))
+	// Only the first 5 hex characters (20 bits) leave the server; the API
+	// answers with every suffix under that prefix (k-anonymity).
+	prefix, suffix := hash[:PrefixLen], hash[PrefixLen:]
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+prefix, nil)
 	if err != nil {
