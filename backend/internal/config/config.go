@@ -72,7 +72,27 @@ type Config struct {
 	// DisablePoW disables proof-of-work requirement for registration.
 	// Used in tests to avoid PoW overhead.
 	DisablePoW bool
+
+	// AppBaseURL is where users open the app (e.g.
+	// "https://devilapi.github.io/stonerspots/#"); the links in verification
+	// and password reset mails start with it. Load requires it when mail is
+	// enabled on a public server.
+	AppBaseURL string
+
+	// PowDifficulty is the number of leading zero bits the registration
+	// proof-of-work needs (DefaultPowDifficulty when unset). Each extra bit
+	// doubles the work for the client.
+	PowDifficulty int
+
+	// RequireAdminTOTP makes the admin routes refuse admins who have not set
+	// up 2FA (they can still reach /admin/2fa to set it up). Off by default
+	// so turning it on cannot lock out an owner who has no 2FA yet.
+	RequireAdminTOTP bool
 }
+
+// DefaultPowDifficulty is the registration proof-of-work difficulty when
+// pow_difficulty is not set.
+const DefaultPowDifficulty = 18
 
 // MailConfig holds SMTP settings. Empty Host disables mail.
 type MailConfig struct {
@@ -99,6 +119,12 @@ type Limits struct {
 	ReportsPerDay int // reports per user per day
 
 	CommentsPerDay int // comments under updates per user per day
+
+	ForgotPassword      ratelimit.Rule // password reset mails asked for, per IP
+	ForgotPasswordEmail ratelimit.Rule // password reset mails asked for, per address
+	Search              ratelimit.Rule // GET /spots/search and GET /feed, per IP
+	FollowsPerDay       int            // new follows per user per day
+	LikesPerDay         int            // likes per user per day
 }
 
 // DefaultLimits are generous for people and tight for scripts. The feed and
@@ -117,6 +143,12 @@ func DefaultLimits() Limits {
 		ReportsPerDay: 10,
 
 		CommentsPerDay: 100,
+
+		ForgotPassword:      ratelimit.Rule{N: 10, Per: time.Hour},
+		ForgotPasswordEmail: ratelimit.Rule{N: 3, Per: time.Hour},
+		Search:              ratelimit.Rule{N: 60, Per: time.Minute},
+		FollowsPerDay:       200,
+		LikesPerDay:         300,
 	}
 }
 
@@ -135,6 +167,10 @@ type file struct {
 	Limits         fileLimits `yaml:"limits"`
 	MaxBodyBytes   int64      `yaml:"max_body_bytes"`
 	Mail           fileMail   `yaml:"mail"`
+
+	AppBaseURL       string `yaml:"app_base_url"`
+	PowDifficulty    int    `yaml:"pow_difficulty"`
+	RequireAdminTOTP bool   `yaml:"require_admin_totp"`
 }
 
 type fileMail struct {
@@ -158,6 +194,12 @@ type fileLimits struct {
 	ReportsPerDay int      `yaml:"reports_per_day"`
 
 	CommentsPerDay int `yaml:"comments_per_day"`
+
+	ForgotPassword      fileRule `yaml:"forgot_password"`
+	ForgotPasswordEmail fileRule `yaml:"forgot_password_email"`
+	Search              fileRule `yaml:"search"`
+	FollowsPerDay       int      `yaml:"follows_per_day"`
+	LikesPerDay         int      `yaml:"likes_per_day"`
 }
 
 type fileRule struct {
@@ -219,6 +261,19 @@ func Load() (Config, error) {
 			return Config{}, fmt.Errorf("jwt_secret %s; generate one with: openssl rand -hex 32", problem)
 		}
 		log.Printf("WARNING: jwt_secret %s; fine for local development only", problem)
+	}
+	if c.PowDifficulty < 1 || c.PowDifficulty > 32 {
+		return Config{}, fmt.Errorf("pow_difficulty must be between 1 and 32, got %d", c.PowDifficulty)
+	}
+	if c.MailEnabled() {
+		if problem := appURLProblem(c.AppBaseURL); problem != "" {
+			// the links in verification and reset mails would lead nowhere,
+			// so new users could never verify and log in
+			if !isLocal(c.PublicBaseURL) {
+				return Config{}, fmt.Errorf("mail is enabled but app_base_url %s; set it to where users open the app, e.g. https://devilapi.github.io/stonerspots/#", problem)
+			}
+			log.Printf("WARNING: mail is enabled but app_base_url %s; mail links will not work", problem)
+		}
 	}
 	return c, nil
 }
@@ -307,7 +362,38 @@ func Read() (Config, error) {
 			Password: getenv("MAIL_PASSWORD", f.Mail.Password),
 			From:     getenv("MAIL_FROM", f.Mail.From),
 		},
+		AppBaseURL:       strings.TrimRight(getenv("APP_BASE_URL", f.AppBaseURL), "/"),
+		PowDifficulty:    getenvInt("POW_DIFFICULTY", f.PowDifficulty, DefaultPowDifficulty),
+		RequireAdminTOTP: getenvBool("REQUIRE_ADMIN_TOTP", f.RequireAdminTOTP),
 	}, nil
+}
+
+func getenvBool(key string, fileVal bool) bool {
+	if v := os.Getenv(key); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			return b
+		}
+	}
+	return fileVal
+}
+
+// MailEnabled reports whether SMTP is configured (mail.Config.Enabled).
+func (c Config) MailEnabled() bool { return c.Mail.Host != "" && c.Mail.From != "" }
+
+// appURLProblem says what is wrong with app_base_url for mail links, or "".
+func appURLProblem(raw string) string {
+	if raw == "" {
+		return "is not set"
+	}
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+		return "is not an http(s) URL"
+	}
+	h := strings.ToLower(u.Hostname())
+	if h == "example.com" || h == "example.org" || h == "example.net" || strings.HasSuffix(h, ".example.com") {
+		return "is an example value"
+	}
+	return ""
 }
 
 // parseLimits converts fileLimits to ratelimit.Rules, using defaults for any
@@ -327,6 +413,12 @@ func parseLimits(f fileLimits) Limits {
 		ReportsPerDay: intOrDefault(f.ReportsPerDay, def.ReportsPerDay),
 
 		CommentsPerDay: intOrDefault(f.CommentsPerDay, def.CommentsPerDay),
+
+		ForgotPassword:      ruleOrDefault(f.ForgotPassword, def.ForgotPassword),
+		ForgotPasswordEmail: ruleOrDefault(f.ForgotPasswordEmail, def.ForgotPasswordEmail),
+		Search:              ruleOrDefault(f.Search, def.Search),
+		FollowsPerDay:       intOrDefault(f.FollowsPerDay, def.FollowsPerDay),
+		LikesPerDay:         intOrDefault(f.LikesPerDay, def.LikesPerDay),
 	}
 }
 

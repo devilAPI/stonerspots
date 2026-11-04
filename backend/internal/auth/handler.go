@@ -23,6 +23,8 @@ type handler struct {
 	hibp     *hibp.Client
 	failures *ratelimit.Limiter
 	pow      *pow.Issuer
+	// forgotPerEmail limits reset mails per target address.
+	forgotPerEmail *ratelimit.Limiter
 	// unreadActivity counts the caller's unread activity for GET /me
 	// (nil: always 0).
 	unreadActivity func(context.Context, uint64) (int, error)
@@ -31,6 +33,9 @@ type handler struct {
 // passwordBlocked writes the 429 and reports true when key has no wrong
 // guesses left.
 func (h *handler) passwordBlocked(w http.ResponseWriter, key string) bool {
+	if key == "" {
+		return false
+	}
 	if blocked, retry := h.failures.Blocked(key); blocked {
 		ratelimit.TooMany(w, retry)
 		return true
@@ -134,10 +139,14 @@ func (h *handler) login(w http.ResponseWriter, r *http.Request) {
 	s, err := h.svc.login(r.Context(), login, in.Password)
 	switch {
 	case errors.Is(err, errBadCredentials):
-		h.failures.Allow(key)
+		if key != "" {
+			h.failures.Allow(key)
+		}
 		httpx.Error(w, http.StatusUnauthorized, "invalid_credentials", "invalid login or password")
 	case errors.Is(err, errBanned):
 		httpx.Error(w, http.StatusForbidden, "account_banned", "this account is banned")
+	case errors.Is(err, errNotVerified):
+		httpx.Error(w, http.StatusForbidden, "email_not_verified", "open the link in the verification mail first")
 	case err != nil:
 		serverError(w)
 	default:
@@ -194,26 +203,25 @@ func (h *handler) verifyEmail(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "missing_token", "verification token is required")
 		return
 	}
-	var id uint64
-	err := h.svc.db.QueryRowContext(r.Context(),
-		`SELECT id FROM users WHERE email_verify_token = ? AND email_verify_expires > NOW()`, in.Token).Scan(&id)
-	if errors.Is(err, sql.ErrNoRows) {
+	// Only the hash is stored; the lookup by it is an index read.
+	res, err := h.svc.db.ExecContext(r.Context(),
+		`UPDATE users SET email_verified = 1, email_verify_hash = NULL, email_verify_expires = NULL
+		 WHERE email_verify_hash = ? AND email_verify_expires > NOW()`, hashToken(in.Token))
+	if err != nil {
+		serverError(w)
+		return
+	}
+	if n, _ := res.RowsAffected(); n != 1 {
 		httpx.Error(w, http.StatusBadRequest, "invalid_token", "verification token is invalid or expired")
-		return
-	}
-	if err != nil {
-		serverError(w)
-		return
-	}
-	_, err = h.svc.db.ExecContext(r.Context(),
-		`UPDATE users SET email_verified = 1, email_verify_token = NULL, email_verify_expires = NULL WHERE id = ?`, id)
-	if err != nil {
-		serverError(w)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// forgotPassword mails a reset link. It answers 204 whether or not the
+// address has an account (and also when that address already got its
+// ForgotPasswordEmail share of mails), so it reveals nothing; the per-IP
+// ForgotPassword limit sits in front of it.
 func (h *handler) forgotPassword(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		Email string `json:"email"`
@@ -226,9 +234,9 @@ func (h *handler) forgotPassword(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_email", "email address is invalid")
 		return
 	}
-	// Always return 204 to avoid email enumeration
-	// The email is sent asynchronously if the account exists and mail is enabled
-	go h.svc.sendPasswordResetEmail(r.Context(), email)
+	if ok, _ := h.forgotPerEmail.Allow("email:" + email); ok && h.svc.mailOn() {
+		h.svc.background(func(ctx context.Context) { h.svc.sendPasswordResetEmail(ctx, email) })
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -248,18 +256,12 @@ func (h *handler) resetPassword(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_password", "password must be 10 to 72 bytes long")
 		return
 	}
-	// Check password against HIBP
-	if h.hibp != nil {
-		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
-		defer cancel()
-		if breached, err := h.hibp.IsBreached(ctx, in.NewPassword); err == nil && breached {
-			httpx.Error(w, http.StatusBadRequest, "password_breached", "this password has appeared in a data breach; please choose a different one")
-			return
-		}
-	}
+	// The token first: without a valid one nobody gets to use this endpoint
+	// as a free HIBP lookup.
+	tokenHash := hashToken(in.Token)
 	var id uint64
 	err := h.svc.db.QueryRowContext(r.Context(),
-		`SELECT id FROM users WHERE password_reset_token = ? AND password_reset_expires > NOW()`, in.Token).Scan(&id)
+		`SELECT id FROM users WHERE password_reset_hash = ? AND password_reset_expires > NOW()`, tokenHash).Scan(&id)
 	if errors.Is(err, sql.ErrNoRows) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_token", "reset token is invalid or expired")
 		return
@@ -268,15 +270,31 @@ func (h *handler) resetPassword(w http.ResponseWriter, r *http.Request) {
 		serverError(w)
 		return
 	}
+	if h.hibp != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if breached, err := h.hibp.IsBreached(ctx, in.NewPassword); err == nil && breached {
+			httpx.Error(w, http.StatusBadRequest, "password_breached", "this password has appeared in a data breach; please choose a different one")
+			return
+		}
+	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(in.NewPassword), bcryptCost)
 	if err != nil {
 		serverError(w)
 		return
 	}
-	_, err = h.svc.db.ExecContext(r.Context(),
-		`UPDATE users SET password_hash = ?, password_reset_token = NULL, password_reset_expires = NULL WHERE id = ?`, string(hash), id)
+	// The mail reached its owner, so the address counts as verified too.
+	// Matching the hash again makes the token single-use under concurrency.
+	res, err := h.svc.db.ExecContext(r.Context(),
+		`UPDATE users SET password_hash = ?, password_reset_hash = NULL, password_reset_expires = NULL,
+		   email_verified = 1, email_verify_hash = NULL, email_verify_expires = NULL
+		 WHERE id = ? AND password_reset_hash = ?`, string(hash), id, tokenHash)
 	if err != nil {
 		serverError(w)
+		return
+	}
+	if n, _ := res.RowsAffected(); n != 1 {
+		httpx.Error(w, http.StatusBadRequest, "invalid_token", "reset token is invalid or expired")
 		return
 	}
 	// Revoke all refresh tokens (log out everywhere)
