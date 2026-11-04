@@ -17,6 +17,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"stonerspots/backend/internal/activity"
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/auth"
 	"stonerspots/backend/internal/httpx"
@@ -187,17 +188,19 @@ func (h *handler) list(w http.ResponseWriter, r *http.Request) {
 	}{items, next})
 }
 
-// Create adds a comment by userID under a visible update. The body is
-// trimmed and must be 1..MaxBodyLen characters.
+// Create adds a comment by userID under a visible update and tells the
+// update's author through their activity. The body is trimmed and must be
+// 1..MaxBodyLen characters.
 func Create(ctx context.Context, db *sql.DB, userID, updateID uint64, body string) (Comment, error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return Comment{}, err
 	}
 	defer tx.Rollback() //nolint:errcheck
-	var one uint64
+	var owner, spotID uint64
 	// lock the update so it cannot be deleted between the check and the insert
-	err = tx.QueryRowContext(ctx, visibleUpdate+` FOR UPDATE`, updateID).Scan(&one)
+	err = tx.QueryRowContext(ctx, `SELECT u.user_id, u.spot_id FROM spot_updates u JOIN spots s ON s.id = u.spot_id
+		WHERE u.id = ? AND u.status = 'active' AND s.status = 'active' FOR UPDATE`, updateID).Scan(&owner, &spotID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Comment{}, errUpdateNotFound
 	}
@@ -210,6 +213,12 @@ func Create(ctx context.Context, db *sql.DB, userID, updateID uint64, body strin
 	}
 	lid, err := res.LastInsertId()
 	if err != nil {
+		return Comment{}, err
+	}
+	if err := activity.Add(ctx, tx, activity.Event{
+		Recipient: owner, Actor: userID, Kind: activity.Comment,
+		SpotID: spotID, UpdateID: updateID, CommentID: uint64(lid),
+	}); err != nil {
 		return Comment{}, err
 	}
 	c, err := scan(tx.QueryRowContext(ctx, selectComment+` WHERE c.id = ?`, lid), userID)

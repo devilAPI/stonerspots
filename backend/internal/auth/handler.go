@@ -23,6 +23,9 @@ type handler struct {
 	hibp     *hibp.Client
 	failures *ratelimit.Limiter
 	pow      *pow.Issuer
+	// unreadActivity counts the caller's unread activity for GET /me
+	// (nil: always 0).
+	unreadActivity func(context.Context, uint64) (int, error)
 }
 
 // passwordBlocked writes the 429 and reports true when key has no wrong
@@ -167,7 +170,17 @@ func (h *handler) me(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusUnauthorized, "unauthorized", "unknown user")
 		return
 	}
-	httpx.JSON(w, http.StatusOK, u)
+	out := struct {
+		*User
+		UnreadActivity int `json:"unread_activity"`
+	}{User: u}
+	if h.unreadActivity != nil {
+		if out.UnreadActivity, err = h.unreadActivity(r.Context(), id); err != nil {
+			serverError(w)
+			return
+		}
+	}
+	httpx.JSON(w, http.StatusOK, out)
 }
 
 func (h *handler) verifyEmail(w http.ResponseWriter, r *http.Request) {

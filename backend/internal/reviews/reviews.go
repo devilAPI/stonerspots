@@ -15,6 +15,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"stonerspots/backend/internal/activity"
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/auth"
 	"stonerspots/backend/internal/httpx"
@@ -142,20 +143,45 @@ func (h *handler) put(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusForbidden, "own_spot", "you cannot review your own spot")
 		return
 	}
-	if _, err := h.db.ExecContext(r.Context(),
-		`INSERT INTO spot_reviews (spot_id, user_id, rating, body) VALUES (?, ?, ?, ?)
-		 ON DUPLICATE KEY UPDATE rating = VALUES(rating), body = VALUES(body)`,
-		sid, uid, rating, body); err != nil {
+	v, err := h.save(r.Context(), sid, owner, uid, rating, body)
+	if err != nil {
 		// A spot deleted in between violates the FK.
 		internal(w)
 		return
 	}
-	v, err := scanReview(h.db.QueryRowContext(r.Context(), selectReview+` WHERE r.spot_id = ? AND r.user_id = ?`, sid, uid))
-	if err != nil {
-		internal(w)
-		return
-	}
 	httpx.JSON(w, http.StatusOK, v)
+}
+
+// save creates or edits uid's review of spot sid. A new review tells the
+// spot's owner through their activity, in the same transaction; edits do not.
+func (h *handler) save(ctx context.Context, sid, owner, uid uint64, rating int, body string) (review, error) {
+	tx, err := h.db.BeginTx(ctx, nil)
+	if err != nil {
+		return review{}, err
+	}
+	defer tx.Rollback() //nolint:errcheck
+	res, err := tx.ExecContext(ctx,
+		`INSERT INTO spot_reviews (spot_id, user_id, rating, body) VALUES (?, ?, ?, ?)
+		 ON DUPLICATE KEY UPDATE rating = VALUES(rating), body = VALUES(body)`,
+		sid, uid, rating, body)
+	if err != nil {
+		return review{}, err
+	}
+	// 1: inserted, 2: updated, 0: unchanged
+	if n, err := res.RowsAffected(); err != nil {
+		return review{}, err
+	} else if n == 1 {
+		if err := activity.Add(ctx, tx, activity.Event{
+			Recipient: owner, Actor: uid, Kind: activity.Review, SpotID: sid,
+		}); err != nil {
+			return review{}, err
+		}
+	}
+	v, err := scanReview(tx.QueryRowContext(ctx, selectReview+` WHERE r.spot_id = ? AND r.user_id = ?`, sid, uid))
+	if err != nil {
+		return review{}, err
+	}
+	return v, tx.Commit()
 }
 
 func (h *handler) delete(w http.ResponseWriter, r *http.Request) {
@@ -185,6 +211,19 @@ func (h *handler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := deleteInTx(r.Context(), tx, id); err != nil {
+		internal(w)
+		return
+	}
+	// Take back the unread notice, so deleting and rating again does not
+	// pile up notices. The owner is looked up here: the review is gone.
+	var owner uint64
+	if err := tx.QueryRowContext(r.Context(), `SELECT user_id FROM spots WHERE id = ?`, sid).Scan(&owner); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		internal(w)
+		return
+	}
+	if err := activity.RemoveUnread(r.Context(), tx, activity.Event{
+		Recipient: owner, Actor: uid, Kind: activity.Review, SpotID: sid,
+	}); err != nil {
 		internal(w)
 		return
 	}

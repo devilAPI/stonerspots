@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"context"
+
 	"github.com/go-chi/chi/v5"
 
 	"stonerspots/backend/internal/app"
@@ -26,6 +28,10 @@ func MountForTest(r chi.Router, d app.Deps) {
 type MountOptions struct {
 	// DisablePoW disables proof-of-work requirement for registration.
 	DisablePoW bool
+	// UnreadActivity counts a user's unread activity for GET /me. It is
+	// passed in because the activity package depends on auth, not the
+	// other way round. nil: GET /me reports 0.
+	UnreadActivity func(ctx context.Context, userID uint64) (int, error)
 }
 
 // MountWithOptions registers the auth routes with options.
@@ -47,6 +53,8 @@ func MountWithOptions(r chi.Router, d app.Deps, opts MountOptions) {
 		hibp:     hibp.NewClient(),
 		failures: ratelimit.New(lim.LoginFailures),
 		pow:      powIssuer,
+
+		unreadActivity: opts.UnreadActivity,
 	}
 	r.With(ratelimit.ByIP(ratelimit.New(lim.Register))).Post("/auth/register", h.register)
 	r.Get("/auth/pow-challenge", h.powChallenge)

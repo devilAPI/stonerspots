@@ -14,6 +14,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"stonerspots/backend/internal/activity"
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/auth"
 	"stonerspots/backend/internal/feed"
@@ -294,17 +295,14 @@ func (h *handler) followTarget(w http.ResponseWriter, r *http.Request) (uint64, 
 	return uid, id, true
 }
 
-// follow is idempotent: following someone twice is no error.
+// follow is idempotent: following someone twice is no error. A new follow
+// tells the followed user through their activity, in the same transaction.
 func (h *handler) follow(w http.ResponseWriter, r *http.Request) {
 	uid, id, ok := h.followTarget(w, r)
 	if !ok {
 		return
 	}
-	// INSERT ... SELECT so a user deleted in between inserts nothing instead
-	// of failing the foreign key.
-	if _, err := h.db.ExecContext(r.Context(),
-		`INSERT IGNORE INTO follows (follower_id, followee_id)
-		 SELECT ?, id FROM users WHERE id = ? AND banned_at IS NULL`, uid, id); err != nil {
+	if err := h.setFollow(r.Context(), uid, id, true); err != nil {
 		internal(w)
 		return
 	}
@@ -312,15 +310,52 @@ func (h *handler) follow(w http.ResponseWriter, r *http.Request) {
 }
 
 // unfollow is idempotent: unfollowing someone you do not follow is no error.
+// The unread follow notice goes with it, so toggling does not spam.
 func (h *handler) unfollow(w http.ResponseWriter, r *http.Request) {
 	uid, id, ok := h.followTarget(w, r)
 	if !ok {
 		return
 	}
-	if _, err := h.db.ExecContext(r.Context(),
-		`DELETE FROM follows WHERE follower_id = ? AND followee_id = ?`, uid, id); err != nil {
+	if err := h.setFollow(r.Context(), uid, id, false); err != nil {
 		internal(w)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// setFollow adds or removes the follow of uid on id together with its
+// activity row.
+func (h *handler) setFollow(ctx context.Context, uid, id uint64, on bool) error {
+	tx, err := h.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() //nolint:errcheck
+	ev := activity.Event{Recipient: id, Actor: uid, Kind: activity.Follow}
+	if on {
+		// INSERT ... SELECT so a user deleted in between inserts nothing
+		// instead of failing the foreign key.
+		res, err := tx.ExecContext(ctx,
+			`INSERT IGNORE INTO follows (follower_id, followee_id)
+			 SELECT ?, id FROM users WHERE id = ? AND banned_at IS NULL`, uid, id)
+		if err != nil {
+			return err
+		}
+		if n, err := res.RowsAffected(); err != nil {
+			return err
+		} else if n > 0 {
+			if err := activity.Add(ctx, tx, ev); err != nil {
+				return err
+			}
+		}
+	} else {
+		if _, err := tx.ExecContext(ctx,
+			`DELETE FROM follows WHERE follower_id = ? AND followee_id = ?`, uid, id); err != nil {
+			return err
+		}
+		if err := activity.RemoveUnread(ctx, tx, ev); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
