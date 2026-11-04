@@ -5,6 +5,7 @@ import '../../core/back_or_home.dart';
 import '../../core/glass.dart';
 import '../../core/settings.dart';
 import '../../l10n/app_localizations.dart';
+import 'whats_new.dart';
 
 /// App settings, in sections. A new setting is one more tile in a section,
 /// usually a [BoolSetting] provider.
@@ -44,6 +45,19 @@ class SettingsScreen extends ConsumerWidget {
                     onChanged: ref
                         .read(transparencyDisabledProvider.notifier)
                         .set,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _Section(
+                title: l10n.settingsAbout,
+                children: [
+                  ListTile(
+                    key: const Key('whatsNew'),
+                    leading: const Icon(Icons.auto_awesome_outlined),
+                    title: Text(l10n.whatsNewTitle),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => showWhatsNewDialog(context),
                   ),
                 ],
               ),

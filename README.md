@@ -13,6 +13,21 @@ small picture feed. Launch region: Germany, Austria, Switzerland, Liechtenstein.
 > pedestrian zones is restricted by law (KCanG in Germany); a zone check is not
 > built yet. Users must confirm they are 18+.
 
+## What's new in 2.0
+
+- **Profiles and following:** tap a name to open someone's profile (spots,
+  updates, followers) and follow them.
+- **Following feed:** the feed can show only updates of people you follow.
+- **Comments** under every update (reportable like everything else).
+- **Activity:** a bell on the profile tab tells you who followed you,
+  commented on your update, or liked or rated your spot.
+- **Spot search** on the map (Ctrl+K) and **weather** on spot pages
+  (Open-Meteo, no key).
+
+New config key: `limits.comments_per_day` (comments under updates per user
+per day, default 100; see `backend/config.example.yaml`). An existing
+`config.yaml` without it keeps working with the default.
+
 ## Run it locally
 
 ```sh

@@ -131,6 +131,41 @@ void main() {
       expect(find.byType(LiquidGlassLens), findsOneWidget);
     });
 
+    testWidgets("what's new in 2.0 lists the new features", (t) async {
+      await t.pumpWidget(page());
+      await t.pump();
+      await t.tap(find.byKey(const Key('whatsNew')));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('whatsNewDialog')), findsOneWidget);
+      expect(find.text("What's new in 2.0"), findsNWidgets(2));
+      for (final title in [
+        'Profiles & following',
+        'Following feed',
+        'Comments',
+        'Activity',
+        'Spot search',
+        'Weather',
+      ]) {
+        expect(find.text(title), findsOneWidget, reason: title);
+      }
+      expect(find.textContaining('Ctrl+K'), findsOneWidget);
+      await t.tap(find.text('Close'));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('whatsNewDialog')), findsNothing);
+    });
+
+    testWidgets("what's new, in German", (t) async {
+      await t.pumpWidget(page(locale: const Locale('de')));
+      await t.pump();
+      expect(find.text('Über Stonerspots'), findsOneWidget);
+      await t.tap(find.byKey(const Key('whatsNew')));
+      await t.pumpAndSettle();
+      expect(find.text('Neu in 2.0'), findsNWidgets(2));
+      expect(find.text('Profile und Folgen'), findsOneWidget);
+      expect(find.textContaining('Strg+K'), findsOneWidget);
+      expect(find.text('Schließen'), findsOneWidget);
+    });
+
     testWidgets('a stored setting is on from the very first frame', (t) async {
       SharedPreferences.setMockInitialValues({'disable_transparency': true});
       late final SettingsStore store;
