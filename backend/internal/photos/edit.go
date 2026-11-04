@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"image"
+	"image/jpeg"
 	"log"
 	"strings"
 
@@ -33,7 +34,7 @@ type Rotated struct {
 
 // Rotate turns a stored photo clockwise by degrees (90, 180 or 270). The
 // result is written under new keys and the old files are removed: media is
-// served as immutable, so overwriting a key would leave stale caches.
+// cached by clients, so overwriting a key would leave stale caches.
 func Rotate(ctx context.Context, db *sql.DB, storage Storage, id uint64, degrees int) (Rotated, error) {
 	var turn func(image.Image) *image.NRGBA
 	switch degrees {
@@ -63,7 +64,7 @@ func Rotate(ctx context.Context, db *sql.DB, storage Storage, id uint64, degrees
 	if err != nil {
 		return Rotated{}, err
 	}
-	img, err := imaging.Decode(f)
+	img, err := jpeg.Decode(f) // stored photos are always our own JPEGs
 	f.Close()
 	if err != nil {
 		return Rotated{}, err

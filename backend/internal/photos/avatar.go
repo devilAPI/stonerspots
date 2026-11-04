@@ -17,7 +17,7 @@ import (
 // starting with avatarPrefix. The key is kept in users.avatar_key only, never
 // in photos: CleanupUnattached works on the photos table alone and so can
 // never take an avatar. Every new avatar gets a new random key (media is
-// served as immutable) and the old file is removed.
+// cached by clients) and the old file is removed.
 const avatarPrefix = "avatars/"
 
 // ErrNoUser: there is no user with that id.
@@ -100,7 +100,7 @@ func (h *handler) putAvatar(w http.ResponseWriter, r *http.Request) {
 	defer r.MultipartForm.RemoveAll()
 	defer f.Close()
 
-	img, err := NormalizeAvatar(f, MaxUploadBytes)
+	img, err := NormalizeAvatar(r.Context(), f, MaxUploadBytes)
 	if !normalizeOK(w, err) {
 		return
 	}

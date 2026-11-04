@@ -161,7 +161,7 @@ func TestAvatarCentreCrop(t *testing.T) {
 	}
 	var src bytes.Buffer
 	png.Encode(&src, img)
-	out, err := photos.NormalizeAvatar(&src, photos.MaxUploadBytes)
+	out, err := photos.NormalizeAvatar(context.Background(), &src, photos.MaxUploadBytes)
 	if err != nil {
 		t.Fatal(err)
 	}

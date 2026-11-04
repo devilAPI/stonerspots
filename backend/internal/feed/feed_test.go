@@ -42,11 +42,15 @@ func newSpot(t *testing.T, db *sql.DB, uid uint64, lat, lon float64, likes int) 
 
 func newPhoto(t *testing.T, db *sql.DB, uid uint64) uint64 {
 	t.Helper()
-	res, err := db.Exec("INSERT INTO photos (user_id, `key`, thumb_key, width, height) VALUES (?, 'k.jpg', 't.jpg', 10, 10)", uid)
+	// keys are unique: k<id>.jpg and t<id>.jpg
+	res, err := db.Exec("INSERT INTO photos (user_id, `key`, thumb_key, width, height) VALUES (?, UUID(), UUID(), 10, 10)", uid)
 	if err != nil {
 		t.Fatal(err)
 	}
 	id, _ := res.LastInsertId()
+	if _, err := db.Exec("UPDATE photos SET `key` = CONCAT('k', id, '.jpg'), thumb_key = CONCAT('t', id, '.jpg') WHERE id = ?", id); err != nil {
+		t.Fatal(err)
+	}
 	return uint64(id)
 }
 
@@ -126,7 +130,7 @@ func TestPostUpdateWithPhotos(t *testing.T) {
 		} `json:"photos"`
 	}
 	json.Unmarshal(rec.Body.Bytes(), &out)
-	if len(out.Photos) != 2 || out.Photos[0].URL != "http://test/api/v1/media/k.jpg" || out.Photos[0].ThumbURL != "http://test/api/v1/media/t.jpg" {
+	if len(out.Photos) != 2 || out.Photos[0].URL != fmt.Sprintf("http://test/api/v1/media/k%d.jpg", p1) || out.Photos[0].ThumbURL != fmt.Sprintf("http://test/api/v1/media/t%d.jpg", p1) {
 		t.Fatalf("bad photos: %s", rec.Body)
 	}
 	var n int
