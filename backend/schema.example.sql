@@ -72,6 +72,8 @@ CREATE TABLE `photos` (
   `update_id` bigint(20) unsigned DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_photos_key` (`key`),
+  UNIQUE KEY `uq_photos_thumb_key` (`thumb_key`),
   KEY `idx_photos_user` (`user_id`),
   KEY `idx_photos_update` (`update_id`),
   KEY `idx_photos_status` (`status`),
@@ -253,7 +255,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `uq_users_avatar_key` (`avatar_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (24, 0);
+INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (25, 0);
 
 INSERT INTO `tags` (`tag`, `name_de`, `name_en`, `icon`, `sort`) VALUES
   ('roof', 'Überdacht', 'Roof', 'roof', 10),

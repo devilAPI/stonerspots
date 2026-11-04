@@ -121,20 +121,10 @@ func TestUploadJPEGReturnsURLs(t *testing.T) {
 	if !strings.HasSuffix(key, ".jpg") || strings.Count(key, "/") != 2 {
 		t.Fatalf("key %q", key)
 	}
-	// served right away: photos are moderated after the fact
-	get := func() *httptest.ResponseRecorder {
-		g := httptest.NewRecorder()
-		e.h.ServeHTTP(g, httptest.NewRequest("GET", strings.TrimPrefix(r.URL, "http://test"), nil))
-		return g
-	}
-	if g := get(); g.Code != 200 || g.Body.Len() == 0 {
+	// served once posted (moderated after the fact); see media_test.go
+	attach(t, e, r.ID)
+	if g := media(e, r.URL); g.Code != 200 || g.Body.Len() == 0 {
 		t.Fatalf("media get: %d", g.Code)
-	}
-	if _, err := e.db.Exec("UPDATE photos SET status = 'rejected' WHERE id = ?", r.ID); err != nil {
-		t.Fatal(err)
-	}
-	if g := get(); g.Code != 404 {
-		t.Fatalf("rejected photo served: %d", g.Code)
 	}
 	if _, err := os.Stat(filepath.Join(e.dir, filepath.FromSlash(thumb))); err != nil {
 		t.Fatal(err)

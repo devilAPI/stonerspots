@@ -2,6 +2,7 @@ package photos_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"image"
 	"image/color"
@@ -58,7 +59,7 @@ func TestAVIFContentTypeLieIsStillRejected(t *testing.T) {
 
 func TestNormalizeAcceptsASmallAVIF(t *testing.T) {
 	data := avifBytes(t, 64, 64)
-	if _, _, _, _, err := photos.Normalize(bytes.NewReader(data), photos.MaxUploadBytes); err != nil {
+	if _, _, _, _, err := photos.Normalize(context.Background(), bytes.NewReader(data), photos.MaxUploadBytes); err != nil {
 		t.Fatalf("small avif should work: %v", err)
 	}
 }
