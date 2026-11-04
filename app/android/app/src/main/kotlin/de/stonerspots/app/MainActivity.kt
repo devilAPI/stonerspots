@@ -30,5 +30,7 @@ class MainActivity : FlutterActivity() {
                     result.notImplemented()
                 }
             }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "de.stonerspots.app/updater")
+            .setMethodCallHandler(AppUpdater(this))
     }
 }

@@ -23,26 +23,57 @@ class SettingsStore {
   }
 
   final SharedPreferences? _prefs;
-  final _session = <String, bool>{};
+  final _session = <String, Object?>{};
 
-  bool? getBool(String key) {
-    final session = _session[key];
-    if (session != null) return session;
+  /// The value under [key] if it has type [T], else null.
+  T? _get<T>(String key, Object? Function(SharedPreferences p) read) {
+    if (_session.containsKey(key)) {
+      final v = _session[key];
+      return v is T ? v : null;
+    }
     try {
-      return _prefs?.getBool(key);
+      final v = _prefs == null ? null : read(_prefs);
+      return v is T ? v : null;
     } catch (_) {
       return null; // something else is stored under this key
     }
   }
 
-  Future<void> setBool(String key, bool value) async {
+  Future<void> _set(
+    String key,
+    Object? value,
+    Future<bool> Function(SharedPreferences p) write,
+  ) async {
     _session[key] = value;
     try {
-      await _prefs?.setBool(key, value);
+      if (_prefs != null) await write(_prefs);
     } catch (_) {
       // Storage unavailable: it still holds for this session.
     }
   }
+
+  bool? getBool(String key) => _get<bool>(key, (p) => p.getBool(key));
+
+  Future<void> setBool(String key, bool value) =>
+      _set(key, value, (p) => p.setBool(key, value));
+
+  String? getString(String key) => _get<String>(key, (p) => p.getString(key));
+
+  /// Stores [value], or removes the key when it is null.
+  Future<void> setString(String key, String? value) => _set(
+    key,
+    value,
+    (p) => value == null ? p.remove(key) : p.setString(key, value),
+  );
+
+  int? getInt(String key) => _get<int>(key, (p) => p.getInt(key));
+
+  /// Stores [value], or removes the key when it is null.
+  Future<void> setInt(String key, int? value) => _set(
+    key,
+    value,
+    (p) => value == null ? p.remove(key) : p.setInt(key, value),
+  );
 }
 
 /// Overridden in `main` with the loaded store.
@@ -50,14 +81,15 @@ final settingsStoreProvider = Provider<SettingsStore>(
   (ref) => SettingsStore.memory(),
 );
 
-/// An on/off setting, off by default.
+/// An on/off setting, off unless [defaultValue] says otherwise.
 class BoolSetting extends Notifier<bool> {
-  BoolSetting(this.key);
+  BoolSetting(this.key, {this.defaultValue = false});
 
   final String key;
+  final bool defaultValue;
 
   @override
-  bool build() => ref.watch(settingsStoreProvider).getBool(key) ?? false;
+  bool build() => ref.watch(settingsStoreProvider).getBool(key) ?? defaultValue;
 
   void set(bool value) {
     state = value;

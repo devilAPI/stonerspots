@@ -1,0 +1,2 @@
+2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881  stonerspots-dev-7-android.apk
+9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08  stonerspots-dev-7-linux-x64.tar.gz

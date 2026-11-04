@@ -1471,4 +1471,114 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commentGone => 'This comment no longer exists';
+
+  @override
+  String updateAvailableTitle(String tag) {
+    return 'Update available ($tag)';
+  }
+
+  @override
+  String updateInstalledVersion(String version) {
+    return 'Installed: $version';
+  }
+
+  @override
+  String get updateNow => 'Update now';
+
+  @override
+  String get updateLater => 'Later';
+
+  @override
+  String get updateSkip => 'Skip this version';
+
+  @override
+  String get updateOpenReleasePage => 'Open release page';
+
+  @override
+  String get updateNoKeyHint =>
+      'This build can\'t verify updates, so it installs nothing itself. Get the update from the release page.';
+
+  @override
+  String get updateNotWritableHint =>
+      'The app\'s folder isn\'t writable. Get the update from the release page.';
+
+  @override
+  String get updatePermissionHint =>
+      'Allow Stonerspots to install apps in the settings, then tap “Update now” again.';
+
+  @override
+  String get updateOpenSettings => 'Open settings';
+
+  @override
+  String updateDownloading(int percent) {
+    return 'Downloading… $percent%';
+  }
+
+  @override
+  String get updateVerifying => 'Checking signature and checksum…';
+
+  @override
+  String get updateInstalling => 'Installing…';
+
+  @override
+  String get updateHandedOff =>
+      'Confirm the installation in the system dialog.';
+
+  @override
+  String get updateErrorSignature =>
+      'The update\'s signature doesn\'t check out. Nothing was installed.';
+
+  @override
+  String get updateErrorChecksum =>
+      'The file doesn\'t match the signed checksum. Nothing was installed.';
+
+  @override
+  String get updateErrorMissing => 'This release has no file for this device.';
+
+  @override
+  String get updateErrorDownload => 'Download failed.';
+
+  @override
+  String get updateErrorInstall =>
+      'Installation failed. The current version stays.';
+
+  @override
+  String get updateRetry => 'Try again';
+
+  @override
+  String get settingsUpdates => 'Updates';
+
+  @override
+  String get settingsAutoUpdate => 'Check for updates automatically';
+
+  @override
+  String get settingsAutoUpdateHint =>
+      'At start, at most every 6 hours, on GitHub.';
+
+  @override
+  String get settingsCheckUpdates => 'Check for updates';
+
+  @override
+  String get updateStatusChecking => 'Checking…';
+
+  @override
+  String updateStatusUpToDate(String version) {
+    return 'Up to date ($version)';
+  }
+
+  @override
+  String updateStatusAvailable(String tag) {
+    return 'Update available: $tag';
+  }
+
+  @override
+  String get updateStatusRateLimited =>
+      'GitHub asks for a break. Try again later.';
+
+  @override
+  String get updateStatusOffline => 'Can\'t reach GitHub right now.';
+
+  @override
+  String get settingsNoUpdateChannel =>
+      'This build doesn\'t check for updates.';
 }

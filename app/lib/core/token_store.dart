@@ -11,7 +11,13 @@ class Tokens {
 /// keeps them in memory (tests, or when no secure storage is available).
 class TokenStore {
   TokenStore([FlutterSecureStorage? storage])
-    : _storage = storage ?? const FlutterSecureStorage();
+    : _storage =
+          storage ??
+          const FlutterSecureStorage(
+            // The data protection keychain needs a signing team; the macOS
+            // builds are only ad-hoc signed, so use the login keychain.
+            mOptions: MacOsOptions(usesDataProtectionKeychain: false),
+          );
 
   TokenStore.memory() : _storage = null;
 

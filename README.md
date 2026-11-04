@@ -4,7 +4,8 @@ A community map for finding good places to smoke weed outdoors: nice benches,
 rivers, lakes, viewpoints. People add spots, post photo updates, and browse a
 small picture feed. Launch region: Germany, Austria, Switzerland, Liechtenstein.
 
-- **App:** Flutter (Android, iOS, web, Linux desktop for development) in [`app/`](app)
+- **App:** Flutter (Android, iOS, web, Linux, Windows, macOS) in [`app/`](app);
+  the Android and desktop apps [update themselves](#app-updates)
 - **API:** Go + chi + MariaDB (spatial index for "spots in view") in [`backend/`](backend)
 - **Plan / decisions:** [`docs/superpowers/plans/`](docs/superpowers/plans)
 - **Ideas / to do:** [`docs/ideas.md`](docs/ideas.md)
@@ -330,6 +331,86 @@ in; the API warns about that at start. `sudo systemctl reload caddy` and
   `/var/lib/stonerspots-update/status/log` (the admin page shows its end).
 - **Admin page updates**: use "newest" (release), not dev, and set up
   [signed releases](#signed-releases) first.
+
+## App updates
+
+The Android, Windows, Linux and macOS apps look for a newer build on GitHub
+at start (at most every 6 hours; Settings → Updates can switch that off) and
+from Settings → Updates → "Check for updates". They ask the public GitHub API
+without a token; when GitHub rate-limits them they wait quietly and use the
+last answer. A newer build shows a banner: "Update now", "Later" (this
+session) or "Skip this version". Web and iOS don't update themselves.
+
+**Channels.** The build decides which releases it follows, with
+`--dart-define=UPDATE_CHANNEL=…`:
+
+- `dev` (what `dev-release.yml` builds): the newest `dev-<n>` prerelease, newer
+  when `<n>` is above the app's build number (CI sets the build number to the
+  run number, so `dev-63` is build 63).
+- `release`: the newest non-prerelease tagged `v<major>.<minor>.<patch>`,
+  compared with the app's version. No workflow builds these yet; a release
+  workflow must name its files like the dev builds
+  (`stonerspots-<tag>-android.apk`, …) and sign `SHA256SUMS-apps.txt` the same
+  way.
+- not set (local `flutter run`/`build`): no update checks at all.
+
+**Nothing unverified is installed.** CI lists the app files in
+`SHA256SUMS-apps.txt` and signs it like the backend checksums (job
+`sign-apps`, same key, namespace `stonerspots-release`). The app has the
+public key compiled in and, before installing, checks that signature
+(OpenSSH SSHSIG, ed25519), then that the downloaded file's SHA-256 is the one
+in the signed list, and that the file is named after the release's own tag.
+Downloads only come from `github.com` release URLs of this repository and
+GitHub's asset hosts, over HTTPS. If the build has no key, the signature or
+checksum doesn't match, or the app can't write to its folder, it installs
+nothing and offers the release page instead.
+
+Setup (once, with the key pair from [Signed releases](#signed-releases)):
+
+1. Secret `RELEASE_SIGNING_KEY`: as described there.
+2. Repository **variable** (not secret) `RELEASE_SIGNING_PUBKEY`: the public
+   key line, e.g. `gh variable set RELEASE_SIGNING_PUBKEY < stonerspots-release.pub`.
+   The builds pass it as `--dart-define=RELEASE_SIGNING_PUBKEY=…`.
+3. Android signing key, so each APK installs over the previous one. Android
+   only accepts an update signed with the same key as the installed app;
+   without these secrets every CI build gets a throwaway debug key and the
+   in-app update fails at the system installer:
+
+   ```sh
+   keytool -genkeypair -v -keystore stonerspots.jks -alias stonerspots \
+     -keyalg RSA -keysize 4096 -validity 10000
+   gh secret set ANDROID_KEYSTORE_BASE64 < <(base64 -w0 stonerspots.jks)
+   gh secret set ANDROID_KEYSTORE_PASSWORD   # the store password
+   gh secret set ANDROID_KEY_ALIAS --body stonerspots
+   gh secret set ANDROID_KEY_PASSWORD        # the key password (or the store password)
+   ```
+
+   Keep the `.jks` and its passwords safe: losing them means users must
+   uninstall and reinstall to get updates. Apps installed from earlier
+   (debug-key) builds have to be reinstalled once.
+
+Per platform:
+
+- **Android**: downloads the APK into the app's cache and opens the system
+  installer, which asks for confirmation. The first time, Android asks to
+  allow "Install unknown apps" for Stonerspots; the banner has a button to
+  that setting.
+- **Linux** (`.tar.gz` bundle): unpacks next to the app's folder, moves the
+  old folder aside (`.<folder>.old`), moves the new one in, starts it and
+  quits; the next start removes the old folder. Only if the user can write
+  to the app's folder and the folder it is in; otherwise the release page.
+- **Windows** (`.zip`): unpacks next to the app's folder; after the app quits
+  a hidden PowerShell process swaps the folders (putting the old one back if
+  that fails) and starts the new version. Same writability rule.
+- **macOS** (`.zip` with `Stonerspots.app`, ad-hoc signed, not sandboxed):
+  like Linux, for the `.app`. The app is not notarized, so Gatekeeper blocks
+  the first start of a downloaded copy: right-click → Open (or
+  `xattr -dr com.apple.quarantine Stonerspots.app`). Updates installed by the
+  app itself don't get the quarantine flag.
+
+The archives are unpacked with checks against `..`, absolute paths, links
+(only inside the macOS bundle, never out of it) and oversized contents,
+even though they are already verified by then.
 
 ## Web app on GitHub Pages
 

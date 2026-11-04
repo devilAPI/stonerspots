@@ -1,7 +1,7 @@
 name: Dev build & release
 
 # Every push to main: test, build the backend (Linux amd64/arm64) and the app
-# (Android / Linux / web / iOS), and publish a
+# (Android / Linux / Windows / macOS / web / iOS), and publish a
 # prerelease tagged dev-<run number> (dev-1, dev-2, ...). Can also be started
 # by hand from the Actions tab.
 #
@@ -32,6 +32,15 @@ name: Dev build & release
 #                      SHA256SUMS.txt; servers with the public key refuse unsigned
 #                      builds. See README, "Signed releases". Without it the
 #                      checksums stay unsigned and the run shows a warning.
+#                      It also signs SHA256SUMS-apps.txt (job sign-apps).
+#   variable RELEASE_SIGNING_PUBKEY  its public key line (ssh-ed25519 AAAA...),
+#                      compiled into the apps: their updater installs only files
+#                      listed in a SHA256SUMS-apps.txt signed with it. Without it
+#                      the apps only point to the release page. README, "App updates".
+#   secrets  ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS,
+#            ANDROID_KEY_PASSWORD  the APK signing key (base64 of a .jks). Without
+#                      them each APK gets a throwaway debug key and can't be
+#                      installed over an earlier one.
 
 on:
   push:
@@ -126,18 +135,46 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
+      # One key for every build, so each APK installs over the previous one
+      # (the in-app updater needs that). Without the secrets the APK gets the
+      # runner's throwaway debug key and can't update an installed app.
+      - name: Android signing key
+        working-directory: app
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::warning::Secret ANDROID_KEYSTORE_BASE64 is not set: the APK is signed with a throwaway debug key and can't be installed over an earlier build (README, \"App updates\")."
+            exit 0
+          fi
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/release.jks"
+            echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
+            echo "keyAlias=$ANDROID_KEY_ALIAS"
+            echo "keyPassword=${ANDROID_KEY_PASSWORD:-$ANDROID_KEYSTORE_PASSWORD}"
+          } > android/key.properties
       - name: Build APK
         working-directory: app
         env:
           CARTO_KEY: ${{ secrets.CARTO_KEY }}
           THUNDERFOREST_KEY: ${{ secrets.THUNDERFOREST_KEY }}
+          RELEASE_SIGNING_PUBKEY: ${{ vars.RELEASE_SIGNING_PUBKEY }}
         run: |
           flutter pub get
           flutter build apk --release \
             --build-number="$BUILD_NUMBER" \
             --dart-define=API_URL="$API_URL" \
             --dart-define=CARTO_KEY="$CARTO_KEY" \
-            --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY"
+            --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY" \
+            --dart-define=UPDATE_CHANNEL=dev \
+            --dart-define=RELEASE_SIGNING_PUBKEY="$RELEASE_SIGNING_PUBKEY"
+          rm -f android/key.properties
           mkdir -p ../dist
           cp build/app/outputs/flutter-apk/app-release.apk "../dist/stonerspots-${TAG}-android.apk"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -171,6 +208,7 @@ jobs:
         env:
           CARTO_KEY: ${{ secrets.CARTO_KEY }}
           THUNDERFOREST_KEY: ${{ secrets.THUNDERFOREST_KEY }}
+          RELEASE_SIGNING_PUBKEY: ${{ vars.RELEASE_SIGNING_PUBKEY }}
         run: |
           flutter config --enable-linux-desktop
           flutter pub get
@@ -178,7 +216,9 @@ jobs:
             --build-number="$BUILD_NUMBER" \
             --dart-define=API_URL="$API_URL" \
             --dart-define=CARTO_KEY="$CARTO_KEY" \
-            --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY"
+            --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY" \
+            --dart-define=UPDATE_CHANNEL=dev \
+            --dart-define=RELEASE_SIGNING_PUBKEY="$RELEASE_SIGNING_PUBKEY"
           mkdir -p ../dist
           tar -czf "../dist/stonerspots-${TAG}-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -355,6 +395,164 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build app
+        working-directory: app
+        shell: pwsh
+        env:
+          CARTO_KEY: ${{ secrets.CARTO_KEY }}
+          THUNDERFOREST_KEY: ${{ secrets.THUNDERFOREST_KEY }}
+          RELEASE_SIGNING_PUBKEY: ${{ vars.RELEASE_SIGNING_PUBKEY }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          flutter config --enable-windows-desktop
+          flutter pub get
+          flutter build windows --release `
+            "--build-number=$env:BUILD_NUMBER" `
+            "--dart-define=API_URL=$env:API_URL" `
+            "--dart-define=CARTO_KEY=$env:CARTO_KEY" `
+            "--dart-define=THUNDERFOREST_KEY=$env:THUNDERFOREST_KEY" `
+            "--dart-define=UPDATE_CHANNEL=dev" `
+            "--dart-define=RELEASE_SIGNING_PUBKEY=$env:RELEASE_SIGNING_PUBKEY"
+          New-Item -ItemType Directory -Force ..\dist | Out-Null
+          # the folder's contents at the zip's top level, like the Linux tarball
+          Compress-Archive -Path build\windows\x64\runner\Release\* `
+            -DestinationPath "..\dist\stonerspots-$env:TAG-windows-x64.zip"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dist-windows
+          path: dist/*
+          if-no-files-found: error
+
+  build-macos:
+    name: Build macOS (ad-hoc signed)
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build app
+        working-directory: app
+        env:
+          CARTO_KEY: ${{ secrets.CARTO_KEY }}
+          THUNDERFOREST_KEY: ${{ secrets.THUNDERFOREST_KEY }}
+          RELEASE_SIGNING_PUBKEY: ${{ vars.RELEASE_SIGNING_PUBKEY }}
+        run: |
+          flutter config --enable-macos-desktop
+          flutter pub get
+          flutter build macos --release \
+            --build-number="$BUILD_NUMBER" \
+            --dart-define=API_URL="$API_URL" \
+            --dart-define=CARTO_KEY="$CARTO_KEY" \
+            --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY" \
+            --dart-define=UPDATE_CHANNEL=dev \
+            --dart-define=RELEASE_SIGNING_PUBKEY="$RELEASE_SIGNING_PUBKEY"
+          mkdir -p ../dist
+          # -y keeps the framework symlinks as links
+          (cd build/macos/Build/Products/Release && zip -qry "$GITHUB_WORKSPACE/dist/stonerspots-${TAG}-macos.zip" Stonerspots.app)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dist-macos
+          path: dist/*
+          if-no-files-found: error
+
+  # Checksums and signature of the app files, from nothing but the app
+  # artifacts. The in-app updater installs a file only if its hash is in
+  # this signed list (same key and namespace as sign-backend).
+  sign-apps:
+    name: Sign app checksums
+    needs: [test-app, build-android, build-linux, build-windows, build-macos, build-web, build-ios]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist-android
+          path: apps
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist-linux
+          path: apps
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist-windows
+          path: apps
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist-macos
+          path: apps
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist-web
+          path: apps
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist-ios
+          path: apps
+      - name: Checksums
+        working-directory: apps
+        run: |
+          set -euo pipefail
+          files=(
+            "stonerspots-${TAG}-android.apk"
+            "stonerspots-${TAG}-linux-x64.tar.gz"
+            "stonerspots-${TAG}-windows-x64.zip"
+            "stonerspots-${TAG}-macos.zip"
+            "stonerspots-${TAG}-web.zip"
+            "stonerspots-${TAG}-ios-unsigned.ipa"
+          )
+          if [ "$(ls -A | sort)" != "$(printf '%s\n' "${files[@]}" | sort)" ]; then
+            echo "::error::the app artifacts hold other files than ${files[*]}: $(ls -A | tr '\n' ' ')"
+            exit 1
+          fi
+          sha256sum "${files[@]}" > SHA256SUMS-apps.txt
+          cat SHA256SUMS-apps.txt
+      - name: Sign checksums
+        working-directory: apps
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$RELEASE_SIGNING_KEY" ]; then
+            echo "::warning::Secret RELEASE_SIGNING_KEY is not set: SHA256SUMS-apps.txt is published unsigned, and the apps will not install this build themselves (README, \"App updates\")."
+            exit 0
+          fi
+          umask 077
+          key="$RUNNER_TEMP/release-signing-key"
+          trap 'rm -f "$key"' EXIT
+          printf '%s\n' "$RELEASE_SIGNING_KEY" > "$key"
+          ssh-keygen -q -Y sign -f "$key" -n stonerspots-release SHA256SUMS-apps.txt
+          printf 'stonerspots-release %s\n' "$(ssh-keygen -y -f "$key")" > "$RUNNER_TEMP/allowed_signers"
+          ssh-keygen -Y verify -f "$RUNNER_TEMP/allowed_signers" -I stonerspots-release \
+            -n stonerspots-release -s SHA256SUMS-apps.txt.sig < SHA256SUMS-apps.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: app-checksums
+          path: apps/SHA256SUMS-apps.txt*
+          if-no-files-found: error
+
   deploy-web:
     name: Deploy web to /dev/
     needs: [test-app, build-web]
@@ -368,7 +566,7 @@ jobs:
 
   release:
     name: Publish ${{ github.run_number }} as dev-${{ github.run_number }}
-    needs: [test-app, test-backend, build-backend, sign-backend, build-android, build-linux, build-web, build-ios]
+    needs: [test-app, test-backend, build-backend, sign-backend, build-android, build-linux, build-windows, build-macos, build-web, build-ios, sign-apps]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -392,7 +590,7 @@ jobs:
           cp artifacts/release-checksums/SHA256SUMS.txt* dist/
           (cd dist && sha256sum -c SHA256SUMS.txt)
           # apps: anything but backend files and checksums
-          for job in android linux web ios; do
+          for job in android linux windows macos web ios; do
             for f in "artifacts/dist-${job}"/*; do
               name=$(basename "$f")
               case "$name" in
@@ -407,19 +605,23 @@ jobs:
               cp "$f" dist/
             done
           done
-          # unsigned checksums of the app files, for people downloading them
-          (cd dist && sha256sum stonerspots-*-android.apk stonerspots-*-linux-x64.tar.gz \
-            stonerspots-*-web.zip stonerspots-*-ios-unsigned.ipa > SHA256SUMS-apps.txt)
+          # checksums of the app files (signed: SHA256SUMS-apps.txt.sig), made
+          # by sign-apps; the apps' updater installs nothing they don't cover
+          cp artifacts/app-checksums/SHA256SUMS-apps.txt* dist/
+          (cd dist && sha256sum -c SHA256SUMS-apps.txt)
           ls -l dist
       - name: Create prerelease
         env:
           # untrusted text: only ever read through the environment
           COMMIT_MSG: ${{ github.event.head_commit.message }}
+          ANDROID_SIGNED: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         run: |
           short="${GITHUB_SHA::7}"
+          apk="signed with the project key"
+          [ "$ANDROID_SIGNED" = true ] || apk="signed with a throwaway debug key (it can't update an installed app)"
           notes="Development build ${BUILD_NUMBER} of commit ${short}. Not for production.
-          The iOS file is unsigned and must be re-signed before it can be installed; the Android APK is signed with a debug key.
-          SHA256SUMS.txt covers the backend tarballs (signed: SHA256SUMS.txt.sig); SHA256SUMS-apps.txt the app files.
+          The Android APK is ${apk}. The iOS file is unsigned and must be re-signed before it can be installed; the macOS app is only ad-hoc signed (first start: right-click, Open).
+          SHA256SUMS.txt covers the backend tarballs (signed: SHA256SUMS.txt.sig); SHA256SUMS-apps.txt the app files (signed: SHA256SUMS-apps.txt.sig).
 
           ${COMMIT_MSG}"
           if gh release view "$TAG" >/dev/null 2>&1; then
