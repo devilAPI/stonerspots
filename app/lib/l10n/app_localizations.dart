@@ -2437,6 +2437,12 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Spot-Seiten zeigen das aktuelle Wetter und die nächsten Stunden.'**
   String get whatsNewWeatherBody;
+
+  /// No description provided for @profileAccountMenu.
+  ///
+  /// In de, this message translates to:
+  /// **'Konto'**
+  String get profileAccountMenu;
 }
 
 class _AppLocalizationsDelegate

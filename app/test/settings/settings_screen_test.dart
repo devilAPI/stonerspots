@@ -14,6 +14,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:app/features/users/users_repository.dart';
+
+import '../users/users_helpers.dart' show FakeUsers;
 
 const _toggle = Key('disableTransparency');
 
@@ -58,6 +61,18 @@ Future<ProviderContainer> pumpRouter(
     overrides: [
       authRepositoryProvider.overrideWithValue(_Auth()),
       tokenStoreProvider.overrideWithValue(tokens),
+      usersRepositoryProvider.overrideWithValue(
+        FakeUsers(
+          profiles: {
+            1: UserProfile(
+              id: 1,
+              displayName: 'Alex',
+              createdAt: DateTime.utc(2025),
+              isMe: true,
+            ),
+          },
+        ),
+      ),
     ],
   );
   addTearDown(container.dispose);
@@ -194,7 +209,7 @@ void main() {
       final c = await pumpRouter(t, '/profile', loggedIn: true);
       await t.pumpAndSettle();
       expect(c.read(authControllerProvider).value?.id, 1);
-      expect(find.text('Alex'), findsOneWidget);
+      expect(find.byKey(const Key('userName')), findsOneWidget);
       await t.tap(find.byKey(const Key('open-settings')));
       await t.pumpAndSettle();
       expect(find.byType(SettingsScreen), findsOneWidget);

@@ -1424,4 +1424,7 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get whatsNewWeatherBody =>
       'Spot-Seiten zeigen das aktuelle Wetter und die nächsten Stunden.';
+
+  @override
+  String get profileAccountMenu => 'Konto';
 }

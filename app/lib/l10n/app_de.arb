@@ -527,5 +527,6 @@
   "whatsNewSearchTitle": "Spot-Suche",
   "whatsNewSearchBody": "Spots auf der Karte nach Namen finden (Strg+K).",
   "whatsNewWeatherTitle": "Wetter",
-  "whatsNewWeatherBody": "Spot-Seiten zeigen das aktuelle Wetter und die nächsten Stunden."
+  "whatsNewWeatherBody": "Spot-Seiten zeigen das aktuelle Wetter und die nächsten Stunden.",
+  "profileAccountMenu": "Konto"
 }

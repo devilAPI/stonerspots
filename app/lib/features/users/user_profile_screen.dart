@@ -21,11 +21,27 @@ import 'users_repository.dart';
 enum _Tab { spots, updates }
 
 /// A user's public profile: name, join date, counts, follow button and their
-/// spots and updates.
+/// spots and updates. The profile tab shows the same page for the logged-in
+/// user, with [asTab] set and its own buttons in [actions] and [headerExtra].
 class UserProfileScreen extends ConsumerStatefulWidget {
-  const UserProfileScreen({super.key, required this.userId});
+  const UserProfileScreen({
+    super.key,
+    required this.userId,
+    this.asTab = false,
+    this.actions = const [],
+    this.headerExtra,
+  });
 
   final int userId;
+
+  /// Shown as a tab: no back button.
+  final bool asTab;
+
+  /// App bar buttons.
+  final List<Widget> actions;
+
+  /// Below the counts, in place of the follow button on your own profile.
+  final Widget? headerExtra;
 
   @override
   ConsumerState<UserProfileScreen> createState() => _UserProfileScreenState();
@@ -95,8 +111,9 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: GlassAppBar(
-        leading: const BackOrHomeButton(),
+        leading: widget.asTab ? null : const BackOrHomeButton(),
         title: Text(profile.value?.displayName ?? ''),
+        actions: widget.actions,
       ),
       body: ProfileScope(
         userId: widget.userId,
@@ -156,7 +173,12 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
           insets.bottom + 16,
         ),
         children: [
-          _Header(profile: p, busy: _busy, onFollow: () => _toggleFollow(p)),
+          _Header(
+            profile: p,
+            busy: _busy,
+            onFollow: () => _toggleFollow(p),
+            extra: widget.headerExtra,
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: SegmentedButton<_Tab>(
@@ -253,11 +275,13 @@ class _Header extends StatelessWidget {
     required this.profile,
     required this.busy,
     required this.onFollow,
+    this.extra,
   });
 
   final UserProfile profile;
   final bool busy;
   final VoidCallback onFollow;
+  final Widget? extra;
 
   @override
   Widget build(BuildContext context) {
@@ -346,6 +370,7 @@ class _Header extends StatelessWidget {
                     ),
             ),
           ],
+          if (extra != null) ...[const SizedBox(height: 16), extra!],
         ],
       ),
     );

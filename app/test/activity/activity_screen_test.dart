@@ -5,12 +5,14 @@ import 'package:app/features/activity/activity_repository.dart';
 import 'package:app/features/activity/activity_screen.dart';
 import 'package:app/features/auth/auth_controller.dart';
 import 'package:app/features/auth/profile_screen.dart';
+import 'package:app/features/users/users_repository.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import '../users/users_helpers.dart' show FakeUsers;
 import 'activity_helpers.dart';
 
 /// A home page with the bell in its app bar, the activity page and
@@ -263,6 +265,18 @@ void main() {
         overrides: [
           activityRepositoryProvider.overrideWithValue(FakeActivity(unread: 2)),
           authControllerProvider.overrideWith(() => FakeAuth(kMe)),
+          usersRepositoryProvider.overrideWithValue(
+            FakeUsers(
+              profiles: {
+                1: UserProfile(
+                  id: 1,
+                  displayName: 'Me',
+                  createdAt: DateTime.utc(2025),
+                  isMe: true,
+                ),
+              },
+            ),
+          ),
         ],
         child: MaterialApp(
           locale: const Locale('en'),

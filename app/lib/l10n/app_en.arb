@@ -515,5 +515,6 @@
   "whatsNewSearchTitle": "Spot search",
   "whatsNewSearchBody": "Find spots by name on the map (Ctrl+K).",
   "whatsNewWeatherTitle": "Weather",
-  "whatsNewWeatherBody": "Spot pages show the current weather and the next hours."
+  "whatsNewWeatherBody": "Spot pages show the current weather and the next hours.",
+  "profileAccountMenu": "Account"
 }

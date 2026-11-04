@@ -5,11 +5,14 @@ import 'package:app/core/token_store.dart';
 import 'package:app/features/auth/auth_controller.dart';
 import 'package:app/features/auth/auth_repository.dart';
 import 'package:app/features/auth/profile_screen.dart';
+import 'package:app/features/users/users_repository.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+
+import '../users/users_helpers.dart';
 
 class _Repo implements AuthRepository {
   ApiException? failWith;
@@ -68,6 +71,24 @@ Future<(_Repo, TokenStore)> _pump(
       overrides: [
         authRepositoryProvider.overrideWithValue(repo),
         tokenStoreProvider.overrideWithValue(store),
+        usersRepositoryProvider.overrideWithValue(
+          FakeUsers(
+            profiles: {
+              1: UserProfile(
+                id: 1,
+                displayName: 'Alex',
+                createdAt: DateTime.utc(2025),
+                isMe: true,
+              ),
+              2: UserProfile(
+                id: 2,
+                displayName: 'Root',
+                createdAt: DateTime.utc(2025),
+                isMe: true,
+              ),
+            },
+          ),
+        ),
       ],
       child: MaterialApp.router(
         locale: const Locale('en'),
@@ -88,6 +109,15 @@ Future<(_Repo, TokenStore)> _pump(
   return (repo, store);
 }
 
+/// Opens the account menu, and picks [item] from it if given.
+Future<void> _menu(WidgetTester tester, [String? item]) async {
+  await tester.tap(find.byKey(const Key('account-menu')));
+  await tester.pumpAndSettle();
+  if (item == null) return;
+  await tester.tap(find.byKey(Key(item)));
+  await tester.pumpAndSettle();
+}
+
 Future<void> _fillPasswords(
   WidgetTester tester, {
   String current = 'old',
@@ -105,10 +135,23 @@ Future<void> _fillPasswords(
 }
 
 void main() {
-  testWidgets('shows name and email', (tester) async {
+  testWidgets('shows the profile page, email in the account menu', (
+    tester,
+  ) async {
     await _pump(tester);
-    expect(find.text('Alex'), findsOneWidget);
+    expect(find.byKey(const Key('userName')), findsOneWidget);
+    expect(find.text('Alex'), findsWidgets);
+    expect(find.byKey(const Key('statFollowers')), findsOneWidget);
+    expect(find.byKey(const Key('followButton')), findsNothing);
+    await _menu(tester);
     expect(find.text('a@b.ch'), findsOneWidget);
+  });
+
+  testWidgets('log out from the account menu', (tester) async {
+    final (_, store) = await _pump(tester);
+    await _menu(tester, 'logout');
+    expect(await store.read(), isNull);
+    expect(find.text('Log in'), findsOneWidget);
   });
 
   testWidgets('anonymous sees only login', (tester) async {
@@ -157,8 +200,7 @@ void main() {
     tester,
   ) async {
     final (repo, store) = await _pump(tester);
-    await tester.tap(find.byKey(const Key('change-password')));
-    await tester.pumpAndSettle();
+    await _menu(tester, 'change-password');
 
     await _fillPasswords(tester, next: 'short', repeat: 'other');
     expect(repo.changedNext, isNull);
@@ -170,15 +212,14 @@ void main() {
     expect(find.byKey(const Key('new-password')), findsNothing);
     expect(find.text('Password changed'), findsOneWidget);
     expect((await store.read())?.accessToken, 'n1');
-    expect(find.text('Alex'), findsOneWidget);
+    expect(find.text('Alex'), findsWidgets);
   });
 
   testWidgets('change password rejects more than 72 characters', (
     tester,
   ) async {
     final (repo, _) = await _pump(tester);
-    await tester.tap(find.byKey(const Key('change-password')));
-    await tester.pumpAndSettle();
+    await _menu(tester, 'change-password');
     await _fillPasswords(tester, next: 'a' * 73);
     expect(repo.changedNext, isNull);
     expect(find.text('At most 72 characters'), findsOneWidget);
@@ -187,8 +228,7 @@ void main() {
   testWidgets('wrong current password shows inline error', (tester) async {
     final (repo, _) = await _pump(tester);
     repo.failWith = ApiException(403, 'wrong_password', 'x');
-    await tester.tap(find.byKey(const Key('change-password')));
-    await tester.pumpAndSettle();
+    await _menu(tester, 'change-password');
     await _fillPasswords(tester, current: 'bad');
     expect(find.text('Wrong password'), findsOneWidget);
     expect(find.byKey(const Key('new-password')), findsOneWidget);
@@ -196,8 +236,7 @@ void main() {
 
   testWidgets('delete account requires password and logs out', (tester) async {
     final (repo, store) = await _pump(tester);
-    await tester.tap(find.byKey(const Key('delete-account')));
-    await tester.pumpAndSettle();
+    await _menu(tester, 'delete-account');
 
     await tester.tap(find.byKey(const Key('delete-account-submit')));
     await tester.pumpAndSettle();
@@ -218,8 +257,7 @@ void main() {
   ) async {
     final (repo, store) = await _pump(tester);
     repo.failWith = ApiException(403, 'wrong_password', 'x');
-    await tester.tap(find.byKey(const Key('delete-account')));
-    await tester.pumpAndSettle();
+    await _menu(tester, 'delete-account');
     await tester.enterText(find.byKey(const Key('delete-password')), 'bad');
     await tester.tap(find.byKey(const Key('delete-account-submit')));
     await tester.pumpAndSettle();

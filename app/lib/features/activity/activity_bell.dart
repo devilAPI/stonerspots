@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
+import '../users/users_controller.dart';
 import 'activity_controller.dart';
 
 /// App bar button to the activity page, with the unread count as a badge.
@@ -67,7 +68,26 @@ class _ActivityRefresherState extends ConsumerState<ActivityRefresher> {
   @override
   void didUpdateWidget(ActivityRefresher old) {
     super.didUpdateWidget(old);
-    if (widget.profileShown && !old.profileShown) _refresh();
+    if (widget.profileShown && !old.profileShown) {
+      _refresh();
+      _refreshOwnProfile();
+    }
+  }
+
+  /// The profile tab stays alive between visits, so its counts and lists
+  /// would miss what was posted meanwhile.
+  void _refreshOwnProfile() {
+    final me = ref.read(authControllerProvider).value?.id;
+    if (me == null) return;
+    if (ref.exists(userProfileProvider(me))) {
+      ref.invalidate(userProfileProvider(me));
+    }
+    if (ref.exists(userSpotsProvider(me))) {
+      ref.read(userSpotsProvider(me).notifier).refresh();
+    }
+    if (ref.exists(userUpdatesProvider(me))) {
+      ref.read(userUpdatesProvider(me).notifier).refresh();
+    }
   }
 
   @override
