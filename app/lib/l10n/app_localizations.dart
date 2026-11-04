@@ -1903,6 +1903,90 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'{count, plural, =0{Keine Spots} =1{1 Spot} other{{count} Spots}}'**
   String savedSpotCount(int count);
+
+  /// No description provided for @feedFollowing.
+  ///
+  /// In de, this message translates to:
+  /// **'Folge ich'**
+  String get feedFollowing;
+
+  /// No description provided for @feedFollowingEmpty.
+  ///
+  /// In de, this message translates to:
+  /// **'Noch keine Updates von Leuten, denen du folgst'**
+  String get feedFollowingEmpty;
+
+  /// No description provided for @userFollow.
+  ///
+  /// In de, this message translates to:
+  /// **'Folgen'**
+  String get userFollow;
+
+  /// No description provided for @userUnfollow.
+  ///
+  /// In de, this message translates to:
+  /// **'Entfolgen'**
+  String get userUnfollow;
+
+  /// No description provided for @userJoined.
+  ///
+  /// In de, this message translates to:
+  /// **'Dabei seit {date}'**
+  String userJoined(DateTime date);
+
+  /// No description provided for @userStatSpots.
+  ///
+  /// In de, this message translates to:
+  /// **'Spots'**
+  String get userStatSpots;
+
+  /// No description provided for @userStatUpdates.
+  ///
+  /// In de, this message translates to:
+  /// **'Updates'**
+  String get userStatUpdates;
+
+  /// No description provided for @userStatFollowers.
+  ///
+  /// In de, this message translates to:
+  /// **'Follower'**
+  String get userStatFollowers;
+
+  /// No description provided for @userStatFollowing.
+  ///
+  /// In de, this message translates to:
+  /// **'Folgt'**
+  String get userStatFollowing;
+
+  /// No description provided for @userTabSpots.
+  ///
+  /// In de, this message translates to:
+  /// **'Spots'**
+  String get userTabSpots;
+
+  /// No description provided for @userTabUpdates.
+  ///
+  /// In de, this message translates to:
+  /// **'Updates'**
+  String get userTabUpdates;
+
+  /// No description provided for @userNoSpots.
+  ///
+  /// In de, this message translates to:
+  /// **'Noch keine Spots'**
+  String get userNoSpots;
+
+  /// No description provided for @userNoUpdates.
+  ///
+  /// In de, this message translates to:
+  /// **'Noch keine Updates'**
+  String get userNoUpdates;
+
+  /// No description provided for @userGone.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieses Profil gibt es nicht'**
+  String get userGone;
 }
 
 class _AppLocalizationsDelegate

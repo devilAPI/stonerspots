@@ -17,6 +17,7 @@ class _Repo implements FeedRepository {
     String? cursor,
     int limit = 20,
     List<SpotTag> tags = const [],
+    bool following = false,
   }) async {
     tagCalls.add(tags);
     return const FeedPage([], null);

@@ -16,8 +16,16 @@ FeedItem item(int id) => FeedItem(
 );
 
 class Call {
-  Call(this.sort, this.lat, this.lon, this.cursor, [this.tags = const []]);
+  Call(
+    this.sort,
+    this.lat,
+    this.lon,
+    this.cursor, [
+    this.tags = const [],
+    this.following = false,
+  ]);
   final List<SpotTag> tags;
+  final bool following;
   final FeedSort sort;
   final double? lat, lon;
   final String? cursor;
@@ -35,8 +43,9 @@ class FakeRepo implements FeedRepository {
     String? cursor,
     int limit = 20,
     List<SpotTag> tags = const [],
+    bool following = false,
   }) async {
-    final c = Call(sort, lat, lon, cursor, tags);
+    final c = Call(sort, lat, lon, cursor, tags, following);
     calls.add(c);
     return handler(c);
   }
@@ -171,5 +180,39 @@ void main() {
     await n.clearTags();
     expect(repo.calls.last.tags, isEmpty);
     expect(repo.calls.last.cursor, isNull);
+  });
+
+  test('following filter is passed, kept while paging, and resets', () async {
+    final repo = FakeRepo()
+      ..handler = (c) => c.cursor == null
+          ? FeedPage([item(1), item(2)], 'c1')
+          : FeedPage([item(3)], null);
+    final c = make(repo);
+    final n = c.read(feedControllerProvider.notifier);
+    await n.load();
+    expect(repo.calls.last.following, isFalse);
+    await n.loadMore();
+
+    await n.setFollowing(true);
+    expect(c.read(feedControllerProvider).following, isTrue);
+    expect(repo.calls.last.following, isTrue);
+    expect(repo.calls.last.cursor, isNull);
+    expect(c.read(feedControllerProvider).items, hasLength(2));
+    await n.loadMore();
+    expect(repo.calls.last.following, isTrue);
+    expect(repo.calls.last.cursor, 'c1');
+
+    // sort and tags combine with it
+    await n.setSort(FeedSort.top);
+    expect(repo.calls.last.following, isTrue);
+    expect(repo.calls.last.sort, FeedSort.top);
+
+    final before = repo.calls.length;
+    await n.setFollowing(true); // no change, no reload
+    expect(repo.calls, hasLength(before));
+
+    await n.setFollowing(false);
+    expect(repo.calls.last.following, isFalse);
+    expect(c.read(feedControllerProvider).following, isFalse);
   });
 }

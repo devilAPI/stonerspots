@@ -5,6 +5,7 @@ import '../../core/models.dart';
 import '../../core/net_photo.dart';
 import '../../l10n/app_localizations.dart';
 import '../reviews/rating_widgets.dart';
+import '../users/author_link.dart';
 import 'satellite_thumb.dart';
 
 /// Language-neutral compact relative time: now, 5m, 3h, 2d, 4w, 1y.
@@ -133,10 +134,8 @@ class _Text extends StatelessWidget {
           Wrap(
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text(
-                '${item.author.displayName} · '
-                '${relativeTime(item.createdAt)}',
-              ),
+              AuthorLink(author: item.author),
+              Text(' · ${relativeTime(item.createdAt)}'),
               if (item.updateCount > 1)
                 InkWell(
                   key: const Key('feedUpdateCount'),

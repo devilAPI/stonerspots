@@ -17,6 +17,7 @@ class _Repo implements FeedRepository {
     String? cursor,
     int limit = 20,
     List<SpotTag> tags = const [],
+    bool following = false,
   }) async => FeedPage([
     for (var i = 1; i <= 6; i++)
       FeedItem(

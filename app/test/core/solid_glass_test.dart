@@ -55,6 +55,7 @@ class _Feed implements FeedRepository {
     String? cursor,
     int limit = 20,
     List<SpotTag> tags = const [],
+    bool following = false,
   }) async => const FeedPage([], null);
 }
 

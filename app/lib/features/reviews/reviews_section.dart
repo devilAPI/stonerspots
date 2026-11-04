@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
 import '../feed/feed_card.dart' show relativeTime;
+import '../users/author_link.dart';
 import 'rating_widgets.dart';
 import 'review_dialog.dart';
 import 'review_models.dart';
@@ -301,10 +302,7 @@ class _ReviewTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final meta =
-        StringBuffer(isMine ? l.reviewYours : review.author.displayName)
-          ..write(' · ')
-          ..write(relativeTime(review.createdAt));
+    final meta = StringBuffer(' · ')..write(relativeTime(review.createdAt));
     if (review.isEdited) meta.write(' · ${l.reviewEdited}');
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -317,7 +315,16 @@ class _ReviewTile extends StatelessWidget {
               children: [
                 StarRow(rating: review.rating.toDouble(), size: 16),
                 const SizedBox(height: 2),
-                Text(meta.toString(), style: theme.textTheme.bodySmall),
+                Wrap(
+                  children: [
+                    AuthorLink(
+                      author: review.author,
+                      label: isMine ? l.reviewYours : null,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    Text(meta.toString(), style: theme.textTheme.bodySmall),
+                  ],
+                ),
                 if (review.body.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(review.body),
