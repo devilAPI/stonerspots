@@ -819,6 +819,114 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mapMyLocation => 'Mein Standort';
 
   @override
+  String get mapSearch => 'Spots suchen';
+
+  @override
+  String get mapSearchHint => 'Name eines Spots';
+
+  @override
+  String get mapSearchClose => 'Suche schließen';
+
+  @override
+  String get mapSearchClear => 'Leeren';
+
+  @override
+  String get mapSearchTooShort => 'Mindestens 2 Zeichen eingeben';
+
+  @override
+  String get mapSearchNoResult => 'Kein Spot mit diesem Namen gefunden';
+
+  @override
+  String get mapSearchError => 'Suche fehlgeschlagen';
+
+  @override
+  String get weatherTitle => 'Wetter';
+
+  @override
+  String weatherWind(String speed) {
+    return 'Wind $speed km/h';
+  }
+
+  @override
+  String weatherRainChance(int percent) {
+    return 'Regen $percent %';
+  }
+
+  @override
+  String weatherPrecipitation(String amount) {
+    return '$amount mm';
+  }
+
+  @override
+  String get weatherNextHours => 'Nächste Stunden';
+
+  @override
+  String get weatherAttribution => 'Wetter: Open-Meteo.com';
+
+  @override
+  String get weatherClear => 'Klar';
+
+  @override
+  String get weatherMainlyClear => 'Überwiegend klar';
+
+  @override
+  String get weatherPartlyCloudy => 'Teils bewölkt';
+
+  @override
+  String get weatherOvercast => 'Bedeckt';
+
+  @override
+  String get weatherFog => 'Nebel';
+
+  @override
+  String get weatherDrizzle => 'Nieselregen';
+
+  @override
+  String get weatherFreezingDrizzle => 'Gefrierender Nieselregen';
+
+  @override
+  String get weatherRainLight => 'Leichter Regen';
+
+  @override
+  String get weatherRain => 'Regen';
+
+  @override
+  String get weatherRainHeavy => 'Starker Regen';
+
+  @override
+  String get weatherFreezingRain => 'Gefrierender Regen';
+
+  @override
+  String get weatherSnowLight => 'Leichter Schneefall';
+
+  @override
+  String get weatherSnow => 'Schneefall';
+
+  @override
+  String get weatherSnowHeavy => 'Starker Schneefall';
+
+  @override
+  String get weatherSnowGrains => 'Schneegriesel';
+
+  @override
+  String get weatherShowers => 'Regenschauer';
+
+  @override
+  String get weatherShowersHeavy => 'Starke Regenschauer';
+
+  @override
+  String get weatherSnowShowers => 'Schneeschauer';
+
+  @override
+  String get weatherThunderstorm => 'Gewitter';
+
+  @override
+  String get weatherThunderstormHail => 'Gewitter mit Hagel';
+
+  @override
+  String get weatherUnknown => 'Unbekannt';
+
+  @override
   String get loginId => 'E-Mail oder Name';
 
   @override

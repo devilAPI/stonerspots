@@ -812,6 +812,114 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapMyLocation => 'My location';
 
   @override
+  String get mapSearch => 'Search spots';
+
+  @override
+  String get mapSearchHint => 'Name of a spot';
+
+  @override
+  String get mapSearchClose => 'Close search';
+
+  @override
+  String get mapSearchClear => 'Clear';
+
+  @override
+  String get mapSearchTooShort => 'Type at least 2 characters';
+
+  @override
+  String get mapSearchNoResult => 'No spot with that name';
+
+  @override
+  String get mapSearchError => 'Search failed';
+
+  @override
+  String get weatherTitle => 'Weather';
+
+  @override
+  String weatherWind(String speed) {
+    return 'Wind $speed km/h';
+  }
+
+  @override
+  String weatherRainChance(int percent) {
+    return 'Rain $percent%';
+  }
+
+  @override
+  String weatherPrecipitation(String amount) {
+    return '$amount mm';
+  }
+
+  @override
+  String get weatherNextHours => 'Next hours';
+
+  @override
+  String get weatherAttribution => 'Weather: Open-Meteo.com';
+
+  @override
+  String get weatherClear => 'Clear';
+
+  @override
+  String get weatherMainlyClear => 'Mainly clear';
+
+  @override
+  String get weatherPartlyCloudy => 'Partly cloudy';
+
+  @override
+  String get weatherOvercast => 'Overcast';
+
+  @override
+  String get weatherFog => 'Fog';
+
+  @override
+  String get weatherDrizzle => 'Drizzle';
+
+  @override
+  String get weatherFreezingDrizzle => 'Freezing drizzle';
+
+  @override
+  String get weatherRainLight => 'Light rain';
+
+  @override
+  String get weatherRain => 'Rain';
+
+  @override
+  String get weatherRainHeavy => 'Heavy rain';
+
+  @override
+  String get weatherFreezingRain => 'Freezing rain';
+
+  @override
+  String get weatherSnowLight => 'Light snow';
+
+  @override
+  String get weatherSnow => 'Snow';
+
+  @override
+  String get weatherSnowHeavy => 'Heavy snow';
+
+  @override
+  String get weatherSnowGrains => 'Snow grains';
+
+  @override
+  String get weatherShowers => 'Rain showers';
+
+  @override
+  String get weatherShowersHeavy => 'Heavy rain showers';
+
+  @override
+  String get weatherSnowShowers => 'Snow showers';
+
+  @override
+  String get weatherThunderstorm => 'Thunderstorm';
+
+  @override
+  String get weatherThunderstormHail => 'Thunderstorm with hail';
+
+  @override
+  String get weatherUnknown => 'Unknown';
+
+  @override
   String get loginId => 'Email or name';
 
   @override

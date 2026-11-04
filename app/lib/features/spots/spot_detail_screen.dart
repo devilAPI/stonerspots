@@ -16,6 +16,7 @@ import '../auth/auth_controller.dart';
 import '../reviews/rating_widgets.dart';
 import '../reviews/reviews_section.dart';
 import '../saved/save_spot_button.dart';
+import '../weather/spot_weather_card.dart';
 import 'edit_tags_dialog.dart';
 import 'maps_link.dart';
 import 'photo_viewer.dart';
@@ -408,6 +409,13 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ],
+                // hides itself while loading and when the service fails
+                SpotWeatherCard(
+                  spotId: spot.id,
+                  lat: spot.lat,
+                  lon: spot.lon,
+                  padding: const EdgeInsets.only(top: 16),
+                ),
               ],
             ),
           );
