@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -219,5 +220,37 @@ func TestExampleFileParses(t *testing.T) {
 	}
 	if c.DatabaseURL == "" || len(c.AllowedOrigins) != 1 {
 		t.Fatalf("config = %+v", c)
+	}
+	// new installs listen locally, behind a reverse proxy on the same machine
+	if c.Addr != "127.0.0.1:8080" || fmt.Sprint(c.TrustedProxies) != "[127.0.0.1/32 ::1/128]" {
+		t.Fatalf("addr = %q, proxies = %v", c.Addr, c.TrustedProxies)
+	}
+}
+
+func TestListenWarnings(t *testing.T) {
+	loopback, _ := parseProxies([]string{"127.0.0.1", "::1"})
+	for name, tc := range map[string]struct {
+		addr, url string
+		proxies   []netip.Prefix
+		want      string
+	}{
+		"all interfaces, no proxy":  {":8080", "https://api.example.com", nil, "all interfaces"},
+		"0.0.0.0, no proxy":         {"0.0.0.0:8080", "https://api.example.com", nil, "all interfaces"},
+		"[::], no proxy":            {"[::]:8080", "https://api.example.com", nil, "all interfaces"},
+		"loopback, no proxy":        {"127.0.0.1:8080", "https://api.example.com", nil, "share one rate limit"},
+		"localhost, no proxy":       {"localhost:8080", "https://api.example.com", nil, "share one rate limit"},
+		"::1, no proxy":             {"[::1]:8080", "https://api.example.com", nil, "share one rate limit"},
+		"loopback behind proxy":     {"127.0.0.1:8080", "https://api.example.com", loopback, ""},
+		"all interfaces, proxy set": {":8080", "https://api.example.com", loopback, ""},
+		"local development":         {":8080", "http://localhost:8080", nil, ""},
+		"one LAN address, no proxy": {"192.168.1.10:8080", "https://api.example.com", nil, ""},
+		"unparsable addr, no panic": {"8080", "https://api.example.com", nil, ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got := strings.Join(listenWarnings(Config{Addr: tc.addr, PublicBaseURL: tc.url, TrustedProxies: tc.proxies}), "\n")
+			if (tc.want == "" && got != "") || !strings.Contains(got, tc.want) {
+				t.Fatalf("warnings = %q, want %q", got, tc.want)
+			}
+		})
 	}
 }

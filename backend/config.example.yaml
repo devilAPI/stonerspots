@@ -6,8 +6,12 @@
 # optional; environment variables (in brackets) override the file, and missing
 # values fall back to the local dev defaults shown here.
 
-# Address to listen on [ADDR]
-addr: ":8080"
+# Address to listen on [ADDR]. On a server the API listens on localhost only
+# and a reverse proxy (Caddy, nginx) on the same machine serves it over HTTPS
+# (see the README). ":8080" (all interfaces, also the default when this key
+# is missing) lets other machines connect directly, e.g. a phone in the LAN
+# during development; never forward that port to the internet.
+addr: "127.0.0.1:8080"
 
 # Public HTTPS origin of this server, used for absolute photo URLs [PUBLIC_BASE_URL]
 public_base_url: "http://localhost:8080"
@@ -37,11 +41,15 @@ update_dir: ""
 geocoder_url: "https://nominatim.openstreetmap.org"
 
 # Reverse proxies (IPs or CIDR ranges) whose X-Forwarded-For header is
-# trusted to name the client, e.g. ["127.0.0.1", "::1"] when Caddy or nginx
-# runs on the same machine. Empty: the connection address is the client,
-# which is right when clients connect directly. Rate limits work per client
-# IP, so a wrong value lets clients dodge them [TRUSTED_PROXIES, comma-separated]
-trusted_proxies: []
+# trusted to name the client. Rate limits work per client IP:
+#   - proxy on the same machine (addr on 127.0.0.1): its loopback addresses,
+#     as below. Left empty, every client looks like the proxy and all of them
+#     share one rate limit (one script locks everybody out of logging in).
+#   - proxy on another machine: its LAN address, e.g. ["192.168.1.2"].
+#   - no proxy, clients connect directly: [] (never list addresses clients
+#     connect from, or they can fake their IP with the header).
+# [TRUSTED_PROXIES, comma-separated]
+trusted_proxies: ["127.0.0.1/32", "::1/128"]
 
 # Rate limits (N requests per period). All periods are duration strings like "1m", "1h".
 # Zero disables the limit. Override via env vars with the same names in uppercase.

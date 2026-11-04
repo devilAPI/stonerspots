@@ -220,7 +220,43 @@ func Load() (Config, error) {
 		}
 		log.Printf("WARNING: jwt_secret %s; fine for local development only", problem)
 	}
+	for _, w := range listenWarnings(c) {
+		log.Printf("WARNING: %s", w)
+	}
 	return c, nil
+}
+
+// listenWarnings points out listen settings that are wrong for a public
+// server (public_base_url not localhost). The API cannot tell whether a
+// reverse proxy runs in front of it, so these are warnings, not errors.
+func listenWarnings(c Config) []string {
+	if isLocal(c.PublicBaseURL) || len(c.TrustedProxies) > 0 {
+		return nil
+	}
+	host, _, err := net.SplitHostPort(c.Addr)
+	if err != nil {
+		return nil // ListenAndServe reports a bad addr
+	}
+	switch {
+	case host == "" || host == "0.0.0.0" || host == "::":
+		return []string{fmt.Sprintf("addr %q listens on all interfaces and trusted_proxies is empty: "+
+			"clients can reach the API directly, without the TLS of a reverse proxy, and behind a "+
+			"proxy all clients would share one rate limit. Put Caddy or nginx in front and set "+
+			`addr: "127.0.0.1:8080" and trusted_proxies: ["127.0.0.1", "::1"]`, c.Addr)}
+	case isLoopback(host):
+		return []string{fmt.Sprintf("addr %q only accepts local connections (a reverse proxy) but "+
+			"trusted_proxies is empty: every client is taken for the proxy and all share one rate "+
+			`limit. Set trusted_proxies: ["127.0.0.1", "::1"]`, c.Addr)}
+	}
+	return nil
+}
+
+func isLoopback(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	a, err := netip.ParseAddr(host)
+	return err == nil && a.IsLoopback()
 }
 
 func weakSecret(s []byte) string {

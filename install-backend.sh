@@ -15,7 +15,9 @@
 # Layout:
 #   /opt/stonerspots/                         api, makeadmin, migrations/ (replaced on update)
 #   /etc/stonerspots/config.yaml              settings; created once, never overwritten
-#   /var/lib/stonerspots/uploads/             uploaded photos
+#   /etc/stonerspots/release-signing.pub      optional: public key the downloads must be signed with
+#   /var/lib/stonerspots/                     the service's own folder (systemd StateDirectory)
+#   /var/lib/stonerspots/uploads/             uploaded photos (created by the API)
 #   /var/lib/stonerspots-update/              update requests from the admin page
 #   /etc/systemd/system/stonerspots-backend.service
 #   /etc/systemd/system/stonerspots-update.{path,service}
@@ -25,6 +27,12 @@
 # stonerspots-update.path notices it and runs update-backend.sh, which runs
 # this script (installed as /opt/stonerspots/install-backend.sh) with
 # --release or --dev and reports to /var/lib/stonerspots-update/status/.
+#
+# Rule for everything that runs as root here: never create, change, copy or
+# remove anything by name inside a folder the service user can write to
+# (/var/lib/stonerspots, .../request). The service user could have swapped
+# any name in there for a link to a file of root's. Such folders are left to
+# systemd (StateDirectory=) or handled with the service user's rights.
 #
 # The database itself (MariaDB 11.4) is not installed; point config.yaml at it.
 set -euo pipefail
@@ -44,6 +52,15 @@ UNIT_FILE="/etc/systemd/system/${SERVICE}.service"
 # How long a restarted service must stay up to count as started: longer than
 # the unit's RestartSec, so that a crash loop is seen between two attempts.
 STARTUP_SECONDS=12
+# Release signatures (see README, "Signed releases"): CI signs SHA256SUMS.txt
+# with ssh-keygen -Y sign; with this public key present, nothing unsigned is
+# installed or run.
+SIGNING_KEY="$CONFIG_DIR/release-signing.pub"
+SIGNING_NAMESPACE=stonerspots-release
+SIGNING_KEY_OWNER=0
+# Raised whenever the units below change, so that an install that is
+# otherwise up to date still gets them on the next run.
+UNITS_VERSION=2
 
 usage() {
   cat <<EOF
@@ -62,6 +79,238 @@ EOF
 
 log() { printf '\033[1m==>\033[0m %s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+warn() {
+  printf '\n\033[1;33m!!! WARNING !!!\033[0m\n' >&2
+  printf '    %s\n' "$@" >&2
+  printf '\n' >&2
+}
+
+# verify_signature <SHA256SUMS.txt> <URL of SHA256SUMS.txt.sig> <work dir>
+# Checks the CI signature of the checksum list against SIGNING_KEY. Without
+# that key it only warns: the checksums alone prove a complete download,
+# not who built it.
+verify_signature() {
+  local sums=$1 sig_url=$2 work=$3 line uid mode
+  if [ ! -e "$SIGNING_KEY" ] && [ ! -L "$SIGNING_KEY" ]; then
+    warn "No release signing key at ${SIGNING_KEY}." \
+      "This download is checked for completeness only, NOT for who built it:" \
+      "whoever can change the GitHub release can run code as root on this server." \
+      "Set up the key as the README describes (\"Signed releases\")."
+    return 0
+  fi
+  if [ -L "$SIGNING_KEY" ] || [ ! -f "$SIGNING_KEY" ]; then
+    die "${SIGNING_KEY} must be a plain file, not a link"
+  fi
+  read -r uid mode < <(stat -c '%u %a' -- "$SIGNING_KEY")
+  if [ "$uid" != "$SIGNING_KEY_OWNER" ] || [ $((8#$mode & 8#022)) -ne 0 ]; then
+    die "${SIGNING_KEY} must belong to root and be writable by root only"
+  fi
+  command -v ssh-keygen >/dev/null || die "ssh-keygen (OpenSSH 8.2 or newer) is required to check the release signature"
+  # Accepts a bare public key ("ssh-ed25519 AAAA... comment") as well as
+  # allowed_signers lines ("stonerspots-release ssh-ed25519 AAAA...").
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      '' | '#'*) ;;
+      ssh-* | ecdsa-* | sk-*)
+        printf '%s namespaces="%s" %s\n' "$SIGNING_NAMESPACE" "$SIGNING_NAMESPACE" "$line" ;;
+      *) printf '%s\n' "$line" ;;
+    esac
+  done < "$SIGNING_KEY" > "$work/allowed_signers"
+  [ -s "$work/allowed_signers" ] || die "${SIGNING_KEY} holds no key"
+  curl -fsSL -o "$work/SHA256SUMS.txt.sig" "$sig_url" \
+    || die "this build is not signed (no SHA256SUMS.txt.sig), but ${SIGNING_KEY} requires a signature; nothing was installed"
+  ssh-keygen -Y verify -f "$work/allowed_signers" -I "$SIGNING_NAMESPACE" -n "$SIGNING_NAMESPACE" \
+    -s "$work/SHA256SUMS.txt.sig" < "$sums" >/dev/null 2>&1 \
+    || die "the signature of SHA256SUMS.txt does not match ${SIGNING_KEY}; nothing was installed"
+  log "Release signature checked against ${SIGNING_KEY}"
+}
+
+# The update runner (installed as $INSTALL_DIR/update-backend.sh). Its paths
+# are the constants at the top of this script.
+update_runner() {
+  cat <<'RUNNER'
+#!/usr/bin/env bash
+# Runs a backend update the admin page asked for. Started as root by
+# stonerspots-update.service when the request file appears; written by
+# install-backend.sh.
+#
+# request/ belongs to the API user, who may have put anything there: a link
+# to a file of root's, a FIFO, a folder. So root never opens, follows or
+# removes anything in it with root's rights: the request is read (at most 16
+# bytes, for at most 5 seconds) and then removed as the API user, and only
+# the exact words "release" or "dev" are acted on.
+set -uo pipefail
+umask 027
+req=/var/lib/stonerspots-update/request/channel
+status=/var/lib/stonerspots-update/status
+api_user=stonerspots
+if [ "$(id -u)" -eq 0 ]; then
+  as_api() { setpriv --reuid="$api_user" --regid="$api_user" --clear-groups --no-new-privs -- "$@"; }
+else
+  as_api() { "$@"; } # not root (tests): there are no rights to drop
+fi
+[ -e "$req" ] || [ -L "$req" ] || exit 0
+channel=""
+if [ -f "$req" ] && [ ! -L "$req" ]; then
+  # NUL bytes become "?" so they cannot vanish from the comparison below
+  channel=$(as_api timeout 5 head -c 16 -- "$req" 2>/dev/null | tr '\000' '?')
+fi
+# whatever it was, it goes (else the path unit fires again and again)
+as_api rm -rf -- "$req"
+case "$channel" in
+  release | dev) ;;
+  *) echo "ignoring update request: not a known channel" >&2; exit 0 ;;
+esac
+now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+from=$(cat /opt/stonerspots/VERSION 2>/dev/null || true)
+started=$(now)
+state() { # state <running|done|failed> [to] [finished]
+  printf 'state=%s\nchannel=%s\nfrom=%s\nto=%s\nstarted=%s\nfinished=%s\n' \
+    "$1" "$channel" "$from" "${2:-}" "$started" "${3:-}" > "$status/state.new"
+  mv -f "$status/state.new" "$status/state"
+}
+state running
+# the installer gets the usual umask: the service user must read its files
+if (umask 022 && exec /opt/stonerspots/install-backend.sh "--$channel") > "$status/log" 2>&1; then
+  result=done
+else
+  result=failed
+fi
+state "$result" "$(cat /opt/stonerspots/VERSION 2>/dev/null || true)" "$(now)"
+RUNNER
+}
+
+# The API's unit. It belongs to this script and is rewritten on every run;
+# local changes go into a drop-in (systemctl edit stonerspots-backend).
+api_unit() {
+  cat <<EOF
+# stonerspots-units: ${UNITS_VERSION}
+# Written by install-backend.sh on every update; put local changes into a
+# drop-in: systemctl edit ${SERVICE}
+[Unit]
+Description=Stonerspots backend API
+Documentation=https://github.com/${REPO}
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+User=${SERVICE_USER}
+Group=${SERVICE_USER}
+WorkingDirectory=${INSTALL_DIR}
+Environment=CONFIG_FILE=${CONFIG_DIR}/config.yaml
+Environment=UPDATE_DIR=${UPDATE_DIR}
+ExecStart=${INSTALL_DIR}/api
+Restart=on-failure
+RestartSec=5s
+
+# ${DATA_DIR}, made and kept owned by ${SERVICE_USER} by systemd (the API
+# creates uploads/ in it itself)
+StateDirectory=${DATA_DIR#/var/lib/}
+StateDirectoryMode=0750
+UMask=0077
+
+# Resources: a flood of large uploads kills only this service (and systemd
+# restarts it), never the database next to it. GOMEMLIMIT makes Go collect
+# garbage harder before that point.
+MemoryMax=1G
+Environment=GOMEMLIMIT=850MiB
+TasksMax=512
+LimitNOFILE=8192
+
+# Sandbox. No MemoryDenyWriteExecute: AVIF decoding compiles WebAssembly
+# to machine code at run time.
+NoNewPrivileges=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ReadWritePaths=${UPDATE_DIR}/request
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectProc=invisible
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RemoveIPC=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target
+EOF
+}
+
+updater_path_unit() {
+  cat <<EOF
+# stonerspots-units: ${UNITS_VERSION}
+[Unit]
+Description=Stonerspots backend update requests from the admin page
+
+[Path]
+PathExists=${UPDATE_DIR}/request/channel
+
+[Install]
+WantedBy=paths.target
+EOF
+}
+
+# Runs as root: it installs files and restarts services. It is sandboxed as
+# far as that allows: it writes only where an update writes.
+updater_service_unit() {
+  cat <<EOF
+# stonerspots-units: ${UNITS_VERSION}
+[Unit]
+Description=Stonerspots backend update (asked for on the admin page)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=${INSTALL_DIR}/update-backend.sh
+# a stuck download or a request that hangs must not block updates forever
+TimeoutStartSec=20min
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=-${INSTALL_DIR} -${CONFIG_DIR} -${UPDATE_DIR} -/etc/systemd/system
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictNamespaces=true
+RestrictRealtime=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+SystemCallArchitectures=native
+EOF
+}
+
+# addr_listens_everywhere <config.yaml>: true when its addr: has no host
+# (":8080", "0.0.0.0:8080", "[::]:8080") or there is no addr: at all.
+addr_listens_everywhere() {
+  local addr
+  addr=$(sed -n 's/^addr:[[:space:]]*["'\'']\{0,1\}\([^"'\''#[:space:]]*\).*/\1/p' "$1" | head -n1)
+  case "$addr" in
+    '' | :* | 0.0.0.0:* | '[::]:'*) return 0 ;;
+  esac
+  return 1
+}
+
+# Sourced (by the tests): stop here, with the functions defined.
+(return 0 2>/dev/null) && return 0
 
 channel=""
 force=false
@@ -125,6 +374,7 @@ file=$(basename "$url")
 # a service that fails to start is repaired by installing again)
 svc_state=$(systemctl show -p ActiveState --value "$SERVICE" 2>/dev/null || true)
 if [ "$installed" = "$tag" ] && ! $force && [ -f "/etc/systemd/system/${UPDATER}.path" ] \
+  && grep -qx "# stonerspots-units: ${UNITS_VERSION}" "$UNIT_FILE" 2>/dev/null \
   && { [ "$svc_state" = active ] || [ "$svc_state" = inactive ]; }; then
   log "${tag} is already installed; nothing to do (use --force to reinstall)."
   exit 0
@@ -136,6 +386,9 @@ trap 'rm -rf "$tmp"' EXIT
 log "Downloading ${file}"
 curl -fsSL -o "$tmp/$file" "$url"
 curl -fsSL -o "$tmp/SHA256SUMS.txt" "$(dirname "$url")/SHA256SUMS.txt"
+# Signature first, then the checksum, then unpacking: nothing from the
+# download is opened, let alone run, before both passed.
+verify_signature "$tmp/SHA256SUMS.txt" "$(dirname "$url")/SHA256SUMS.txt.sig" "$tmp"
 (cd "$tmp" && grep -E " \*?${file}\$" SHA256SUMS.txt | sha256sum -c --quiet -) \
   || die "checksum of ${file} does not match SHA256SUMS.txt"
 
@@ -145,7 +398,8 @@ src="$tmp/${file%.tar.gz}"
 
 # An update from the admin page runs the installed copy of this script, which
 # is the one from the last update. Hand over to the copy in the archive, so a
-# fix to this script already applies to the update that delivers it.
+# fix to this script already applies to the update that delivers it. (That
+# copy was checked above, and checks the download again itself.)
 if [ "${BASH_SOURCE[0]:-}" = "$INSTALL_DIR/install-backend.sh" ] && [ -z "${STONERSPOTS_HANDED_OVER:-}" ] \
   && [ -f "$src/install-backend.sh" ] && ! cmp -s "$src/install-backend.sh" "${BASH_SOURCE[0]}"; then
   log "Continuing with the installer of ${tag}"
@@ -165,7 +419,8 @@ if [ -n "$installed" ]; then
 else
   log "Installing ${tag} to ${INSTALL_DIR}"
 fi
-install -d -m 0755 "$INSTALL_DIR"
+# root's: the service user must never be able to change what root runs
+install -d -m 0755 -o root -g root "$INSTALL_DIR"
 # Remember whether the service should run: an update restarts only those. A
 # failed or crash-looping service counts, or installing again would not repair it.
 was_running=false
@@ -197,56 +452,20 @@ elif [ -f "${BASH_SOURCE[0]:-}" ]; then
   # older archives lack it: the copy being run (not there when piped from curl)
   put_script "$INSTALL_DIR/install-backend.sh" < "${BASH_SOURCE[0]}"
 fi
-# The paths below are the constants at the top of this script.
-put_script "$INSTALL_DIR/update-backend.sh" <<'RUNNER'
-#!/usr/bin/env bash
-# Runs a backend update the admin page asked for. Started as root by
-# stonerspots-update.service when the request file appears; written by
-# install-backend.sh. The request folder belongs to the API user, so the
-# request is only read as one word, never followed or trusted further.
-set -uo pipefail
-umask 027
-req=/var/lib/stonerspots-update/request/channel
-status=/var/lib/stonerspots-update/status
-[ -e "$req" ] || [ -L "$req" ] || exit 0
-# anything but a plain file is dropped unread (else the unit fires forever);
-# rm does not follow links
-if [ -L "$req" ] || [ ! -f "$req" ]; then
-  rm -rf "$req"
-  exit 0
-fi
-channel=$(head -c 16 "$req" | tr -cd 'a-z')
-rm -f "$req"
-case "$channel" in
-  release | dev) ;;
-  *) echo "ignoring update request: unknown channel" >&2; exit 0 ;;
-esac
-now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
-from=$(cat /opt/stonerspots/VERSION 2>/dev/null || true)
-started=$(now)
-state() { # state <running|done|failed> [to] [finished]
-  printf 'state=%s\nchannel=%s\nfrom=%s\nto=%s\nstarted=%s\nfinished=%s\n' \
-    "$1" "$channel" "$from" "${2:-}" "$started" "${3:-}" > "$status/state.new"
-  mv -f "$status/state.new" "$status/state"
-}
-state running
-# the installer gets the usual umask: the service user must read its files
-if (umask 022 && exec /opt/stonerspots/install-backend.sh "--$channel") > "$status/log" 2>&1; then
-  result=done
-else
-  result=failed
-fi
-state "$result" "$(cat /opt/stonerspots/VERSION 2>/dev/null || true)" "$(now)"
-RUNNER
+update_runner | put_script "$INSTALL_DIR/update-backend.sh"
 # install via a temp name + rename so a running process keeps its old binary
 install -m 0755 "$src/api" "$INSTALL_DIR/api.new" && mv -f "$INSTALL_DIR/api.new" "$INSTALL_DIR/api"
 echo "$tag" > "$INSTALL_DIR/VERSION"
 chmod 0644 "$INSTALL_DIR/VERSION"
 
-install -d -m 0750 -o "$SERVICE_USER" -g "$SERVICE_USER" "$DATA_DIR" "$DATA_DIR/uploads"
-# Outside DATA_DIR on purpose: the API user owns that and could swap a
-# folder in it for a link to where root writes. Here only request/ is
-# theirs; setgid makes the runner's status files readable for their group.
+# The data folder (/var/lib/stonerspots) is systemd's to create and own
+# (StateDirectory= in the unit), and the API makes uploads/ in it itself:
+# root does nothing inside it, see the rule at the top.
+#
+# The update folder is root's, so nothing in it can be swapped by the
+# service user: only request/ is theirs (and it is only ever touched as a
+# whole, by its fixed name in this root-owned folder). setgid makes the
+# runner's status files readable for their group.
 install -d -m 0750 -o root -g "$SERVICE_USER" "$UPDATE_DIR"
 install -d -m 2750 -o root -g "$SERVICE_USER" "$UPDATE_DIR/status"
 install -d -m 0700 -o "$SERVICE_USER" -g "$SERVICE_USER" "$UPDATE_DIR/request"
@@ -275,67 +494,34 @@ else
     log "Settings your config.yaml does not set (their defaults apply):${missing}"
     echo "  see ${INSTALL_DIR}/config.example.yaml"
   fi
+  if addr_listens_everywhere "$CONFIG_DIR/config.yaml"; then
+    log "Hint: ${CONFIG_DIR}/config.yaml listens on all interfaces (addr)."
+    echo "  Behind a reverse proxy on this machine (recommended, see the README) set"
+    echo "    addr: \"127.0.0.1:8080\""
+    echo "    trusted_proxies: [\"127.0.0.1/32\", \"::1/128\"]"
+    echo "  so that clients cannot skip the proxy and rate limits apply per client."
+  fi
 fi
 
 if ! command -v systemctl >/dev/null || [ ! -d /run/systemd/system ]; then
+  # Without systemd nobody else makes the data folder. Only a missing one is
+  # made; /var/lib is root's, so the service user cannot have put a link here.
+  [ -d "$DATA_DIR" ] || install -d -m 0750 -o "$SERVICE_USER" -g "$SERVICE_USER" "$DATA_DIR"
   log "$([ -n "$installed" ] && echo Updated to || echo Installed) ${tag}, but systemd is not running here; start it by hand:"
   echo "  cd ${INSTALL_DIR} && sudo -u ${SERVICE_USER} CONFIG_FILE=${CONFIG_DIR}/config.yaml ./api"
   exit 0
 fi
 
-# The unit belongs to this script and is rewritten on every run; put local
-# changes into a drop-in (systemctl edit stonerspots-backend), which stays.
+# Units are rewritten on every run (UNITS_VERSION); local changes belong in
+# drop-ins (systemctl edit <unit>), which stay.
 log "Writing ${UNIT_FILE}"
-cat > "$UNIT_FILE" <<EOF
-[Unit]
-Description=Stonerspots backend API
-Documentation=https://github.com/${REPO}
-After=network-online.target mariadb.service
-Wants=network-online.target
-
-[Service]
-User=${SERVICE_USER}
-Group=${SERVICE_USER}
-WorkingDirectory=${INSTALL_DIR}
-Environment=CONFIG_FILE=${CONFIG_DIR}/config.yaml
-Environment=UPDATE_DIR=${UPDATE_DIR}
-ExecStart=${INSTALL_DIR}/api
-Restart=on-failure
-RestartSec=5s
-
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
-PrivateTmp=true
-PrivateDevices=true
-ProtectKernelTunables=true
-ProtectControlGroups=true
-ReadWritePaths=${DATA_DIR} ${UPDATE_DIR}/request
-
-[Install]
-WantedBy=multi-user.target
-EOF
+# kept for the way back below: if the service does not start, the old
+# binary gets its old unit too
+[ -f "$UNIT_FILE" ] && cp -p "$UNIT_FILE" "$tmp/unit.previous"
+api_unit > "$UNIT_FILE"
 log "Writing ${UPDATER}.path and ${UPDATER}.service (updates from the admin page)"
-cat > "/etc/systemd/system/${UPDATER}.path" <<EOF
-[Unit]
-Description=Stonerspots backend update requests from the admin page
-
-[Path]
-PathExists=${UPDATE_DIR}/request/channel
-
-[Install]
-WantedBy=paths.target
-EOF
-cat > "/etc/systemd/system/${UPDATER}.service" <<EOF
-[Unit]
-Description=Stonerspots backend update (asked for on the admin page)
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=${INSTALL_DIR}/update-backend.sh
-EOF
+updater_path_unit > "/etc/systemd/system/${UPDATER}.path"
+updater_service_unit > "/etc/systemd/system/${UPDATER}.service"
 systemctl daemon-reload
 systemctl enable --quiet "$SERVICE"
 systemctl enable --now --quiet "${UPDATER}.path"
@@ -343,9 +529,9 @@ systemctl enable --now --quiet "${UPDATER}.path"
 # A unit is active as soon as its process exists, so one good look proves
 # nothing: the API fails on start only after it tried the migrations.
 restart_and_check() {
-  local i
+  local _
   systemctl restart "$SERVICE" || return 1
-  for i in $(seq "$STARTUP_SECONDS"); do
+  for _ in $(seq "$STARTUP_SECONDS"); do
     sleep 1
     systemctl is-active --quiet "$SERVICE" || return 1
   done
@@ -356,6 +542,8 @@ if $first_install || [ -z "$installed" ]; then
   cat <<EOF
   1. Edit ${CONFIG_DIR}/config.yaml: database, public_base_url, allowed_origins.
      (The database must exist; the API creates the tables on start.)
+     The API listens on 127.0.0.1:8080 only: put a reverse proxy with HTTPS in
+     front of it (the README has a ready Caddyfile and a checklist for home servers).
   2. sudo systemctl start ${SERVICE}
   3. Check it: systemctl status ${SERVICE}   /   journalctl -u ${SERVICE} -f
   Make a user admin: cd ${INSTALL_DIR} && sudo -u ${SERVICE_USER} CONFIG_FILE=${CONFIG_DIR}/config.yaml ./makeadmin -email you@example.com
@@ -371,6 +559,10 @@ elif $was_running; then
     # binary refuses a database newer than its migrations folder.
     cp -p "$INSTALL_DIR/api.previous" "$INSTALL_DIR/api.new" && mv -f "$INSTALL_DIR/api.new" "$INSTALL_DIR/api"
     echo "$installed" > "$INSTALL_DIR/VERSION"
+    if [ -f "$tmp/unit.previous" ] && ! cmp -s "$tmp/unit.previous" "$UNIT_FILE"; then
+      cp "$tmp/unit.previous" "$UNIT_FILE"
+      systemctl daemon-reload
+    fi
     systemctl reset-failed "$SERVICE" 2>/dev/null || true
     restart_and_check || die "${SERVICE} does not start on ${installed} either; see: journalctl -u ${SERVICE} -n 50"
     die "${tag} did not start, back on ${installed}; see: journalctl -u ${SERVICE} -n 50"

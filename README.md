@@ -34,7 +34,8 @@ per day, default 100; see `backend/config.example.yaml`). An existing
 # 1. database (MariaDB 11.4 on 127.0.0.1:3307)
 make db-up
 
-# 2. API on :8080 (config.yaml: database, JWT secret, CORS, ...; env vars override it)
+# 2. API on 127.0.0.1:8080 (config.yaml: database, JWT secret, CORS, ...; env vars
+#    override it; ADDR=:8080 lets a phone in the LAN connect)
 cd backend
 cp config.example.yaml config.yaml
 go run ./cmd/api
@@ -55,7 +56,8 @@ Optional demo data from a GPX file: `cd backend && go run ./cmd/seedgpx -gpx spo
 ## Install the backend on a server
 
 `install-backend.sh` downloads the newest backend build from the GitHub
-releases (amd64 or arm64), verifies its checksum and installs it as the
+releases (amd64 or arm64), verifies its checksum (and its signature, once
+the server has the [release key](#signed-releases)) and installs it as the
 systemd service `stonerspots-backend`. Run it again to update.
 
 One-liner, straight from GitHub:
@@ -80,7 +82,15 @@ the script goes back to it and reports the update as failed.
 Binaries go to `/opt/stonerspots`, photos to `/var/lib/stonerspots/uploads`.
 The first run creates `/etc/stonerspots/config.yaml` with a random JWT secret;
 fill in the database there (MariaDB 11.4, not installed by the script), then
-`sudo systemctl start stonerspots-backend`.
+`sudo systemctl start stonerspots-backend`. The API listens on
+`127.0.0.1:8080` only: put a reverse proxy with HTTPS in front of it
+(see [Reverse proxy](#reverse-proxy-caddy) and the
+[home server checklist](#home-server-checklist)).
+
+The systemd units are rewritten by every run of the script (they are
+sandboxed: no capabilities, read-only system, `MemoryMax=1G`, syscall
+filter, ...). Put local changes into a drop-in, which stays:
+`sudo systemctl edit stonerspots-backend`.
 
 Admins can also update the backend from the app: admin page → Actions →
 "Update backend to newest" / "… newest dev". The API runs unprivileged, so
@@ -90,7 +100,235 @@ copy of this script (`/opt/stonerspots/install-backend.sh --release|--dev`),
 reporting progress and its log back to the page. It hands over to the script
 inside the new build, so installer fixes apply to the update that delivers them.
 Installs from before this feature get the units by running `install-backend.sh`
-once more.
+once more. Prefer "newest" (releases) on a real server: the dev channel is a
+new build for every push to main.
+
+### Signed releases
+
+The installer runs as root and runs what it downloads, so it should only
+accept builds made by this repository's CI. CI signs `SHA256SUMS.txt` (the
+checksums of the backend tarballs) with an ed25519 key; a server that has the
+public key refuses any build without a valid signature, including the
+installer inside the archive. Without the key the installer only checks the
+checksums and prints a warning.
+
+1. Make the key pair on your own computer (not on the server, not in the repo).
+   CI cannot type a passphrase, hence `-N ''`; keep the private key in your
+   password manager and delete the file afterwards:
+
+   ```sh
+   ssh-keygen -t ed25519 -N '' -C stonerspots-release -f stonerspots-release
+   ```
+
+2. Add the private key as the repository secret `RELEASE_SIGNING_KEY`
+   (Settings → Secrets and variables → Actions → New repository secret,
+   paste the whole file including the `BEGIN`/`END` lines), or
+   `gh secret set RELEASE_SIGNING_KEY < stonerspots-release`.
+3. Push to main and wait until the new `dev-<n>` release has a
+   `SHA256SUMS.txt.sig` (the "Sign backend checksums" job warns when the
+   secret is missing).
+4. Only then put the public key on the server (from then on, unsigned builds
+   are refused):
+
+   ```sh
+   sudo mkdir -p /etc/stonerspots
+   sudo install -m 0644 -o root -g root stonerspots-release.pub /etc/stonerspots/release-signing.pub
+   ```
+
+   For a new server do this before the first `install-backend.sh` run. The
+   script you pipe from GitHub is not covered by the signature (the builds
+   it installs are): read it first, or run it from a checkout you trust.
+
+Check a download by hand:
+
+```sh
+printf 'stonerspots-release %s\n' "$(cat stonerspots-release.pub)" > allowed_signers
+ssh-keygen -Y verify -f allowed_signers -I stonerspots-release -n stonerspots-release \
+  -s SHA256SUMS.txt.sig < SHA256SUMS.txt
+sha256sum -c --ignore-missing SHA256SUMS.txt
+# GitHub build provenance of the tarball (needs the gh CLI)
+gh attestation verify stonerspots-backend-dev-42-linux-amd64.tar.gz --repo devilAPI/stonerspots
+```
+
+What it protects against: a malicious step in any other CI job (Flutter,
+pub packages, third-party actions) or a file swapped in a release. What it
+does not: anyone who can push workflow changes to main can get builds
+signed, so protect main (branch protection, 2FA on the GitHub account). If
+the key leaks, make a new pair, replace the secret and the file on the server.
+
+### Reverse proxy (Caddy)
+
+The API speaks plain HTTP on `127.0.0.1:8080`; Caddy in front of it gets the
+TLS certificate (Let's Encrypt), limits request bodies and passes the real
+client address on. `/etc/caddy/Caddyfile` (replace `api.example.org`; its DNS
+name must point at your public IP, a DynDNS name works):
+
+```caddyfile
+{
+	servers {
+		timeouts {
+			read_header 10s
+			read_body 2m
+			write 2m
+			idle 2m
+		}
+	}
+}
+
+api.example.org {
+	encode zstd gzip
+	request_body {
+		max_size 10MB
+	}
+	reverse_proxy 127.0.0.1:8080 {
+		# the client as Caddy sees it; anything the client sent is replaced
+		header_up X-Forwarded-For {remote_host}
+		transport http {
+			dial_timeout 5s
+			response_header_timeout 2m
+		}
+	}
+	log {
+		output file /var/log/caddy/stonerspots.log {
+			roll_size 50MiB
+			roll_keep 5
+		}
+		format json
+	}
+}
+```
+
+And in `/etc/stonerspots/config.yaml` (new installs have these already):
+
+```yaml
+addr: "127.0.0.1:8080"
+public_base_url: "https://api.example.org"
+trusted_proxies: ["127.0.0.1/32", "::1/128"]
+```
+
+Without `trusted_proxies` every request seems to come from Caddy, so all
+clients share one rate limit and one script can lock everybody out of logging
+in; the API warns about that at start. `sudo systemctl reload caddy` and
+`sudo systemctl restart stonerspots-backend` after changing them.
+
+### Home server checklist
+
+- **Only Caddy is reachable.** `addr: "127.0.0.1:8080"` and
+  `trusted_proxies` as above. On the router forward only TCP 80 and 443 to
+  the server, never 8080 or 3306. Firewall on the server, e.g. with ufw:
+
+  ```sh
+  sudo ufw default deny incoming
+  sudo ufw default allow outgoing
+  sudo ufw allow from 192.168.1.0/24 to any port 22 proto tcp   # SSH from the LAN only
+  sudo ufw allow 80,443/tcp
+  sudo ufw enable
+  ```
+
+  or nftables (`/etc/nftables.conf`, then `sudo systemctl enable --now nftables`):
+
+  ```
+  table inet filter {
+    chain input {
+      type filter hook input priority 0; policy drop;
+      ct state established,related accept
+      iif lo accept
+      meta l4proto { icmp, ipv6-icmp } accept
+      ip saddr 192.168.1.0/24 tcp dport 22 accept
+      tcp dport { 80, 443 } accept
+    }
+  }
+  ```
+
+  Ports published by Docker bypass ufw: a MariaDB container must publish
+  `127.0.0.1:3306:3306`, not `3306:3306`.
+- **Database on localhost only.** MariaDB with `bind-address = 127.0.0.1`
+  (Debian: `/etc/mysql/mariadb.conf.d/50-server.cnf`), its own user with a
+  long random password instead of the example `stonerspots`:
+
+  ```sql
+  CREATE DATABASE stonerspots CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE USER 'stonerspots'@'127.0.0.1' IDENTIFIED BY '<openssl rand -hex 24>';
+  GRANT ALL PRIVILEGES ON stonerspots.* TO 'stonerspots'@'127.0.0.1';
+  ```
+
+  Limitation: the API applies its migrations on every start, so this user
+  needs to change tables (all rights on its own database). It gets no rights
+  on other databases and none of the global ones (`FILE`, `SUPER`, ...). A
+  separate migration user is not supported yet. Set `database.port: 3306` in
+  `config.yaml` (the example uses the dev port 3307).
+- **Backups of the database and the photos**, encrypted and off the machine,
+  e.g. with [restic](https://restic.net) (encrypts by default) from a root
+  cron job or systemd timer:
+
+  ```sh
+  #!/bin/sh
+  # /usr/local/sbin/stonerspots-backup (root, 0700)
+  set -eu
+  export RESTIC_REPOSITORY=sftp:backup@nas.lan:/srv/restic/stonerspots
+  export RESTIC_PASSWORD_FILE=/root/.restic-password
+  mkdir -p -m 0700 /var/backups/stonerspots
+  mariadb-dump --single-transaction --routines --triggers stonerspots \
+    | gzip > /var/backups/stonerspots/db.sql.gz
+  restic backup /var/backups/stonerspots /var/lib/stonerspots/uploads /etc/stonerspots
+  restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
+  ```
+
+  The dump holds email addresses and password hashes: keep it encrypted,
+  and try a restore now and then.
+- **fail2ban.** The API logs every 429 (rate limited) and 5xx response as
+  one journal line, e.g.
+  `429 POST "/api/v1/auth/login" 2ms ip=203.0.113.7 id=4f2a9c0e1b3d5a7c`
+  (after Go's date and time). Wrong passwords are not logged one by one in
+  this version; a client that keeps trying hits the login limit
+  (10/min per IP) and then shows up as 429 lines. A filter for those:
+
+  ```ini
+  # /etc/fail2ban/filter.d/stonerspots.conf
+  [Definition]
+  failregex = ^.* 429 POST "/api/v1/auth/(login|register|refresh)" \S+ ip=<HOST> id=\S+$
+  journalmatch = _SYSTEMD_UNIT=stonerspots-backend.service
+
+  # /etc/fail2ban/jail.d/stonerspots.local
+  [stonerspots]
+  enabled  = true
+  backend  = systemd
+  port     = http,https
+  maxretry = 5
+  findtime = 10m
+  bantime  = 1h
+  ```
+
+  The `ip=` is the real client only with `trusted_proxies` set (else it is
+  Caddy's 127.0.0.1, and fail2ban would ban nobody useful).
+- **Automatic OS updates**: Debian/Ubuntu
+  `sudo apt install unattended-upgrades && sudo dpkg-reconfigure -plow unattended-upgrades`,
+  Fedora `dnf-automatic`. SSH with keys only (`PasswordAuthentication no`,
+  `PermitRootLogin no`).
+- **Memory.** The unit caps the API at `MemoryMax=1G` (with `GOMEMLIMIT`
+  below it), so a flood of big uploads restarts the API instead of taking
+  the database down. Change it with `sudo systemctl edit stonerspots-backend`:
+
+  ```ini
+  [Service]
+  MemoryMax=2G
+  Environment=GOMEMLIMIT=1700MiB
+  ```
+
+  and keep MariaDB away from the OOM killer (`sudo systemctl edit mariadb`,
+  `[Service]` `OOMScoreAdjust=-500`).
+- **Watch the logs** for bursts of 429 (someone scripting against the API)
+  and 5xx (something broken), e.g. daily from cron:
+
+  ```sh
+  journalctl -u stonerspots-backend --since -24h -o cat | grep -cE '^\S+ \S+ 429 '
+  journalctl -u stonerspots-backend --since -24h -o cat | grep -E '^\S+ \S+ 5[0-9]{2} '
+  ```
+
+  Updates from the admin page write their log to
+  `/var/lib/stonerspots-update/status/log` (the admin page shows its end).
+- **Admin page updates**: use "newest" (release), not dev, and set up
+  [signed releases](#signed-releases) first.
 
 ## Web app on GitHub Pages
 

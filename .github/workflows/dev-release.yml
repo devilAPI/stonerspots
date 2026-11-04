@@ -9,6 +9,14 @@ name: Dev build & release
 # untested is published. The web build goes to GitHub Pages (/dev/) as soon
 # as it and the app tests are done, without waiting for the other builds.
 #
+# Supply chain: install-backend.sh runs the backend tarball as root on the
+# server, so only the backend jobs may produce it. The release takes backend
+# files from exactly those artifacts, SHA256SUMS.txt lists only them and is
+# signed in a job of its own (sign-backend), and every app artifact is checked
+# not to carry a backend-named file. Actions are pinned to commit SHAs
+# (Dependabot keeps them current) and every job gets only the permissions it
+# needs.
+#
 # Optional repository settings (Settings -> Secrets and variables -> Actions):
 #   secret   API_URL   public HTTPS URL of the backend the builds talk to, e.g.
 #                      https://api.example.com/api/v1 (a variable API_URL works too;
@@ -20,6 +28,10 @@ name: Dev build & release
 #                      back to OpenStreetMap tiles). The key is compiled into the app.
 #   secret   THUNDERFOREST_KEY  Thunderforest key for the public transport map
 #                      (without it the app does not offer that map). Compiled in too.
+#   secret   RELEASE_SIGNING_KEY  ed25519 private key (OpenSSH format) that signs
+#                      SHA256SUMS.txt; servers with the public key refuse unsigned
+#                      builds. See README, "Signed releases". Without it the
+#                      checksums stay unsigned and the run shows a warning.
 
 on:
   push:
@@ -33,8 +45,7 @@ concurrency:
   group: dev-release
   cancel-in-progress: true
 
-permissions:
-  contents: read
+permissions: {}
 
 env:
   FLUTTER_VERSION: "3.47.5"
@@ -46,6 +57,8 @@ jobs:
   test-backend:
     name: Test backend
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     services:
       mariadb:
         image: mariadb:11.4
@@ -61,8 +74,10 @@ jobs:
     env:
       TEST_DATABASE_URL: root:stonerspots@tcp(127.0.0.1:3306)/?parseTime=true&multiStatements=true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
@@ -75,9 +90,13 @@ jobs:
   test-app:
     name: Test app
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
@@ -92,13 +111,17 @@ jobs:
   build-android:
     name: Build Android
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
           java-version: "17"
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
@@ -117,7 +140,7 @@ jobs:
             --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY"
           mkdir -p ../dist
           cp build/app/outputs/flutter-apk/app-release.apk "../dist/stonerspots-${TAG}-android.apk"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: dist-android
           path: dist/*
@@ -126,15 +149,19 @@ jobs:
   build-linux:
     name: Build Linux
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       # cached: a slow Ubuntu mirror once held this step up for 12 minutes
       - name: Install Linux build dependencies
-        uses: awalsh128/cache-apt-pkgs-action@v1
+        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
         with:
           packages: clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev libjsoncpp-dev
           version: 1
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
@@ -154,7 +181,7 @@ jobs:
             --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY"
           mkdir -p ../dist
           tar -czf "../dist/stonerspots-${TAG}-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: dist-linux
           path: dist/*
@@ -163,12 +190,19 @@ jobs:
   build-backend:
     name: Build backend (linux-${{ matrix.arch }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # build provenance (actions/attest-build-provenance)
+      id-token: write
+      attestations: write
     strategy:
       matrix:
         arch: [amd64, arm64]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
@@ -186,18 +220,80 @@ jobs:
           go build -trimpath -ldflags="-s -w" -o "pkg/$name/makeadmin" ./cmd/makeadmin
           cp -R migrations config.example.yaml schema.example.sql ../install-backend.sh "pkg/$name/"
           tar -czf "../dist/$name.tar.gz" -C pkg "$name"
-      - uses: actions/upload-artifact@v4
+      # verify with: gh attestation verify <tarball> --repo devilAPI/stonerspots
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/stonerspots-backend-*.tar.gz
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: dist-backend-${{ matrix.arch }}
-          path: dist/*
+          path: dist/stonerspots-backend-*.tar.gz
+          if-no-files-found: error
+
+  # Checksums and signature of the backend tarballs, made from nothing but
+  # the two backend artifacts. The signing key is only ever in this job,
+  # which runs no third-party code.
+  sign-backend:
+    name: Sign backend checksums
+    needs: [test-backend, build-backend]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist-backend-amd64
+          path: backend
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist-backend-arm64
+          path: backend
+      - name: Checksums
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          files=("stonerspots-backend-${TAG}-linux-amd64.tar.gz" "stonerspots-backend-${TAG}-linux-arm64.tar.gz")
+          if [ "$(ls -A | sort)" != "$(printf '%s\n' "${files[@]}" | sort)" ]; then
+            echo "::error::the backend artifacts hold other files than ${files[*]}: $(ls -A | tr '\n' ' ')"
+            exit 1
+          fi
+          sha256sum "${files[@]}" > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Sign checksums
+        working-directory: backend
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$RELEASE_SIGNING_KEY" ]; then
+            echo "::warning::Secret RELEASE_SIGNING_KEY is not set: SHA256SUMS.txt is published unsigned, and servers with a release-signing.pub will refuse this build (README, \"Signed releases\")."
+            exit 0
+          fi
+          umask 077
+          key="$RUNNER_TEMP/release-signing-key"
+          trap 'rm -f "$key"' EXIT
+          printf '%s\n' "$RELEASE_SIGNING_KEY" > "$key"
+          ssh-keygen -q -Y sign -f "$key" -n stonerspots-release SHA256SUMS.txt
+          # check it the way install-backend.sh will
+          printf 'stonerspots-release %s\n' "$(ssh-keygen -y -f "$key")" > "$RUNNER_TEMP/allowed_signers"
+          ssh-keygen -Y verify -f "$RUNNER_TEMP/allowed_signers" -I stonerspots-release \
+            -n stonerspots-release -s SHA256SUMS.txt.sig < SHA256SUMS.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-checksums
+          path: backend/SHA256SUMS.txt*
           if-no-files-found: error
 
   build-web:
     name: Build web
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
@@ -218,7 +314,7 @@ jobs:
           tool/web_cache_bust.sh build/web "$BUILD_NUMBER"
           mkdir -p ../dist
           (cd build/web && zip -qr "../../../dist/stonerspots-${TAG}-web.zip" .)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: dist-web
           path: dist/*
@@ -227,9 +323,13 @@ jobs:
   build-ios:
     name: Build iOS (unsigned)
     runs-on: macos-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
@@ -249,7 +349,7 @@ jobs:
           mkdir -p Payload ../dist
           cp -R build/ios/iphoneos/Runner.app Payload/
           zip -qry "../dist/stonerspots-${TAG}-ios-unsigned.ipa" Payload
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: dist-ios
           path: dist/*
@@ -268,7 +368,7 @@ jobs:
 
   release:
     name: Publish ${{ github.run_number }} as dev-${{ github.run_number }}
-    needs: [test-app, test-backend, build-backend, build-android, build-linux, build-web, build-ios]
+    needs: [test-app, test-backend, build-backend, sign-backend, build-android, build-linux, build-web, build-ios]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -276,14 +376,41 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
-      - uses: actions/download-artifact@v4
+      # every artifact into its own folder (no merging): each file is taken
+      # only from the job that is supposed to make it
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          pattern: dist-*
-          merge-multiple: true
-          path: dist
-      - name: Checksums
-        working-directory: dist
-        run: sha256sum * > SHA256SUMS.txt
+          path: artifacts
+      - name: Collect release files
+        run: |
+          set -euo pipefail
+          mkdir dist
+          # backend: from its own jobs only, exactly what sign-backend checksummed
+          for arch in amd64 arm64; do
+            cp "artifacts/dist-backend-${arch}/stonerspots-backend-${TAG}-linux-${arch}.tar.gz" dist/
+          done
+          cp artifacts/release-checksums/SHA256SUMS.txt* dist/
+          (cd dist && sha256sum -c SHA256SUMS.txt)
+          # apps: anything but backend files and checksums
+          for job in android linux web ios; do
+            for f in "artifacts/dist-${job}"/*; do
+              name=$(basename "$f")
+              case "$name" in
+                stonerspots-backend-* | SHA256SUMS*)
+                  echo "::error::artifact dist-${job} contains ${name}, which only the backend jobs may make"
+                  exit 1 ;;
+              esac
+              if [ -e "dist/$name" ]; then
+                echo "::error::${name} comes from more than one artifact"
+                exit 1
+              fi
+              cp "$f" dist/
+            done
+          done
+          # unsigned checksums of the app files, for people downloading them
+          (cd dist && sha256sum stonerspots-*-android.apk stonerspots-*-linux-x64.tar.gz \
+            stonerspots-*-web.zip stonerspots-*-ios-unsigned.ipa > SHA256SUMS-apps.txt)
+          ls -l dist
       - name: Create prerelease
         env:
           # untrusted text: only ever read through the environment
@@ -292,6 +419,7 @@ jobs:
           short="${GITHUB_SHA::7}"
           notes="Development build ${BUILD_NUMBER} of commit ${short}. Not for production.
           The iOS file is unsigned and must be re-signed before it can be installed; the Android APK is signed with a debug key.
+          SHA256SUMS.txt covers the backend tarballs (signed: SHA256SUMS.txt.sig); SHA256SUMS-apps.txt the app files.
 
           ${COMMIT_MSG}"
           if gh release view "$TAG" >/dev/null 2>&1; then
