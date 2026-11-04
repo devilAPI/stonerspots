@@ -169,29 +169,34 @@ func TestFollowNotifiesAndUnfollowTakesItBack(t *testing.T) {
 	}
 }
 
-func TestCommentNotifiesUpdateAuthor(t *testing.T) {
+func TestCommentNotifiesSpotOwner(t *testing.T) {
 	db, h := setup(t)
-	a, b := testutil.NewUser(t, db), testutil.NewUser(t, db)
+	a, b, x := testutil.NewUser(t, db), testutil.NewUser(t, db), testutil.NewUser(t, db)
 	spot := newSpot(t, db, a, "Bank am See")
-	upd := newUpdate(t, db, spot, a)
+	// x wrote an update on a's spot: comments are about the spot, so only
+	// the spot's owner hears about them
+	newUpdate(t, db, spot, x)
 
 	long := strings.Repeat("ä", 119) + "xyz"
-	w := do(t, h, "POST", fmt.Sprintf("/updates/%d/comments", upd), b, fmt.Sprintf(`{"body":%q}`, long))
+	w := do(t, h, "POST", fmt.Sprintf("/spots/%d/comments", spot), b, fmt.Sprintf(`{"body":%q}`, long))
 	must(t, w, 201)
 	var c struct {
 		ID uint64 `json:"id"`
 	}
 	_ = json.Unmarshal(w.Body.Bytes(), &c)
-	// commenting on your own update notifies nobody
-	must(t, do(t, h, "POST", fmt.Sprintf("/updates/%d/comments", upd), a, `{"body":"mine"}`), 201)
+	// commenting on your own spot notifies nobody
+	must(t, do(t, h, "POST", fmt.Sprintf("/spots/%d/comments", spot), a, `{"body":"mine"}`), 201)
 
+	if n := len(list(t, h, x, "").Items); n != 0 {
+		t.Fatalf("update author got %d items", n)
+	}
 	p := list(t, h, a, "")
 	if len(p.Items) != 1 {
 		t.Fatalf("items: %+v", p)
 	}
 	it := p.Items[0]
 	if it.Kind != "comment" || it.Actor.ID != b || it.Spot == nil || it.Spot.ID != spot || it.Spot.Title != "Bank am See" ||
-		it.UpdateID == nil || *it.UpdateID != upd || it.CommentID == nil || *it.CommentID != c.ID || it.CommentPreview == nil {
+		it.UpdateID != nil || it.CommentID == nil || *it.CommentID != c.ID || it.CommentPreview == nil {
 		t.Fatalf("comment item: %+v", it)
 	}
 	if want := strings.Repeat("ä", 119) + "x"; *it.CommentPreview != want {
@@ -212,6 +217,27 @@ func TestCommentNotifiesUpdateAuthor(t *testing.T) {
 	var rows int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM activity`).Scan(&rows); err != nil || rows != 0 {
 		t.Fatalf("rows after delete: %d %v", rows, err)
+	}
+}
+
+// Comment rows written while comments hung under updates carry the update and
+// stay listed.
+func TestOldCommentRowsStayListed(t *testing.T) {
+	db, h := setup(t)
+	a, b := testutil.NewUser(t, db), testutil.NewUser(t, db)
+	spot := newSpot(t, db, a, "Alt")
+	upd := newUpdate(t, db, spot, a)
+	c := exec(t, db, `INSERT INTO comments (spot_id, user_id, body) VALUES (?, ?, 'früher')`, spot, b)
+	exec(t, db, `INSERT INTO activity (user_id, actor_id, kind, spot_id, update_id, comment_id)
+		VALUES (?, ?, 'comment', ?, ?, ?)`, a, b, spot, upd, c)
+	p := list(t, h, a, "")
+	if len(p.Items) != 1 {
+		t.Fatalf("items: %+v", p)
+	}
+	it := p.Items[0]
+	if it.Kind != "comment" || it.UpdateID == nil || *it.UpdateID != upd || it.Spot == nil || it.Spot.ID != spot ||
+		it.CommentPreview == nil || *it.CommentPreview != "früher" {
+		t.Fatalf("old comment item: %+v", it)
 	}
 }
 

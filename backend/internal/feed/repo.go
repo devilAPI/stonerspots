@@ -83,9 +83,6 @@ type FeedItem struct {
 	// shows one card per spot, so older updates are reachable via this count.
 	UpdateCount int `json:"update_count"`
 
-	// CommentCount is how many visible comments the update has.
-	CommentCount int `json:"comment_count"`
-
 	sortKey float64
 }
 
@@ -225,8 +222,7 @@ const selectBase = `SELECT u.id, u.body, u.created_at, u.tag, u.edited_at,
   s.id, s.title, ST_Y(s.location), ST_X(s.location), s.like_count,
   (SELECT COALESCE(ROUND(AVG(rv.rating), 1), 0) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active'),
   (SELECT COUNT(*) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active'),
-  (SELECT COUNT(*) FROM spot_updates uc WHERE uc.spot_id = s.id AND uc.status = 'active'),
-  (SELECT COUNT(*) FROM comments cm WHERE cm.update_id = u.id AND cm.status = 'active')`
+  (SELECT COUNT(*) FROM spot_updates uc WHERE uc.spot_id = s.id AND uc.status = 'active')`
 
 const fromBase = ` FROM spot_updates u
   JOIN spots s ON s.id = u.spot_id
@@ -244,7 +240,6 @@ func scanItem(rows *sql.Rows, base string) (FeedItem, error) {
 		&it.Spot.ID, &it.Spot.Title, &it.Spot.Lat, &it.Spot.Lon, &it.Spot.LikeCount,
 		&it.Spot.RatingAvg, &it.Spot.RatingCount,
 		&it.UpdateCount,
-		&it.CommentCount,
 		&it.sortKey)
 	it.Author.AvatarURL = app.AvatarURL(base, avatarKey)
 	it.Photos = []PhotoRef{}

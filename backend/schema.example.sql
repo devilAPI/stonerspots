@@ -37,15 +37,15 @@ CREATE TABLE `activity` (
 DROP TABLE IF EXISTS `comments`;
 CREATE TABLE `comments` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `update_id` bigint(20) unsigned NOT NULL,
+  `spot_id` bigint(20) unsigned NOT NULL,
   `user_id` bigint(20) unsigned NOT NULL,
   `body` text NOT NULL,
   `status` enum('active','hidden') NOT NULL DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  KEY `idx_comments_update` (`update_id`,`id`),
   KEY `idx_comments_user` (`user_id`),
-  CONSTRAINT `fk_comments_update` FOREIGN KEY (`update_id`) REFERENCES `spot_updates` (`id`) ON DELETE CASCADE,
+  KEY `idx_comments_spot` (`spot_id`,`id`),
+  CONSTRAINT `fk_comments_spot` FOREIGN KEY (`spot_id`) REFERENCES `spots` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_comments_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -253,7 +253,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `uq_users_avatar_key` (`avatar_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (24, 0);
+INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (27, 0);
 
 INSERT INTO `tags` (`tag`, `name_de`, `name_en`, `icon`, `sort`) VALUES
   ('roof', 'Überdacht', 'Roof', 'roof', 10),

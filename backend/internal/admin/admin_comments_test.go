@@ -9,17 +9,16 @@ import (
 	"stonerspots/backend/internal/testutil"
 )
 
-func newComment(t *testing.T, e *env, update, user uint64, body string) uint64 {
-	return uint64(exec(t, e.db, `INSERT INTO comments (update_id, user_id, body) VALUES (?, ?, ?)`, update, user, body))
+func newComment(t *testing.T, e *env, spot, user uint64, body string) uint64 {
+	return uint64(exec(t, e.db, `INSERT INTO comments (spot_id, user_id, body) VALUES (?, ?, ?)`, spot, user, body))
 }
 
 func TestCommentReportsHideListAndDelete(t *testing.T) {
 	e := setup(t)
 	owner, author := testutil.NewUser(t, e.db), testutil.NewUser(t, e.db)
 	sp := newSpot(t, e.db, owner, "Talked", "active")
-	up := newUpdate(t, e.db, sp, owner, "upd")
-	c := newComment(t, e, up, author, "rude words")
-	keep := newComment(t, e, up, author, "fine")
+	c := newComment(t, e, sp, author, "rude words")
+	keep := newComment(t, e, sp, author, "fine")
 
 	for i := 0; i < 3; i++ {
 		e.reportVia(t, testutil.NewUser(t, e.db), "comment", c)
@@ -48,7 +47,7 @@ func TestCommentReportsHideListAndDelete(t *testing.T) {
 				Status   string  `json:"status"`
 				Body     string  `json:"body"`
 				Author   userRef `json:"author"`
-				UpdateID uint64  `json:"update_id"`
+				UpdateID *uint64 `json:"update_id"`
 			} `json:"target"`
 		} `json:"items"`
 	}
@@ -61,7 +60,7 @@ func TestCommentReportsHideListAndDelete(t *testing.T) {
 		seen++
 		tg := it.Target
 		if !tg.Exists || tg.SpotID != sp || tg.Title != "Talked" || tg.Status != "hidden" || tg.Body != "rude words" ||
-			tg.Author.ID != author || tg.UpdateID != up || it.ReportCount != 3 {
+			tg.Author.ID != author || tg.UpdateID != nil || it.ReportCount != 3 {
 			t.Fatalf("comment item: %+v", it)
 		}
 	}
@@ -99,8 +98,7 @@ func TestCommentReportsHideListAndDelete(t *testing.T) {
 func TestDismissComment(t *testing.T) {
 	e := setup(t)
 	owner := testutil.NewUser(t, e.db)
-	up := newUpdate(t, e.db, newSpot(t, e.db, owner, "S", "active"), owner, "u")
-	c := newComment(t, e, up, owner, "x")
+	c := newComment(t, e, newSpot(t, e.db, owner, "S", "active"), owner, "x")
 	reporters := []uint64{testutil.NewUser(t, e.db), testutil.NewUser(t, e.db), testutil.NewUser(t, e.db)}
 	for _, r := range reporters {
 		e.reportVia(t, r, "comment", c)
@@ -117,7 +115,7 @@ func TestDeletingParentsRemovesCommentReports(t *testing.T) {
 
 	// spot deleted by an admin
 	sp := newSpot(t, e.db, owner, "Doomed", "active")
-	c1 := newComment(t, e, newUpdate(t, e.db, sp, owner, "u"), commenter, "x")
+	c1 := newComment(t, e, sp, commenter, "x")
 	report(t, e.db, rep, "comment", c1, "")
 	if w := e.do(t, "DELETE", fmt.Sprintf("/admin/spots/%d", sp), e.tok); w.Code != 204 {
 		t.Fatalf("spot: %d %s", w.Code, w.Body)
@@ -126,22 +124,21 @@ func TestDeletingParentsRemovesCommentReports(t *testing.T) {
 		t.Fatal("report of a comment on a deleted spot remains")
 	}
 
-	// update deleted by an admin
+	// an update deleted by an admin leaves the spot's comments alone
 	keepSpot := newSpot(t, e.db, owner, "Keep", "active")
 	up := newUpdate(t, e.db, keepSpot, owner, "u")
-	c2 := newComment(t, e, up, commenter, "x")
+	c2 := newComment(t, e, keepSpot, commenter, "x")
 	report(t, e.db, rep, "comment", c2, "")
 	if w := e.do(t, "DELETE", fmt.Sprintf("/admin/updates/%d", up), e.tok); w.Code != 204 {
 		t.Fatalf("update: %d %s", w.Code, w.Body)
 	}
-	if countReports(t, e.db, "comment", c2) != 0 {
-		t.Fatal("report of a comment on a deleted update remains")
+	if count(t, e.db, `SELECT COUNT(*) FROM comments WHERE id=?`, c2) != 1 || countReports(t, e.db, "comment", c2) != 1 {
+		t.Fatal("deleting an update touched the spot's comments")
 	}
 
 	// commenter's account deleted
-	up2 := newUpdate(t, e.db, keepSpot, owner, "u2")
-	c3 := newComment(t, e, up2, commenter, "x")
-	c4 := newComment(t, e, up2, rep, "stays")
+	c3 := newComment(t, e, keepSpot, commenter, "x")
+	c4 := newComment(t, e, keepSpot, rep, "stays")
 	report(t, e.db, rep, "comment", c3, "")
 	report(t, e.db, owner, "comment", c4, "")
 	if err := auth.DeleteUser(context.Background(), e.db, e.upload, commenter); err != nil {
@@ -151,7 +148,7 @@ func TestDeletingParentsRemovesCommentReports(t *testing.T) {
 		t.Fatal("user delete: wrong comment reports left")
 	}
 
-	// update author's account deleted: comments under their updates go too
+	// spot owner's account deleted: comments on their spots go too
 	if err := auth.DeleteUser(context.Background(), e.db, e.upload, owner); err != nil {
 		t.Fatal(err)
 	}

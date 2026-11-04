@@ -1,6 +1,6 @@
-// Package comments implements comments under spot updates: a thread per
-// update, oldest first, written by logged-in users and removable by their
-// author or an admin.
+// Package comments implements comments on spots: their own section on the
+// spot page next to updates and reviews, newest first, written by logged-in
+// users and removable by their author or an admin.
 package comments
 
 import (
@@ -34,16 +34,19 @@ const (
 var (
 	// ErrNotFound: the comment does not exist, or the caller may not delete it.
 	ErrNotFound = errors.New("comments: not found")
-	// errUpdateNotFound: the update does not exist or is not visible.
-	errUpdateNotFound = errors.New("comments: update not found")
+	// errSpotNotFound: the spot does not exist or is not active.
+	errSpotNotFound = errors.New("comments: spot not found")
+	// errSpotLocked: the spot is locked and the caller is no admin. Like
+	// updates, locked spots take no new comments from non-admins.
+	errSpotLocked = errors.New("comments: spot locked")
 )
 
 // Mount registers comment routes with full paths on the /api/v1 router.
 func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
 	h := &handler{db: d.DB, quota: quota, base: d.Cfg.PublicBaseURL}
-	r.With(auth.Optional(d.Cfg.JWTSecret)).Get("/updates/{id}/comments", h.list)
+	r.With(auth.Optional(d.Cfg.JWTSecret)).Get("/spots/{id}/comments", h.list)
 	authed := r.With(auth.Middleware(d.Cfg.JWTSecret))
-	authed.Post("/updates/{id}/comments", h.create)
+	authed.Post("/spots/{id}/comments", h.create)
 	authed.Delete("/comments/{id}", h.delete)
 }
 
@@ -62,7 +65,7 @@ type author struct {
 // Comment is one comment as the API returns it.
 type Comment struct {
 	ID        uint64    `json:"id"`
-	UpdateID  uint64    `json:"update_id"`
+	SpotID    uint64    `json:"spot_id"`
 	Body      string    `json:"body"`
 	CreatedAt time.Time `json:"created_at"`
 	Author    author    `json:"author"`
@@ -70,23 +73,21 @@ type Comment struct {
 	Mine bool `json:"mine"`
 }
 
-const selectComment = `SELECT c.id, c.update_id, c.body, c.created_at, a.id, a.display_name, a.avatar_key
+const selectComment = `SELECT c.id, c.spot_id, c.body, c.created_at, a.id, a.display_name, a.avatar_key
   FROM comments c JOIN users a ON a.id = c.user_id`
 
 func scan(row interface{ Scan(...any) error }, caller uint64, base string) (Comment, error) {
 	var c Comment
 	var avatarKey sql.NullString
-	err := row.Scan(&c.ID, &c.UpdateID, &c.Body, &c.CreatedAt, &c.Author.ID, &c.Author.DisplayName, &avatarKey)
+	err := row.Scan(&c.ID, &c.SpotID, &c.Body, &c.CreatedAt, &c.Author.ID, &c.Author.DisplayName, &avatarKey)
 	c.Author.AvatarURL = app.AvatarURL(base, avatarKey)
 	c.CreatedAt = c.CreatedAt.UTC()
 	c.Mine = caller != 0 && c.Author.ID == caller
 	return c, err
 }
 
-// visibleUpdate is the condition for an update whose comments can be read
-// and written: the update and its spot are active.
-const visibleUpdate = `SELECT u.id FROM spot_updates u JOIN spots s ON s.id = u.spot_id
-  WHERE u.id = ? AND u.status = 'active' AND s.status = 'active'`
+// activeSpot finds a spot whose comments can be read.
+const activeSpot = `SELECT id FROM spots WHERE id = ? AND status = 'active'`
 
 func encodeCursor(id uint64) string {
 	b, _ := json.Marshal(struct {
@@ -113,8 +114,8 @@ func internal(w http.ResponseWriter) {
 	httpx.Error(w, http.StatusInternalServerError, "internal", "internal error")
 }
 
-func updateNotFound(w http.ResponseWriter) {
-	httpx.Error(w, http.StatusNotFound, "not_found", "update not found")
+func spotNotFound(w http.ResponseWriter) {
+	httpx.Error(w, http.StatusNotFound, "not_found", "spot not found")
 }
 
 func pathID(r *http.Request) (uint64, bool) {
@@ -122,12 +123,12 @@ func pathID(r *http.Request) (uint64, bool) {
 	return id, err == nil && id != 0
 }
 
-// list answers GET /updates/{id}/comments: active comments, oldest first.
+// list answers GET /spots/{id}/comments: active comments, newest first.
 func (h *handler) list(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id, ok := pathID(r)
 	if !ok {
-		updateNotFound(w)
+		spotNotFound(w)
 		return
 	}
 	limit := defaultLimit
@@ -139,19 +140,19 @@ func (h *handler) list(w http.ResponseWriter, r *http.Request) {
 		}
 		limit = min(n, maxLimit)
 	}
-	var after uint64
+	var before uint64 // 0: from the newest
 	if s := r.URL.Query().Get("cursor"); s != "" {
 		c, good := decodeCursor(s)
 		if !good {
 			httpx.Error(w, http.StatusBadRequest, "invalid_cursor", "malformed cursor")
 			return
 		}
-		after = c
+		before = c
 	}
 	var one uint64
-	err := h.db.QueryRowContext(ctx, visibleUpdate, id).Scan(&one)
+	err := h.db.QueryRowContext(ctx, activeSpot, id).Scan(&one)
 	if errors.Is(err, sql.ErrNoRows) {
-		updateNotFound(w)
+		spotNotFound(w)
 		return
 	}
 	if err != nil {
@@ -160,8 +161,8 @@ func (h *handler) list(w http.ResponseWriter, r *http.Request) {
 	}
 	caller, _ := auth.UserID(ctx)
 	rows, err := h.db.QueryContext(ctx, selectComment+`
-		WHERE c.update_id = ? AND c.status = 'active' AND c.id > ?
-		ORDER BY c.id ASC LIMIT ?`, id, after, limit+1)
+		WHERE c.spot_id = ? AND c.status = 'active' AND (? = 0 OR c.id < ?)
+		ORDER BY c.id DESC LIMIT ?`, id, before, before, limit+1)
 	if err != nil {
 		internal(w)
 		return
@@ -192,26 +193,32 @@ func (h *handler) list(w http.ResponseWriter, r *http.Request) {
 	}{items, next})
 }
 
-// Create adds a comment by userID under a visible update and tells the
-// update's author through their activity. The body is trimmed and must be
-// 1..MaxBodyLen characters.
-func Create(ctx context.Context, db *sql.DB, base string, userID, updateID uint64, body string) (Comment, error) {
+// Create adds a comment by userID on an active spot and tells the spot's
+// owner through their activity. The caller trims and checks the body
+// (1..MaxBodyLen characters). Locked spots take comments from admins only,
+// like updates.
+func Create(ctx context.Context, db *sql.DB, base string, userID, spotID uint64, body string) (Comment, error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return Comment{}, err
 	}
 	defer tx.Rollback() //nolint:errcheck
-	var owner, spotID uint64
-	// lock the update so it cannot be deleted between the check and the insert
-	err = tx.QueryRowContext(ctx, `SELECT u.user_id, u.spot_id FROM spot_updates u JOIN spots s ON s.id = u.spot_id
-		WHERE u.id = ? AND u.status = 'active' AND s.status = 'active' FOR UPDATE`, updateID).Scan(&owner, &spotID)
+	var owner uint64
+	var locked, admin bool
+	// lock the spot row so it cannot be hidden or deleted between the check
+	// and the insert
+	err = tx.QueryRowContext(ctx, `SELECT s.user_id, s.locked, COALESCE((SELECT is_admin FROM users WHERE id = ?), 0)
+		FROM spots s WHERE s.id = ? AND s.status = 'active' LOCK IN SHARE MODE`, userID, spotID).Scan(&owner, &locked, &admin)
 	if errors.Is(err, sql.ErrNoRows) {
-		return Comment{}, errUpdateNotFound
+		return Comment{}, errSpotNotFound
 	}
 	if err != nil {
 		return Comment{}, err
 	}
-	res, err := tx.ExecContext(ctx, `INSERT INTO comments (update_id, user_id, body) VALUES (?, ?, ?)`, updateID, userID, body)
+	if locked && !admin {
+		return Comment{}, errSpotLocked
+	}
+	res, err := tx.ExecContext(ctx, `INSERT INTO comments (spot_id, user_id, body) VALUES (?, ?, ?)`, spotID, userID, body)
 	if err != nil {
 		return Comment{}, err
 	}
@@ -221,7 +228,7 @@ func Create(ctx context.Context, db *sql.DB, base string, userID, updateID uint6
 	}
 	if err := activity.Add(ctx, tx, activity.Event{
 		Recipient: owner, Actor: userID, Kind: activity.Comment,
-		SpotID: spotID, UpdateID: updateID, CommentID: uint64(lid),
+		SpotID: spotID, CommentID: uint64(lid),
 	}); err != nil {
 		return Comment{}, err
 	}
@@ -232,7 +239,7 @@ func Create(ctx context.Context, db *sql.DB, base string, userID, updateID uint6
 	return c, tx.Commit()
 }
 
-// create answers POST /updates/{id}/comments.
+// create answers POST /spots/{id}/comments.
 func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 	uid, ok := auth.UserID(r.Context())
 	if !ok {
@@ -241,7 +248,7 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 	}
 	id, ok := pathID(r)
 	if !ok {
-		updateNotFound(w)
+		spotNotFound(w)
 		return
 	}
 	var in struct {
@@ -262,8 +269,10 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 	}
 	c, err := Create(r.Context(), h.db, h.base, uid, id, body)
 	switch {
-	case errors.Is(err, errUpdateNotFound):
-		updateNotFound(w)
+	case errors.Is(err, errSpotNotFound):
+		spotNotFound(w)
+	case errors.Is(err, errSpotLocked):
+		httpx.Error(w, http.StatusForbidden, "spot_locked", "this spot is locked; only admins can comment")
 	case err != nil:
 		internal(w)
 	default:

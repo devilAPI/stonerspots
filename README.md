@@ -18,14 +18,15 @@ small picture feed. Launch region: Germany, Austria, Switzerland, Liechtenstein.
 - **Profiles and following:** tap a name to open someone's profile (spots,
   updates, followers) and follow them.
 - **Following feed:** the feed can show only updates of people you follow.
-- **Comments** under every update (reportable like everything else).
+- **Comments** on every spot, in their own section next to updates and
+  reviews (reportable like everything else).
 - **Activity:** a bell on the profile tab tells you who followed you,
-  commented on your update, or liked or rated your spot.
+  commented on, liked or rated your spot.
 - **Spot search** on the map (Ctrl+K) and **weather** on spot pages
   (Open-Meteo, no key).
 
-New config key: `limits.comments_per_day` (comments under updates per user
-per day, default 100; see `backend/config.example.yaml`). An existing
+New config key: `limits.comments_per_day` (comments on spots per user per
+day, default 100; see `backend/config.example.yaml`). An existing
 `config.yaml` without it keeps working with the default.
 
 ## Run it locally

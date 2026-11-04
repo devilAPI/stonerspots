@@ -243,15 +243,13 @@ func TestAvatarURLEverywhere(t *testing.T) {
 	_, rvs, _ = alice.do("GET", "/api/v1/spots/"+bobSpot+"/reviews", nil)
 	wantUser(t, "GET reviews mine", rvs["mine"].(map[string]any)["author"], aliceID, &url)
 
-	// comment by Alice under Bob's first update
-	_, _, raw = bob.do("GET", "/api/v1/feed?spot_id="+bobSpot, nil)
-	updateID := itoa(int(itemsOf(t, raw)[0]["id"].(float64)))
-	code, cm, raw := alice.do("POST", "/api/v1/updates/"+updateID+"/comments", map[string]any{"body": "hi"})
+	// comment by Alice on Bob's spot
+	code, cm, raw := alice.do("POST", "/api/v1/spots/"+bobSpot+"/comments", map[string]any{"body": "hi"})
 	if code != 201 && code != 200 {
 		t.Fatalf("comment: %d %s", code, raw)
 	}
 	wantUser(t, "POST comment", cm["author"], aliceID, &url)
-	_, _, raw = bob.do("GET", "/api/v1/updates/"+updateID+"/comments", nil)
+	_, _, raw = bob.do("GET", "/api/v1/spots/"+bobSpot+"/comments", nil)
 	wantUser(t, "GET comments", itemsOf(t, raw)[0]["author"], aliceID, &url)
 
 	// Bob's activity: Alice reviewed and commented

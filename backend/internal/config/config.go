@@ -98,7 +98,7 @@ type Limits struct {
 	ReviewsPerDay int // reviews per user per day
 	ReportsPerDay int // reports per user per day
 
-	CommentsPerDay int // comments under updates per user per day
+	CommentsPerDay int // comments on spots per user per day
 }
 
 // DefaultLimits are generous for people and tight for scripts. The feed and

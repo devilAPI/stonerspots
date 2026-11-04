@@ -1,5 +1,5 @@
 // Package activity records what happens to a user's own content (someone
-// followed them, commented on their update, liked or rated their spot) and
+// followed them, commented on, liked or rated their spot) and
 // serves it as GET /me/activity.
 //
 // Rows are written by the packages that perform the action (users, comments,
@@ -133,8 +133,11 @@ type Item struct {
 	Read      bool      `json:"read"`
 	Actor     Actor     `json:"actor"`
 	Spot      *Spot     `json:"spot"`
-	UpdateID  *uint64   `json:"update_id"`
-	CommentID *uint64   `json:"comment_id"`
+	// UpdateID is only set on comment rows written while comments hung under
+	// updates (before migration 0027): those went to the update's author.
+	// New comment rows are about the spot and go to its owner.
+	UpdateID  *uint64 `json:"update_id"`
+	CommentID *uint64 `json:"comment_id"`
 	// CommentPreview is the first PreviewLen characters of the comment
 	// (kind comment only).
 	CommentPreview *string `json:"comment_preview"`
