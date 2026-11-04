@@ -10,20 +10,40 @@ import 'zone_models.dart';
 import 'zone_tiles.dart';
 
 /// `GET /zones` for one tile. Throws [ApiException] (`invalid_bbox`,
-/// `zones_unavailable`, `zones_disabled`, `rate_limited`).
+/// `zones_unavailable`, `zones_disabled`, `rate_limited`, and
+/// `zones_pending` once the retries are used up).
 abstract class ZonesRepository {
   Future<ZoneData> fetchTile(ZoneTileId tile);
 }
 
 class ApiZonesRepository implements ZonesRepository {
-  ApiZonesRepository(this._api);
+  ApiZonesRepository(
+    this._api, {
+    this.pendingRetries = 12,
+    this.pendingWait = const Duration(seconds: 10),
+  });
 
   final ApiClient _api;
 
+  /// How often a `zones_pending` answer (the server is still fetching the
+  /// tile from Overpass, which can take minutes) is retried, and how long
+  /// to wait between tries.
+  final int pendingRetries;
+  final Duration pendingWait;
+
   @override
-  Future<ZoneData> fetchTile(ZoneTileId tile) async => ZoneData.fromJson(
-    await _api.get<Map<String, dynamic>>('/zones', query: tile.query),
-  );
+  Future<ZoneData> fetchTile(ZoneTileId tile) async {
+    for (var attempt = 0; ; attempt++) {
+      try {
+        return ZoneData.fromJson(
+          await _api.get<Map<String, dynamic>>('/zones', query: tile.query),
+        );
+      } on ApiException catch (e) {
+        if (e.code != 'zones_pending' || attempt >= pendingRetries) rethrow;
+        await Future<void>.delayed(pendingWait);
+      }
+    }
+  }
 }
 
 final zonesRepositoryProvider = Provider<ZonesRepository>(

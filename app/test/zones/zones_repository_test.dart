@@ -85,6 +85,54 @@ void main() {
     expect(d.stale, isFalse);
   });
 
+  test('zones_pending is retried until the tile is there', () async {
+    var calls = 0;
+    final adapter = _Adapter((o) {
+      calls++;
+      return calls < 3
+          ? _json(503, {
+              'error': {'code': 'zones_pending', 'message': 'later'},
+            })
+          : _json(200, {'zones': [], 'attribution': 'OSM', 'stale': false});
+    });
+    final repo = ApiZonesRepository(
+      ApiClient(
+        tokenStore: TokenStore.memory(),
+        baseUrl: 'http://x/api/v1',
+        adapter: adapter,
+      ),
+      pendingWait: Duration.zero,
+    );
+    final data = await repo.fetchTile(const ZoneTileId(1, 1));
+    expect(data.zones, isEmpty);
+    expect(calls, 3);
+  });
+
+  test('zones_pending gives up after its retries', () async {
+    var calls = 0;
+    final repo = ApiZonesRepository(
+      ApiClient(
+        tokenStore: TokenStore.memory(),
+        baseUrl: 'http://x/api/v1',
+        adapter: _Adapter((o) {
+          calls++;
+          return _json(503, {
+            'error': {'code': 'zones_pending', 'message': 'later'},
+          });
+        }),
+      ),
+      pendingRetries: 2,
+      pendingWait: Duration.zero,
+    );
+    await expectLater(
+      repo.fetchTile(const ZoneTileId(1, 1)),
+      throwsA(
+        isA<ApiException>().having((e) => e.code, 'code', 'zones_pending'),
+      ),
+    );
+    expect(calls, 3);
+  });
+
   test('errors come through as ApiException', () async {
     final repo = ApiZonesRepository(
       ApiClient(

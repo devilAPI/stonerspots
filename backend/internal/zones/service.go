@@ -13,10 +13,12 @@ import (
 )
 
 const (
-	// queryTimeout is the [timeout:] of the Overpass query; the HTTP request
-	// may take a little longer (queueing at Overpass, transfer).
+	// queryTimeout is the [timeout:] of the Overpass query. The HTTP request
+	// may take much longer: the public instance queues requests, and even
+	// small queries waited 40 s there (November 2026). Callers do not wait
+	// that long (see pendingAfter); the fetch goes on and fills the cache.
 	queryTimeout = 25 * time.Second
-	httpTimeout  = queryTimeout + 10*time.Second
+	httpTimeout  = queryTimeout + 95*time.Second
 	// maxUpstream Overpass queries run at once (Overpass allows a couple of
 	// slots per client IP; more would only queue there).
 	maxUpstream = 2

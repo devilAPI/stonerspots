@@ -344,6 +344,45 @@ func TestZonesFetchOutlivesClient(t *testing.T) {
 	}
 }
 
+// A tile still being fetched after pendingAfter answers 503 zones_pending
+// with Retry-After; the fetch goes on and the next request is served from
+// the cache.
+func TestZonesPendingWhileFetching(t *testing.T) {
+	old := pendingAfter
+	pendingAfter = 50 * time.Millisecond
+	t.Cleanup(func() { pendingAfter = old })
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-release
+		fmt.Fprint(w, overpassFixture)
+	}))
+	defer srv.Close()
+	svc := NewService(srv.URL, testBase, nil)
+	h := router(testDeps(ratelimit.Rule{N: 100, Per: time.Minute}, true), svc)
+	rec, _ := get(t, h, 48.121, 11.561, 48.125, 11.565)
+	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "zones_pending") {
+		t.Fatalf("while fetching: %d %s", rec.Code, rec.Body)
+	}
+	if rec.Header().Get("Retry-After") == "" {
+		t.Fatal("no Retry-After")
+	}
+	close(release)
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		rec, body := get(t, h, 48.121, 11.561, 48.125, 11.565)
+		if rec.Code == http.StatusOK {
+			if len(body.Zones) == 0 {
+				t.Fatal("no zones after the fetch")
+			}
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("still %d after the fetch", rec.Code)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
 // The database keeps tiles across restarts.
 func TestZonesDBStore(t *testing.T) {
 	d := testutil.NewDB(t)

@@ -12,6 +12,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -54,6 +55,13 @@ func prune(d app.Deps) {
 	}
 }
 
+// pendingAfter is how long a request waits for tiles that are still being
+// fetched upstream; then it gets 503 zones_pending with Retry-After.
+var pendingAfter = 20 * time.Second
+
+// pendingRetryAfter is the Retry-After (seconds) of a zones_pending answer.
+const pendingRetryAfter = 10
+
 type handler struct {
 	s       *Service
 	enabled bool
@@ -82,10 +90,14 @@ func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 		err   error
 	}
 	results := make([]result, len(tiles))
+	// a cold tile can take minutes upstream: answer "pending" instead of
+	// holding the request; the fetch goes on and the next try hits the cache
+	wait, cancel := context.WithTimeout(r.Context(), pendingAfter)
+	defer cancel()
 	var wg sync.WaitGroup
 	for i, t := range tiles {
 		wg.Go(func() {
-			z, stale, err := h.s.Tile(r.Context(), t)
+			z, stale, err := h.s.Tile(wait, t)
 			results[i] = result{z, stale, err}
 		})
 	}
@@ -95,8 +107,14 @@ func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 	seen := map[string]bool{}
 	for _, res := range results {
 		if res.err != nil {
-			if errors.Is(res.err, context.Canceled) {
+			if r.Context().Err() != nil {
 				return // the client left
+			}
+			if errors.Is(res.err, context.DeadlineExceeded) {
+				w.Header().Set("Retry-After", strconv.Itoa(pendingRetryAfter))
+				httpx.Error(w, http.StatusServiceUnavailable, "zones_pending",
+					"zone data is being fetched, try again in a few seconds")
+				return
 			}
 			httpx.Error(w, http.StatusServiceUnavailable, "zones_unavailable",
 				"zone data is unavailable right now, try again later")
