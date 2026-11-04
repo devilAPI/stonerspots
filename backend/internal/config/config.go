@@ -97,6 +97,8 @@ type Limits struct {
 	UpdatesPerDay int // spot updates per user per day
 	ReviewsPerDay int // reviews per user per day
 	ReportsPerDay int // reports per user per day
+
+	CommentsPerDay int // comments under updates per user per day
 }
 
 // DefaultLimits are generous for people and tight for scripts. The feed and
@@ -113,6 +115,8 @@ func DefaultLimits() Limits {
 		UpdatesPerDay: 50,
 		ReviewsPerDay: 20,
 		ReportsPerDay: 10,
+
+		CommentsPerDay: 100,
 	}
 }
 
@@ -152,6 +156,8 @@ type fileLimits struct {
 	UpdatesPerDay int      `yaml:"updates_per_day"`
 	ReviewsPerDay int      `yaml:"reviews_per_day"`
 	ReportsPerDay int      `yaml:"reports_per_day"`
+
+	CommentsPerDay int `yaml:"comments_per_day"`
 }
 
 type fileRule struct {
@@ -319,6 +325,8 @@ func parseLimits(f fileLimits) Limits {
 		UpdatesPerDay: intOrDefault(f.UpdatesPerDay, def.UpdatesPerDay),
 		ReviewsPerDay: intOrDefault(f.ReviewsPerDay, def.ReviewsPerDay),
 		ReportsPerDay: intOrDefault(f.ReportsPerDay, def.ReportsPerDay),
+
+		CommentsPerDay: intOrDefault(f.CommentsPerDay, def.CommentsPerDay),
 	}
 }
 

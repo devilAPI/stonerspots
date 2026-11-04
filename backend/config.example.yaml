@@ -56,6 +56,7 @@ limits:
   updates_per_day:   50   # spot updates per user per day (0 = unlimited)
   reviews_per_day:   20   # reviews per user per day (0 = unlimited)
   reports_per_day:   10   # reports per user per day (0 = unlimited)
+  comments_per_day: 100   # comments under updates per user per day (0 = unlimited)
 
 # Global request body size limit as a safety net (bytes). Per-handler limits
 # still apply (e.g. 8 MB for photo uploads). Default 10 MB [MAX_BODY_BYTES].
