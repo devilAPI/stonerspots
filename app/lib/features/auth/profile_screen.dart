@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/glass.dart';
 import '../../l10n/app_localizations.dart';
+import '../activity/activity_bell.dart';
 import 'auth_controller.dart';
 import 'profile_dialogs.dart';
 
@@ -20,6 +21,7 @@ class ProfileScreen extends ConsumerWidget {
       appBar: GlassAppBar(
         title: Text(l10n.navProfile),
         actions: [
+          const ActivityBell(),
           IconButton(
             key: const Key('open-settings'),
             tooltip: l10n.settingsTitle,

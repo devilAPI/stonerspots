@@ -2305,6 +2305,138 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Kommentar entfernt'**
   String get adminCommentRemoved;
+
+  /// No description provided for @close.
+  ///
+  /// In de, this message translates to:
+  /// **'Schließen'**
+  String get close;
+
+  /// No description provided for @activityTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Aktivität'**
+  String get activityTitle;
+
+  /// No description provided for @activityTooltip.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =0{Aktivität} =1{Aktivität, 1 neu} other{Aktivität, {count} neu}}'**
+  String activityTooltip(int count);
+
+  /// No description provided for @activityEmpty.
+  ///
+  /// In de, this message translates to:
+  /// **'Noch nichts passiert. Hier siehst du, wenn dir jemand folgt, deine Updates kommentiert oder deine Spots mag oder bewertet.'**
+  String get activityEmpty;
+
+  /// No description provided for @activityFollow.
+  ///
+  /// In de, this message translates to:
+  /// **'{name} folgt dir jetzt'**
+  String activityFollow(String name);
+
+  /// No description provided for @activityComment.
+  ///
+  /// In de, this message translates to:
+  /// **'{name} hat dein Update bei {spot} kommentiert: {text}'**
+  String activityComment(String name, String spot, String text);
+
+  /// No description provided for @activityLike.
+  ///
+  /// In de, this message translates to:
+  /// **'{name} gefällt {spot}'**
+  String activityLike(String name, String spot);
+
+  /// No description provided for @activityReview.
+  ///
+  /// In de, this message translates to:
+  /// **'{name} hat {spot} bewertet'**
+  String activityReview(String name, String spot);
+
+  /// No description provided for @settingsAbout.
+  ///
+  /// In de, this message translates to:
+  /// **'Über Stonerspots'**
+  String get settingsAbout;
+
+  /// No description provided for @whatsNewTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Neu in 2.0'**
+  String get whatsNewTitle;
+
+  /// No description provided for @whatsNewProfilesTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Profile und Folgen'**
+  String get whatsNewProfilesTitle;
+
+  /// No description provided for @whatsNewProfilesBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Tippe auf einen Namen, um das Profil zu sehen und der Person zu folgen.'**
+  String get whatsNewProfilesBody;
+
+  /// No description provided for @whatsNewFollowingTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Feed „Folge ich“'**
+  String get whatsNewFollowingTitle;
+
+  /// No description provided for @whatsNewFollowingBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Zeigt im Feed nur Updates von Leuten, denen du folgst.'**
+  String get whatsNewFollowingBody;
+
+  /// No description provided for @whatsNewCommentsTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Kommentare'**
+  String get whatsNewCommentsTitle;
+
+  /// No description provided for @whatsNewCommentsBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Unter jedem Update mitreden.'**
+  String get whatsNewCommentsBody;
+
+  /// No description provided for @whatsNewActivityTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Aktivität'**
+  String get whatsNewActivityTitle;
+
+  /// No description provided for @whatsNewActivityBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Glocke im Profil zeigt, wer dir folgt, kommentiert, deine Spots mag oder bewertet.'**
+  String get whatsNewActivityBody;
+
+  /// No description provided for @whatsNewSearchTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Spot-Suche'**
+  String get whatsNewSearchTitle;
+
+  /// No description provided for @whatsNewSearchBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Spots auf der Karte nach Namen finden (Strg+K).'**
+  String get whatsNewSearchBody;
+
+  /// No description provided for @whatsNewWeatherTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Wetter'**
+  String get whatsNewWeatherTitle;
+
+  /// No description provided for @whatsNewWeatherBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Spot-Seiten zeigen das aktuelle Wetter und die nächsten Stunden.'**
+  String get whatsNewWeatherBody;
 }
 
 class _AppLocalizationsDelegate

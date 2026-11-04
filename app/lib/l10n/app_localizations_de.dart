@@ -1335,4 +1335,93 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get adminCommentRemoved => 'Kommentar entfernt';
+
+  @override
+  String get close => 'Schließen';
+
+  @override
+  String get activityTitle => 'Aktivität';
+
+  @override
+  String activityTooltip(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Aktivität, $count neu',
+      one: 'Aktivität, 1 neu',
+      zero: 'Aktivität',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get activityEmpty =>
+      'Noch nichts passiert. Hier siehst du, wenn dir jemand folgt, deine Updates kommentiert oder deine Spots mag oder bewertet.';
+
+  @override
+  String activityFollow(String name) {
+    return '$name folgt dir jetzt';
+  }
+
+  @override
+  String activityComment(String name, String spot, String text) {
+    return '$name hat dein Update bei $spot kommentiert: $text';
+  }
+
+  @override
+  String activityLike(String name, String spot) {
+    return '$name gefällt $spot';
+  }
+
+  @override
+  String activityReview(String name, String spot) {
+    return '$name hat $spot bewertet';
+  }
+
+  @override
+  String get settingsAbout => 'Über Stonerspots';
+
+  @override
+  String get whatsNewTitle => 'Neu in 2.0';
+
+  @override
+  String get whatsNewProfilesTitle => 'Profile und Folgen';
+
+  @override
+  String get whatsNewProfilesBody =>
+      'Tippe auf einen Namen, um das Profil zu sehen und der Person zu folgen.';
+
+  @override
+  String get whatsNewFollowingTitle => 'Feed „Folge ich“';
+
+  @override
+  String get whatsNewFollowingBody =>
+      'Zeigt im Feed nur Updates von Leuten, denen du folgst.';
+
+  @override
+  String get whatsNewCommentsTitle => 'Kommentare';
+
+  @override
+  String get whatsNewCommentsBody => 'Unter jedem Update mitreden.';
+
+  @override
+  String get whatsNewActivityTitle => 'Aktivität';
+
+  @override
+  String get whatsNewActivityBody =>
+      'Die Glocke im Profil zeigt, wer dir folgt, kommentiert, deine Spots mag oder bewertet.';
+
+  @override
+  String get whatsNewSearchTitle => 'Spot-Suche';
+
+  @override
+  String get whatsNewSearchBody =>
+      'Spots auf der Karte nach Namen finden (Strg+K).';
+
+  @override
+  String get whatsNewWeatherTitle => 'Wetter';
+
+  @override
+  String get whatsNewWeatherBody =>
+      'Spot-Seiten zeigen das aktuelle Wetter und die nächsten Stunden.';
 }
