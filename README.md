@@ -14,19 +14,24 @@ small picture feed. Launch region: Germany, Austria, Switzerland, Liechtenstein.
 > pedestrian zones is restricted by law (KCanG in Germany); a zone check is not
 > built yet. Users must confirm they are 18+.
 
-## What's new in 2.0
+## Stonerspots 1.0
 
-- **Profiles and following:** tap a name to open someone's profile (spots,
-  updates, followers) and follow them.
-- **Following feed:** the feed can show only updates of people you follow.
-- **Comments** on every spot, in their own section next to updates and
-  reviews (reportable like everything else).
-- **Activity:** a bell on the profile tab tells you who followed you,
-  commented on, liked or rated your spot.
-- **Spot search** on the map (Ctrl+K) and **weather** on spot pages
-  (Open-Meteo, no key).
+The first release. What's in it is in [`CHANGELOG.md`](CHANGELOG.md), in
+short:
 
-New config key: `limits.comments_per_day` (comments on spots per user per
+- **Map** with spot search (Ctrl+K) and a compass.
+- **Spots** with photos, weather (Open-Meteo, no key), reviews, comments and
+  updates.
+- **Feed**, also as "Following": only updates of people you follow.
+- **Profiles** with pictures, following and followers; **activity** (a bell
+  on the profile tab: who followed you, commented, liked or rated your spot).
+- **Saved lists**, **admin tools** (reports, users, spots, tags, backend
+  updates, two-factor codes) and **automatic, signed updates** for the
+  Android and desktop apps and the backend.
+
+How a release is made: [Releasing 1.0](#releasing-10).
+
+Config key added late in development: `limits.comments_per_day` (comments on spots per user per
 day, default 100; see `backend/config.example.yaml`). An existing
 `config.yaml` without it keeps working with the default.
 
@@ -65,7 +70,7 @@ systemd service `stonerspots-backend`. Run it again to update.
 One-liner, straight from GitHub:
 
 ```sh
-# newest release
+# newest release (vX.Y.Z)
 curl -fsSL https://raw.githubusercontent.com/devilAPI/stonerspots/main/install-backend.sh | sudo bash
 # newest dev build
 curl -fsSL https://raw.githubusercontent.com/devilAPI/stonerspots/main/install-backend.sh | sudo bash -s -- --dev
@@ -80,6 +85,14 @@ lists settings that are new in `config.example.yaml`) and restarts the service
 only if it was meant to run. The previous binary stays as
 `/opt/stonerspots/api.previous`; if the service does not stay up after an update,
 the script goes back to it and reports the update as failed.
+
+Releases are the regular GitHub releases `vX.Y.Z` (GitHub's "latest"), with
+`stonerspots-backend-vX.Y.Z-linux-<arch>.tar.gz` and a signed `SHA256SUMS.txt`;
+dev builds the prereleases `dev-<n>` with `stonerspots-backend-dev-<n>-…`. The
+script takes only a tarball named after the tag it is published under. It
+refuses to switch to a build whose database migrations are older than the
+installed ones (say from a dev build to a release made before it), since the
+database can't go back; nothing is changed then.
 
 Binaries go to `/opt/stonerspots`, photos to `/var/lib/stonerspots/uploads`.
 The first run creates `/etc/stonerspots/config.yaml` with a random JWT secret;
@@ -128,7 +141,7 @@ checksums and prints a warning.
    `gh secret set RELEASE_SIGNING_KEY < stonerspots-release`.
 3. Push to main and wait until the new `dev-<n>` release has a
    `SHA256SUMS.txt.sig` (the "Sign backend checksums" job warns when the
-   secret is missing).
+   secret is missing; for a release `vX.Y.Z` it fails instead).
 4. Only then put the public key on the server (from then on, unsigned builds
    are refused):
 
@@ -347,11 +360,14 @@ session) or "Skip this version". Web and iOS don't update themselves.
 - `dev` (what `dev-release.yml` builds): the newest `dev-<n>` prerelease, newer
   when `<n>` is above the app's build number (CI sets the build number to the
   run number, so `dev-63` is build 63).
-- `release`: the newest non-prerelease tagged `v<major>.<minor>.<patch>`,
-  compared with the app's version. No workflow builds these yet; a release
-  workflow must name its files like the dev builds
-  (`stonerspots-<tag>-android.apk`, …) and sign `SHA256SUMS-apps.txt` the same
-  way.
+- `release` (what `dev-release.yml` builds for a tag `vX.Y.Z`, see
+  [Releasing 1.0](#releasing-10)): GitHub's latest regular release, asked for
+  with `releases/latest` (so 30 dev builds after it don't push it out of
+  sight). Only a tag of exactly the form `vX.Y.Z` counts (no `-rc1`, no
+  missing `v`); it is newer when that version is above the app's version
+  (`version:` in `pubspec.yaml`, without the build number). Its files are
+  `stonerspots-vX.Y.Z-android.apk`, `…-linux-x64.tar.gz`, `…-windows-x64.zip`,
+  `…-macos.zip`, signed through `SHA256SUMS-apps.txt` like the dev builds.
 - not set (local `flutter run`/`build`): no update checks at all.
 
 **Nothing unverified is installed.** CI lists the app files in
@@ -387,7 +403,17 @@ Setup (once, with the key pair from [Signed releases](#signed-releases)):
 
    Keep the `.jks` and its passwords safe: losing them means users must
    uninstall and reinstall to get updates. Apps installed from earlier
-   (debug-key) builds have to be reinstalled once.
+   (debug-key) builds have to be reinstalled once. Dev builds and releases
+   use the same key, so either installs over the other.
+
+**Build numbers.** Every CI build, dev or release, gets the workflow's run
+number as its build number (Android `versionCode`). Dev builds and releases
+come from the same workflow, so that number only ever goes up: a release
+installs over every APK built before it, a dev build over a release only if
+it was built later. Android refuses a lower `versionCode`, so a phone with a
+dev build newer than the release can only move to the release after
+uninstalling (or with the next release). Renaming `dev-release.yml` would
+restart the count at 1 and break every update: don't.
 
 Per platform:
 
@@ -412,10 +438,124 @@ The archives are unpacked with checks against `..`, absolute paths, links
 (only inside the macOS bundle, never out of it) and oversized contents,
 even though they are already verified by then.
 
+## Releasing 1.0
+
+Releases come from a tag `vX.Y.Z` on main. The tag push starts
+`dev-release.yml` (the same workflow as the dev builds), which builds and
+publishes the release; nothing else needs to be done by hand.
+
+Once, before the first release:
+
+1. **Release signing key**: secret `RELEASE_SIGNING_KEY` as in
+   [Signed releases](#signed-releases) (steps 1-3), and the variable
+   `RELEASE_SIGNING_PUBKEY` as in [App updates](#app-updates) (setup step 2).
+2. **Android keystore** secrets `ANDROID_KEYSTORE_BASE64`,
+   `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` (and
+   `ANDROID_KEY_PASSWORD` if it differs): [App updates](#app-updates), setup
+   step 3. A release refuses to build without these and without the signing
+   key (job "Check version").
+3. **Pages from tags**: Settings → Environments → `github-pages` →
+   Deployment branches and tags → add a rule for tags `v*`. Without it the
+   last job ("Deploy web to /") fails with "not allowed to deploy to
+   github-pages due to environment protection rules" (the release itself is
+   published by then; start "Publish web app" from main by hand afterwards).
+4. Recommended: a tag ruleset (Settings → Rules → Rulesets → New tag ruleset,
+   target `v*`) that lets only you create, update or delete release tags.
+   Whoever can push such a tag gets a signed release.
+
+For 1.0:
+
+1. **Merge `v2` into `main`** (main has nothing v2 lacks, so it is a fast
+   forward) and wait for the dev build of it to go green:
+
+   ```sh
+   git switch main && git pull
+   git merge --ff-only v2
+   git push origin main
+   ```
+
+2. **Version**: `app/pubspec.yaml` already says `version: 1.0.0+1`, and
+   `CHANGELOG.md` has the 1.0.0 entry. For later releases: raise `X.Y.Z`
+   there (leave `+1`: CI sets the build number), add a CHANGELOG entry,
+   commit and push to main. The tag must equal that version, or the release
+   stops at its first job.
+3. **Tag** the commit on main and push the tag:
+
+   ```sh
+   git tag -a v1.0.0 -m "Stonerspots 1.0.0"
+   git push origin v1.0.0
+   ```
+
+   If no run starts (or one must be repeated), start it by hand from main:
+   Actions → "Dev build & release" → Run workflow, tag `v1.0.0`, or
+   `gh workflow run dev-release.yml --ref main -f tag=v1.0.0`.
+
+What the run makes: the regular release (not a prerelease) **Stonerspots
+1.0.0** on the tag, with a short install section and GitHub's generated
+notes, holding
+
+- `stonerspots-backend-v1.0.0-linux-amd64.tar.gz`, `…-linux-arm64.tar.gz`
+  and `SHA256SUMS.txt` + `SHA256SUMS.txt.sig` (backend),
+- `stonerspots-v1.0.0-android.apk`, `-linux-x64.tar.gz`, `-windows-x64.zip`,
+  `-macos.zip`, `-web.zip`, `-ios-unsigned.ipa` and `SHA256SUMS-apps.txt` +
+  `SHA256SUMS-apps.txt.sig` (apps; all built with `UPDATE_CHANNEL=release`
+  and the public key compiled in),
+- build provenance for every file (`gh attestation verify <file> --repo
+  devilAPI/stonerspots`),
+
+and deploys its web build to https://devilapi.github.io/stonerspots/ (the
+newest dev build stays at `/dev/`). Release apps update only to newer
+releases, dev apps only to newer dev builds.
+
+**Check the signature by hand** (with `stonerspots-release.pub` from your
+password manager, or the `RELEASE_SIGNING_PUBKEY` line):
+
+```sh
+gh release download v1.0.0 --repo devilAPI/stonerspots --dir v1.0.0 && cd v1.0.0
+printf 'stonerspots-release %s\n' "$(cat ../stonerspots-release.pub)" > allowed_signers
+ssh-keygen -Y verify -f allowed_signers -I stonerspots-release -n stonerspots-release \
+  -s SHA256SUMS.txt.sig < SHA256SUMS.txt
+ssh-keygen -Y verify -f allowed_signers -I stonerspots-release -n stonerspots-release \
+  -s SHA256SUMS-apps.txt.sig < SHA256SUMS-apps.txt
+sha256sum -c SHA256SUMS.txt SHA256SUMS-apps.txt
+```
+
+Both `ssh-keygen` lines must say `Good "stonerspots-release" signature`.
+
+**Server**: an existing install switches with
+`sudo /opt/stonerspots/install-backend.sh --release` (or admin page →
+"Update backend to newest"); a new one with the one-liner from
+[Install the backend](#install-the-backend-on-a-server). With
+`/etc/stonerspots/release-signing.pub` in place it installs nothing
+unsigned. A server on a dev build with newer migrations than the release
+is refused (nothing changes); it stays on dev until the next release.
+
+**Rollback**:
+
+- *A release that is broken*: fix forward with the next patch version
+  (`1.0.1`): Android can't install an older version over a newer one, so a
+  rollback for apps is always a new, higher release. To stop further
+  installs meanwhile, mark it a prerelease
+  (`gh release edit v1.0.0 --prerelease`): apps and `install-backend.sh
+  --release` then see the previous release as the newest again; start
+  "Publish web app" by hand to put the previous web build back on `/`.
+  Don't delete or move a published tag.
+- *A tag that failed before anything was published* (wrong version, missing
+  key): delete it (`git push origin :refs/tags/v1.0.0 && git tag -d v1.0.0`),
+  fix, tag again.
+- *The backend*: an update whose service does not stay up goes back to
+  `api.previous` by itself. By hand: `sudo systemctl stop
+  stonerspots-backend`, `sudo cp -p /opt/stonerspots/api.previous
+  /opt/stonerspots/api`, write the old tag into `/opt/stonerspots/VERSION`,
+  start it again. The newer migrations stay (the database can't go back
+  without a backup), which the older binary accepts.
+
 ## Web app on GitHub Pages
 
-The `Publish web app` workflow deploys the web build of the newest release to
-https://devilapi.github.io/stonerspots/ and of the newest dev build to `/dev/`.
+The `Publish web app` workflow deploys the web build of the newest release
+(the highest `vX.Y.Z`) to https://devilapi.github.io/stonerspots/ and of the
+newest dev build to `/dev/`; before the first release the root shows the dev
+build too. `dev-release.yml` runs it after every dev build and every release.
 For it to reach a backend:
 
 - repository secret `API_URL`: public **HTTPS** URL of the API, e.g.

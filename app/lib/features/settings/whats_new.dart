@@ -2,21 +2,27 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 
-/// What 2.0 brought, in the order a user meets it.
-List<(IconData, String, String)> whatsNew20(AppLocalizations l) => [
-  (Icons.person_outline, l.whatsNewProfilesTitle, l.whatsNewProfilesBody),
+/// What Stonerspots 1.0 has, in the order a user meets it.
+List<(IconData, String, String)> whatsNewItems(AppLocalizations l) => [
+  (Icons.map_outlined, l.whatsNewSearchTitle, l.whatsNewSearchBody),
+  (Icons.place_outlined, l.whatsNewSpotsTitle, l.whatsNewSpotsBody),
   (
     Icons.dynamic_feed_outlined,
     l.whatsNewFollowingTitle,
     l.whatsNewFollowingBody,
   ),
-  (Icons.chat_bubble_outline, l.whatsNewCommentsTitle, l.whatsNewCommentsBody),
+  (Icons.person_outline, l.whatsNewProfilesTitle, l.whatsNewProfilesBody),
   (Icons.notifications_none, l.whatsNewActivityTitle, l.whatsNewActivityBody),
-  (Icons.search, l.whatsNewSearchTitle, l.whatsNewSearchBody),
-  (Icons.wb_sunny_outlined, l.whatsNewWeatherTitle, l.whatsNewWeatherBody),
+  (Icons.bookmark_border, l.whatsNewSavedTitle, l.whatsNewSavedBody),
+  (
+    Icons.admin_panel_settings_outlined,
+    l.whatsNewAdminTitle,
+    l.whatsNewAdminBody,
+  ),
+  (Icons.system_update_outlined, l.whatsNewUpdatesTitle, l.whatsNewUpdatesBody),
 ];
 
-/// Shows the "What's new in 2.0" dialog.
+/// Shows the "What's new in 1.0" dialog.
 Future<void> showWhatsNewDialog(BuildContext context) => showDialog<void>(
   context: context,
   builder: (context) {
@@ -31,7 +37,7 @@ Future<void> showWhatsNewDialog(BuildContext context) => showDialog<void>(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              for (final (icon, title, body) in whatsNew20(l))
+              for (final (icon, title, body) in whatsNewItems(l))
                 ListTile(
                   leading: Icon(icon),
                   title: Text(title),

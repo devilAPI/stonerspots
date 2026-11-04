@@ -146,24 +146,35 @@ void main() {
       expect(find.byType(LiquidGlassLens), findsOneWidget);
     });
 
-    testWidgets("what's new in 2.0 lists the new features", (t) async {
+    testWidgets("what's new in 1.0 lists the main features", (t) async {
       await t.pumpWidget(page());
       await t.pump();
       await t.tap(find.byKey(const Key('whatsNew')));
       await t.pumpAndSettle();
       expect(find.byKey(const Key('whatsNewDialog')), findsOneWidget);
-      expect(find.text("What's new in 2.0"), findsNWidgets(2));
+      expect(find.text("What's new in 1.0"), findsNWidgets(2));
       for (final title in [
+        'Map, search & compass',
+        'Spots',
+        'Feed & Following',
         'Profiles & following',
-        'Following feed',
-        'Comments',
         'Activity',
-        'Spot search',
-        'Weather',
+        'Saved lists',
+        'Admin tools',
+        'Automatic updates',
       ]) {
+        await t.scrollUntilVisible(
+          find.text(title),
+          50,
+          scrollable: find.descendant(
+            of: find.byKey(const Key('whatsNewDialog')),
+            matching: find.byType(Scrollable),
+          ),
+        );
         expect(find.text(title), findsOneWidget, reason: title);
       }
       expect(find.textContaining('Ctrl+K'), findsOneWidget);
+      expect(find.textContaining('2.0'), findsNothing);
       await t.tap(find.text('Close'));
       await t.pumpAndSettle();
       expect(find.byKey(const Key('whatsNewDialog')), findsNothing);
@@ -175,8 +186,8 @@ void main() {
       expect(find.text('Über Stonerspots'), findsOneWidget);
       await t.tap(find.byKey(const Key('whatsNew')));
       await t.pumpAndSettle();
-      expect(find.text('Neu in 2.0'), findsNWidgets(2));
-      expect(find.text('Profile und Folgen'), findsOneWidget);
+      expect(find.text('Neu in 1.0'), findsNWidgets(2));
+      expect(find.text('Karte, Suche und Kompass'), findsOneWidget);
       expect(find.textContaining('Strg+K'), findsOneWidget);
       expect(find.text('Schließen'), findsOneWidget);
     });

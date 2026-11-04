@@ -34,20 +34,36 @@ class FakeInstaller extends UpdateInstaller {
 
 const dl = 'https://github.com/devilAPI/stonerspots/releases/download/dev-7';
 
+/// Downloads of the regular release v1.0.1 (fixtures signed with
+/// release_v1_key.pub; the Linux entry is SHA-256("test") too).
+const dlRelease =
+    'https://github.com/devilAPI/stonerspots/releases/download/v1.0.1';
+
 /// Everything the updater talks to, faked. The release dev-7 carries the
 /// signed fixture checksums, whose Linux entry is SHA-256("test").
 class UpdaterHarness {
   UpdaterHarness({
     this.platform = UpdatePlatform.linux,
     this.build = '6',
+    this.version = '1.0.0',
     bool withKey = true,
+    String keyFixture = 'release_key.pub',
     String signature = 'SHA256SUMS-apps.txt.sig',
     this.assetBody = 'test',
   }) : key = withKey
-           ? SshEd25519PublicKey.parse(fixtureText('release_key.pub'))
+           ? SshEd25519PublicKey.parse(fixtureText(keyFixture))
            : null {
     adapter = FakeAdapter({
       releasesApiUrl: (_) => apiAnswer(),
+      latestReleaseApiUrl: (_) => latestAnswer(),
+      '$dlRelease/SHA256SUMS-apps.txt': (_) =>
+          FakeResponse(200, body: fixtureBytes('SHA256SUMS-apps.v1.0.1.txt')),
+      '$dlRelease/SHA256SUMS-apps.txt.sig': (_) => FakeResponse(
+        200,
+        body: fixtureBytes('SHA256SUMS-apps.v1.0.1.txt.sig'),
+      ),
+      '$dlRelease/stonerspots-v1.0.1-linux-x64.tar.gz': (_) =>
+          FakeResponse(200, text: assetBody),
       '$dl/SHA256SUMS-apps.txt': (_) =>
           FakeResponse(200, body: fixtureBytes('SHA256SUMS-apps.txt')),
       '$dl/SHA256SUMS-apps.txt.sig': (_) =>
@@ -64,6 +80,9 @@ class UpdaterHarness {
   /// Null: a local build without a channel.
   UpdateChannel? channel = UpdateChannel.dev;
   final String build;
+
+  /// The installed version (pubspec `version:` without the build number).
+  final String version;
   final SshEd25519PublicKey? key;
   final String assetBody;
   late final FakeAdapter adapter;
@@ -75,6 +94,12 @@ class UpdaterHarness {
   FakeResponse Function() apiAnswer = () =>
       FakeResponse(200, text: jsonEncode([ghRelease('dev-7')]));
 
+  /// GitHub's `releases/latest`: one object, never a prerelease.
+  FakeResponse Function() latestAnswer = () => FakeResponse(
+    200,
+    text: jsonEncode(ghRelease('v1.0.1', prerelease: false)),
+  );
+
   List<String> get requested => [
     for (final r in adapter.requests) r.uri.toString(),
   ];
@@ -85,7 +110,7 @@ class UpdaterHarness {
       UpdaterConfig(channel: channel, platform: platform, signingKey: key),
     ),
     installedVersionLoaderProvider.overrideWithValue(
-      () async => InstalledVersion(version: '2.0.0', buildNumber: build),
+      () async => InstalledVersion(version: version, buildNumber: build),
     ),
     updaterDioProvider.overrideWithValue(fakeDio(adapter)),
     updateInstallerProvider.overrideWithValue(installer),

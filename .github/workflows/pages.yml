@@ -1,15 +1,20 @@
 name: Publish web app
 
 # Deploys the Flutter web build to GitHub Pages:
-#   /      web build of the newest release (falls back to the newest dev build
-#          while there is no release with a web build)
+#   /      web build of the highest release vX.Y.Z (falls back to the newest
+#          dev build while there is no release with a web build)
 #   /dev/  web build of the newest dev build (dev-<n>)
 # The web build is the *-web.zip asset of each release. Runs when a release is
-# published or changed, and by hand. The dev build workflow also calls it
-# with its fresh web build (dev_web_artifact), so /dev/ is live before the
-# slower app builds and the dev-<n> release are done.
+# published or changed by hand, and when started by hand. Releases that
+# dev-release.yml makes (with github.token) start no workflow by themselves,
+# so it calls this one: a dev build with its fresh web build
+# (dev_web_artifact), so /dev/ is live before the slower app builds and the
+# dev-<n> release are done; a release (tag vX.Y.Z) after it is published, so
+# / shows it.
 #
-# Requires Settings -> Pages -> Source: "GitHub Actions".
+# Requires Settings -> Pages -> Source: "GitHub Actions". For releases, the
+# github-pages environment must also allow deployments from tags v* (Settings
+# -> Environments -> github-pages; README, "Releasing 1.0").
 
 on:
   release:
@@ -50,15 +55,20 @@ jobs:
           FRESH: ${{ inputs.dev_web_artifact != '' }}
         run: |
           gh api --paginate --slurp "repos/${GH_REPO}/releases?per_page=100" | jq 'add' > releases.json
-          # newest published release of a kind that has a web build attached
+          # newest published release of a kind that has a web build attached:
+          # dev, the last published dev-<n>; stable, the highest vX.Y.Z (a
+          # fix for an older version published later does not take over /)
           newest() {
             jq -r --arg kind "$1" '
               map(select(.draft | not)
                   | select(any(.assets[]; .name | endswith("-web.zip")))
                   | select(if $kind == "dev"
                            then .prerelease and (.tag_name | startswith("dev-"))
-                           else (.prerelease | not) end))
-              | sort_by(.published_at) | last | .tag_name // empty' releases.json
+                           else (.prerelease | not)
+                                and (.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$")) end))
+              | if $kind == "dev" then sort_by(.published_at)
+                else sort_by(.tag_name | ltrimstr("v") | split(".") | map(tonumber)) end
+              | last | .tag_name // empty' releases.json
           }
           stable="$(newest stable)"
           dev="$(newest dev)"

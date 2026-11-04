@@ -110,6 +110,56 @@ void main() {
     expect(pick('weird'), isNull);
   });
 
+  test('release tags are exactly vX.Y.Z', () {
+    expect(releaseTagVersion('v1.0.0').toString(), '1.0.0');
+    expect(releaseTagVersion('v10.20.30').toString(), '10.20.30');
+    for (final tag in [
+      '1.0.0', // no v
+      'v1.0',
+      'v1.0.0-rc1',
+      'v1.0.0+5',
+      'V1.0.0',
+      ' v1.0.0',
+      'dev-63',
+      'release-1.0.0',
+    ]) {
+      expect(releaseTagVersion(tag), isNull, reason: tag);
+    }
+  });
+
+  test('release channel: v1.0.0 among many dev builds', () {
+    final list = parseReleases(
+      jsonDecode(
+        jsonEncode([
+          for (var n = 500; n > 470; n--) ghRelease('dev-$n'),
+          ghRelease('v1.0.0', prerelease: false),
+          ghRelease('1.5.0', prerelease: false), // not our tag form
+          ghRelease('v1.1.0-rc1', prerelease: false),
+          ghRelease('dev-900', prerelease: false), // dev, marked wrongly
+        ]),
+      ),
+    );
+    expect(newestRelease(list, UpdateChannel.release)?.tag, 'v1.0.0');
+    expect(newestRelease(list, UpdateChannel.dev)?.tag, 'dev-500');
+    ReleaseInfo? pick(String version, String build) => pickUpdate(
+      releases: list,
+      channel: UpdateChannel.release,
+      installed: InstalledVersion(version: version, buildNumber: build),
+    );
+    // a release build of 0.9.0 is offered 1.0.0, whatever its build number
+    expect(pick('0.9.0', '999')?.tag, 'v1.0.0');
+    expect(pick('1.0.0', '480'), isNull);
+    expect(pick('1.0.1', '481'), isNull);
+    // 1.0.0's file names carry its tag
+    expect(
+      newestRelease(
+        list,
+        UpdateChannel.release,
+      )!.appAsset(UpdatePlatform.android)?.name,
+      'stonerspots-v1.0.0-android.apk',
+    );
+  });
+
   test('channel names', () {
     expect(UpdateChannel.parse('dev'), UpdateChannel.dev);
     expect(UpdateChannel.parse('release'), UpdateChannel.release);

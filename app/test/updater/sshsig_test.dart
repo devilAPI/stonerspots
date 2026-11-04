@@ -4,6 +4,9 @@
 //   ... -O hashalg=sha256          -> SHA256SUMS-apps.hashalg-sha256.sig
 //   ... -n file                    -> SHA256SUMS-apps.wrong-namespace.sig
 //   ... -f other                   -> SHA256SUMS-apps.other-key.sig
+// The release-channel vectors (update_controller_test) the same way, with a
+// key of their own: ssh-keygen -Y sign -f v1key -n stonerspots-release
+// SHA256SUMS-apps.v1.0.1.txt, public key release_v1_key.pub.
 // Only the public keys are kept.
 import 'dart:convert';
 import 'dart:typed_data';

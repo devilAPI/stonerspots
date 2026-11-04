@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:app/features/updater/installer.dart';
 import 'package:app/features/updater/release.dart';
 import 'package:app/features/updater/release_source.dart';
@@ -235,6 +237,94 @@ void main() {
     await ctl(c).checkNow();
     expect(h.requested, isEmpty);
     expect(h.installer.cleanUps, 0);
+  });
+
+  group('release channel', () {
+    UpdaterHarness releaseHarness({String version = '1.0.0'}) => UpdaterHarness(
+      version: version,
+      build: '480',
+      keyFixture: 'release_v1_key.pub',
+    )..channel = UpdateChannel.release;
+
+    test('asks for the latest release only, not the dev list', () async {
+      final h = releaseHarness();
+      final c = start(h);
+      await ctl(c).onAppStart();
+      final s = c.read(updateControllerProvider);
+      expect(s.stage, UpdateStage.available);
+      expect(s.release?.tag, 'v1.0.1');
+      expect(h.requested, [latestReleaseApiUrl]);
+    });
+
+    test('the same or an older version is not offered', () async {
+      for (final v in ['1.0.1', '1.1.0', '2.0.0']) {
+        final h = releaseHarness(version: v);
+        final c = start(h);
+        await ctl(c).checkNow();
+        expect(
+          c.read(updateControllerProvider).stage,
+          UpdateStage.upToDate,
+          reason: v,
+        );
+      }
+    });
+
+    test('no release published yet (404): up to date, not offline', () async {
+      final h = releaseHarness()
+        ..latestAnswer = () =>
+            FakeResponse(404, text: '{"message":"Not Found"}');
+      final c = start(h);
+      await ctl(c).checkNow();
+      final s = c.read(updateControllerProvider);
+      expect(s.stage, UpdateStage.upToDate);
+      expect(s.problem, isNull);
+    });
+
+    test('a dev build or a stray tag as "latest" is ignored', () async {
+      for (final tag in ['dev-500', '1.0.2', 'v1.0.2-rc1', 'v1.0']) {
+        final h = releaseHarness()
+          ..latestAnswer = () => FakeResponse(
+            200,
+            text: jsonEncode(ghRelease(tag, prerelease: false)),
+          );
+        final c = start(h);
+        await ctl(c).checkNow();
+        expect(
+          c.read(updateControllerProvider).stage,
+          UpdateStage.upToDate,
+          reason: tag,
+        );
+      }
+    });
+
+    test('verified update of stonerspots-v1.0.1-linux-x64.tar.gz', () async {
+      final h = releaseHarness();
+      final c = start(h);
+      await ctl(c).onAppStart();
+      await ctl(c).updateNow();
+      expect(c.read(updateControllerProvider).stage, UpdateStage.handedOff);
+      expect(h.installer.installed, ['test']);
+      expect(h.requested, [
+        latestReleaseApiUrl,
+        '$dlRelease/SHA256SUMS-apps.txt',
+        '$dlRelease/SHA256SUMS-apps.txt.sig',
+        '$dlRelease/stonerspots-v1.0.1-linux-x64.tar.gz',
+      ]);
+    });
+
+    test('checksums signed with another key are refused', () async {
+      final h =
+          UpdaterHarness(version: '1.0.0') // the dev fixtures' key
+            ..channel = UpdateChannel.release;
+      final c = start(h);
+      await ctl(c).onAppStart();
+      await ctl(c).updateNow();
+      expect(
+        c.read(updateControllerProvider).problem,
+        UpdateProblem.signatureInvalid,
+      );
+      expect(h.installer.installed, isEmpty);
+    });
   });
 
   test('the release page is built from the tag', () {

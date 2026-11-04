@@ -164,6 +164,14 @@ cp "$sig/SHA256SUMS.txt" "$sig/tampered.txt"
 printf '%s  evil.tar.gz\n' "$(printf y | sha256sum | cut -d' ' -f1)" >> "$sig/tampered.txt"
 
 check "signature: good, bare public key" verify "$sig/bare.pub" "$sig/good"
+# a release's list, as sign-backend makes it for a tag vX.Y.Z
+mkdir -p "$sig/release"
+for a in amd64 arm64; do
+  printf '%s  stonerspots-backend-v1.0.0-linux-%s.tar.gz\n' "$(printf '%s' "$a" | sha256sum | cut -d' ' -f1)" "$a"
+done > "$sig/release/SHA256SUMS.txt"
+ssh-keygen -q -Y sign -f "$sig/key" -n "$SIGNING_NAMESPACE" "$sig/release/SHA256SUMS.txt" 2>/dev/null
+check "signature: a release's SHA256SUMS.txt (v1.0.0)" verify "$sig/bare.pub" "$sig/release"
+check "signature: ... signed by another key, refused" not verify "$sig/bare.pub" "$sig/other" "$sig/release/SHA256SUMS.txt"
 check "signature: good, allowed_signers line" verify "$sig/allowed.pub" "$sig/good"
 check "signature: good, allowed_signers line without options" verify "$sig/plain-allowed.pub" "$sig/good"
 check "signature: changed SHA256SUMS.txt is refused" not verify "$sig/bare.pub" "$sig/good" "$sig/tampered.txt"
@@ -176,6 +184,66 @@ check "signature: a key file without a key is refused" not verify "$sig/empty.pu
 check "signature: without a key file it goes on" verify "$sig/missing.pub" "$sig/unsigned"
 check "signature: ... but warns" grep -q "NOT for who built it" "$(ls -t "$work"/verify.*.log | head -n1)"
 unset -f curl
+
+# --- which download (release asset names) ----------------------------------
+
+gh_dl="https://github.com/${REPO}/releases/download"
+# asset <tag> <file>: one asset entry the way the GitHub API prints it
+asset() { printf '        "browser_download_url": "%s/%s/%s"\n' "$gh_dl" "$1" "$2"; }
+# release <tag> [prerelease]: a release with every file the workflow publishes
+release() {
+  printf '  {\n    "tag_name": "%s",\n    "prerelease": %s,\n    "assets": [\n' "$1" "${2:-false}"
+  for f in "stonerspots-backend-$1-linux-amd64.tar.gz" "stonerspots-backend-$1-linux-arm64.tar.gz" \
+    SHA256SUMS.txt SHA256SUMS.txt.sig "stonerspots-$1-linux-x64.tar.gz" "stonerspots-$1-android.apk"; do
+    asset "$1" "$f"
+  done
+  printf '    ]\n  }\n'
+}
+pick() { # pick <channel> <arch> <expected URL or ""> (answer on stdin)
+  local got
+  got=$(pick_backend_url "$1" "$2") || got=""
+  [ "$got" = "$3" ] || { echo "      got: ${got:-nothing}, want: ${3:-nothing}" >&2; return 1; }
+}
+
+list=$(printf '[\n'; release dev-14 true; release v1.0.0; release dev-12 true; printf ']\n')
+check "pick: dev takes the newest dev build" \
+  pick dev amd64 "$gh_dl/dev-14/stonerspots-backend-dev-14-linux-amd64.tar.gz" <<<"$list"
+check "pick: dev arm64" \
+  pick dev arm64 "$gh_dl/dev-14/stonerspots-backend-dev-14-linux-arm64.tar.gz" <<<"$list"
+check "pick: release passes over dev builds" \
+  pick release amd64 "$gh_dl/v1.0.0/stonerspots-backend-v1.0.0-linux-amd64.tar.gz" <<<"$list"
+latest=$(release v1.2.3)
+check "pick: releases/latest (one object), amd64" \
+  pick release amd64 "$gh_dl/v1.2.3/stonerspots-backend-v1.2.3-linux-amd64.tar.gz" <<<"$latest"
+check "pick: releases/latest, arm64" \
+  pick release arm64 "$gh_dl/v1.2.3/stonerspots-backend-v1.2.3-linux-arm64.tar.gz" <<<"$latest"
+check "pick: a release is not a dev build" pick dev amd64 "" <<<"$latest"
+check "pick: a dev build is not a release" pick release amd64 "" <<<"$(release dev-9 true)"
+check "pick: no tarball for the architecture" pick release riscv64 "" <<<"$latest"
+check "pick: v1.0.0-rc1 is not a release" pick release amd64 "" <<<"$(release v1.0.0-rc1)"
+check "pick: 1.0.0 without v is not a release" pick release amd64 "" <<<"$(release 1.0.0)"
+check "pick: a file named after another tag is skipped" pick release amd64 "" \
+  <<<"$(asset v1.0.1 stonerspots-backend-v1.0.0-linux-amd64.tar.gz)"
+check "pick: ... and the next good one taken" \
+  pick dev amd64 "$gh_dl/dev-3/stonerspots-backend-dev-3-linux-amd64.tar.gz" \
+  <<<"$(asset dev-4 stonerspots-backend-dev-2-linux-amd64.tar.gz; asset dev-3 stonerspots-backend-dev-3-linux-amd64.tar.gz)"
+check "pick: only downloads from this repository" pick release amd64 "" \
+  <<<'"browser_download_url": "https://example.invalid/releases/download/v1.0.0/stonerspots-backend-v1.0.0-linux-amd64.tar.gz"'
+check "pick: an API error has nothing" pick release amd64 "" <<<'{"message": "Not Found"}'
+# the names the release workflow gives the tarballs are the ones looked for
+check "pick: dev-release.yml names tarballs stonerspots-backend-<tag>-linux-<arch>" \
+  grep -qF 'name="stonerspots-backend-${TAG}-linux-${GOARCH}"' "$here/../.github/workflows/dev-release.yml"
+
+# --- never back to older migrations -----------------------------------------
+
+mig="$work/mig"
+mkdir -p "$mig/many" "$mig/none" "$mig/octal"
+for n in 0001 0002 0027; do touch "$mig/many/${n}_x.up.sql" "$mig/many/${n}_x.down.sql"; done
+touch "$mig/many/0099_x.down.sql" "$mig/many/README.md" "$mig/octal/0009_x.up.sql" "$mig/octal/0010_y.up.sql"
+check "migrations: newest up migration" test "$(newest_migration "$mig/many")" = 27
+check "migrations: none is 0" test "$(newest_migration "$mig/none")" = 0
+check "migrations: 0009 and 0010 are decimal" test "$(newest_migration "$mig/octal")" = 10
+check "migrations: the real ones are counted" test "$(newest_migration "$here/../backend/migrations")" -gt 0
 
 # --- units -----------------------------------------------------------------
 

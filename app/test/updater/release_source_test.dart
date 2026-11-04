@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:app/core/settings.dart';
+import 'package:app/features/updater/release.dart';
 import 'package:app/features/updater/release_source.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -114,6 +115,66 @@ void main() {
 
     adapter.routes[releasesApiUrl] = (_) => FakeResponse(500);
     expect((await source.releases(force: true)).failed, isTrue);
+  });
+
+  group('releases/latest (release channel)', () {
+    late FakeResponse Function() latest;
+    late ReleaseSource single;
+
+    setUp(() {
+      latest = () => FakeResponse(
+        200,
+        text: jsonEncode(ghRelease('v1.0.0', prerelease: false)),
+        headers: {'etag': 'W/"latest"'},
+      );
+      adapter.routes[latestReleaseApiUrl] = (_) => latest();
+      single = ReleaseSource(
+        dio: fakeDio(adapter),
+        store: store,
+        now: () => now,
+        url: latestReleaseApiUrl,
+      );
+    });
+
+    test('the channel picks the URL', () {
+      expect(releasesApiUrlFor(UpdateChannel.dev), releasesApiUrl);
+      expect(releasesApiUrlFor(UpdateChannel.release), latestReleaseApiUrl);
+    });
+
+    test('one release object becomes a list of one', () async {
+      final r = await single.releases();
+      expect(r.failed, isFalse);
+      expect(r.releases!.single.tag, 'v1.0.0');
+      expect(r.releases!.single.prerelease, isFalse);
+      expect(adapter.requests.single.uri.toString(), latestReleaseApiUrl);
+    });
+
+    test(
+      '404 (nothing released yet) is an empty list, not a failure',
+      () async {
+        latest = () => FakeResponse(404, text: '{"message":"Not Found"}');
+        final r = await single.releases();
+        expect(r.failed, isFalse);
+        expect(r.releases, isEmpty);
+      },
+    );
+
+    test('404 from the list URL is still a failure', () async {
+      answer = () => FakeResponse(404);
+      expect((await source.releases()).failed, isTrue);
+    });
+
+    test('a list cached for the other channel is not used', () async {
+      await source.releases(); // dev list: dev-63
+      final r = await single.releases(); // must ask, not reuse dev-63
+      expect(r.fromCache, isFalse);
+      expect(r.releases!.single.tag, 'v1.0.0');
+      // no ETag of the dev list goes to the other URL
+      expect(adapter.requests.last.headers['If-None-Match'], isNull);
+      final back = await source.releases();
+      expect(back.fromCache, isFalse);
+      expect(back.releases!.single.tag, 'dev-63');
+    });
   });
 
   test('keeps only what the updater needs', () async {
