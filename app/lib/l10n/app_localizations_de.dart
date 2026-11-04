@@ -1379,28 +1379,35 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsAbout => 'Über Stonerspots';
 
   @override
-  String get whatsNewTitle => 'Neu in 2.0';
+  String get whatsNewTitle => 'Neu in 1.0';
+
+  @override
+  String get whatsNewSearchTitle => 'Karte, Suche und Kompass';
+
+  @override
+  String get whatsNewSearchBody =>
+      'Spots auf der Karte entdecken, nach Namen finden (Strg+K) und mit dem Kompass die Karte wieder nach Norden drehen.';
+
+  @override
+  String get whatsNewSpotsTitle => 'Spots';
+
+  @override
+  String get whatsNewSpotsBody =>
+      'Jeder Spot hat Fotos, das Wetter der nächsten Stunden, Bewertungen, Kommentare und Updates von Leuten, die dort waren.';
+
+  @override
+  String get whatsNewFollowingTitle => 'Feed und „Folge ich“';
+
+  @override
+  String get whatsNewFollowingBody =>
+      'Der Feed zeigt die neuesten Updates oder nur die von Leuten, denen du folgst.';
 
   @override
   String get whatsNewProfilesTitle => 'Profile und Folgen';
 
   @override
   String get whatsNewProfilesBody =>
-      'Tippe auf einen Namen, um das Profil zu sehen und der Person zu folgen.';
-
-  @override
-  String get whatsNewFollowingTitle => 'Feed „Folge ich“';
-
-  @override
-  String get whatsNewFollowingBody =>
-      'Zeigt im Feed nur Updates von Leuten, denen du folgst.';
-
-  @override
-  String get whatsNewCommentsTitle => 'Kommentare';
-
-  @override
-  String get whatsNewCommentsBody =>
-      'Bei jedem Spot mitreden, im eigenen Bereich für Kommentare.';
+      'Gib dir ein Profilbild, tippe auf einen Namen, um das Profil zu sehen und der Person zu folgen.';
 
   @override
   String get whatsNewActivityTitle => 'Aktivität';
@@ -1410,18 +1417,25 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Glocke im Profil zeigt, wer dir folgt, kommentiert, deine Spots mag oder bewertet.';
 
   @override
-  String get whatsNewSearchTitle => 'Spot-Suche';
+  String get whatsNewSavedTitle => 'Gespeicherte Listen';
 
   @override
-  String get whatsNewSearchBody =>
-      'Spots auf der Karte nach Namen finden (Strg+K).';
+  String get whatsNewSavedBody =>
+      'Spots in eigenen Listen speichern und schnell wiederfinden.';
 
   @override
-  String get whatsNewWeatherTitle => 'Wetter';
+  String get whatsNewAdminTitle => 'Admin-Werkzeuge';
 
   @override
-  String get whatsNewWeatherBody =>
-      'Spot-Seiten zeigen das aktuelle Wetter und die nächsten Stunden.';
+  String get whatsNewAdminBody =>
+      'Admins bearbeiten Meldungen, sperren Nutzer, ändern oder verbergen Inhalte, pflegen Tags und aktualisieren den Server, abgesichert mit Zwei-Faktor-Codes.';
+
+  @override
+  String get whatsNewUpdatesTitle => 'Automatische Updates';
+
+  @override
+  String get whatsNewUpdatesBody =>
+      'Die Android- und Desktop-Apps finden neue Versionen selbst und installieren nur signierte.';
 
   @override
   String get profileAccountMenu => 'Konto';

@@ -2357,8 +2357,44 @@ abstract class AppLocalizations {
   /// No description provided for @whatsNewTitle.
   ///
   /// In de, this message translates to:
-  /// **'Neu in 2.0'**
+  /// **'Neu in 1.0'**
   String get whatsNewTitle;
+
+  /// No description provided for @whatsNewSearchTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Karte, Suche und Kompass'**
+  String get whatsNewSearchTitle;
+
+  /// No description provided for @whatsNewSearchBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Spots auf der Karte entdecken, nach Namen finden (Strg+K) und mit dem Kompass die Karte wieder nach Norden drehen.'**
+  String get whatsNewSearchBody;
+
+  /// No description provided for @whatsNewSpotsTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Spots'**
+  String get whatsNewSpotsTitle;
+
+  /// No description provided for @whatsNewSpotsBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Jeder Spot hat Fotos, das Wetter der nächsten Stunden, Bewertungen, Kommentare und Updates von Leuten, die dort waren.'**
+  String get whatsNewSpotsBody;
+
+  /// No description provided for @whatsNewFollowingTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Feed und „Folge ich“'**
+  String get whatsNewFollowingTitle;
+
+  /// No description provided for @whatsNewFollowingBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Der Feed zeigt die neuesten Updates oder nur die von Leuten, denen du folgst.'**
+  String get whatsNewFollowingBody;
 
   /// No description provided for @whatsNewProfilesTitle.
   ///
@@ -2369,32 +2405,8 @@ abstract class AppLocalizations {
   /// No description provided for @whatsNewProfilesBody.
   ///
   /// In de, this message translates to:
-  /// **'Tippe auf einen Namen, um das Profil zu sehen und der Person zu folgen.'**
+  /// **'Gib dir ein Profilbild, tippe auf einen Namen, um das Profil zu sehen und der Person zu folgen.'**
   String get whatsNewProfilesBody;
-
-  /// No description provided for @whatsNewFollowingTitle.
-  ///
-  /// In de, this message translates to:
-  /// **'Feed „Folge ich“'**
-  String get whatsNewFollowingTitle;
-
-  /// No description provided for @whatsNewFollowingBody.
-  ///
-  /// In de, this message translates to:
-  /// **'Zeigt im Feed nur Updates von Leuten, denen du folgst.'**
-  String get whatsNewFollowingBody;
-
-  /// No description provided for @whatsNewCommentsTitle.
-  ///
-  /// In de, this message translates to:
-  /// **'Kommentare'**
-  String get whatsNewCommentsTitle;
-
-  /// No description provided for @whatsNewCommentsBody.
-  ///
-  /// In de, this message translates to:
-  /// **'Bei jedem Spot mitreden, im eigenen Bereich für Kommentare.'**
-  String get whatsNewCommentsBody;
 
   /// No description provided for @whatsNewActivityTitle.
   ///
@@ -2408,29 +2420,41 @@ abstract class AppLocalizations {
   /// **'Die Glocke im Profil zeigt, wer dir folgt, kommentiert, deine Spots mag oder bewertet.'**
   String get whatsNewActivityBody;
 
-  /// No description provided for @whatsNewSearchTitle.
+  /// No description provided for @whatsNewSavedTitle.
   ///
   /// In de, this message translates to:
-  /// **'Spot-Suche'**
-  String get whatsNewSearchTitle;
+  /// **'Gespeicherte Listen'**
+  String get whatsNewSavedTitle;
 
-  /// No description provided for @whatsNewSearchBody.
+  /// No description provided for @whatsNewSavedBody.
   ///
   /// In de, this message translates to:
-  /// **'Spots auf der Karte nach Namen finden (Strg+K).'**
-  String get whatsNewSearchBody;
+  /// **'Spots in eigenen Listen speichern und schnell wiederfinden.'**
+  String get whatsNewSavedBody;
 
-  /// No description provided for @whatsNewWeatherTitle.
+  /// No description provided for @whatsNewAdminTitle.
   ///
   /// In de, this message translates to:
-  /// **'Wetter'**
-  String get whatsNewWeatherTitle;
+  /// **'Admin-Werkzeuge'**
+  String get whatsNewAdminTitle;
 
-  /// No description provided for @whatsNewWeatherBody.
+  /// No description provided for @whatsNewAdminBody.
   ///
   /// In de, this message translates to:
-  /// **'Spot-Seiten zeigen das aktuelle Wetter und die nächsten Stunden.'**
-  String get whatsNewWeatherBody;
+  /// **'Admins bearbeiten Meldungen, sperren Nutzer, ändern oder verbergen Inhalte, pflegen Tags und aktualisieren den Server, abgesichert mit Zwei-Faktor-Codes.'**
+  String get whatsNewAdminBody;
+
+  /// No description provided for @whatsNewUpdatesTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Automatische Updates'**
+  String get whatsNewUpdatesTitle;
+
+  /// No description provided for @whatsNewUpdatesBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Android- und Desktop-Apps finden neue Versionen selbst und installieren nur signierte.'**
+  String get whatsNewUpdatesBody;
 
   /// No description provided for @profileAccountMenu.
   ///
