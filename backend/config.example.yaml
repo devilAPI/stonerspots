@@ -70,6 +70,7 @@ limits:
   search:                { n: 60, per: "1m" }  # GET /spots/search and GET /feed per IP
   follows_per_day:  200   # new follows per user per day (0 = unlimited)
   likes_per_day:    300   # likes per user per day (0 = unlimited)
+  zones:                 { n: 120, per: "1m" } # GET /zones (zone layer tiles) per IP
 
 # Global request body size limit as a safety net (bytes). Per-handler limits
 # still apply (e.g. 8 MB for photo uploads). Default 10 MB [MAX_BODY_BYTES].
@@ -103,6 +104,16 @@ pow_difficulty: 18
 # still reach /admin/2fa to set it up). Set up 2FA for every admin before
 # turning it on [REQUIRE_ADMIN_TOTP]
 require_admin_totp: false
+
+# No-consumption zone layer (KCanG § 5, Germany): GET /zones answers with
+# schools, playgrounds, sports grounds, pedestrian zones ... from
+# OpenStreetMap, fetched from Overpass by 0.02° tile and cached for 7 days
+# (memory and the zone_tiles table). Only the query goes to Overpass, with a
+# User-Agent naming this project and public_base_url; never client data.
+# Data © OpenStreetMap contributors (ODbL) [ZONES_ENABLED, ZONES_OVERPASS_URL]
+zones:
+  enabled: true
+  overpass_url: "https://overpass-api.de/api/interpreter"
 
 # MariaDB 11.4 (see schema.example.sql for the table layout).
 database:

@@ -258,7 +258,16 @@ CREATE TABLE `users` (
   UNIQUE KEY `uq_users_password_reset_hash` (`password_reset_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (27, 0);
+DROP TABLE IF EXISTS `zone_tiles`;
+CREATE TABLE `zone_tiles` (
+  `tile_key` varchar(40) NOT NULL,
+  `data` mediumblob NOT NULL,
+  `fetched_at` datetime NOT NULL,
+  PRIMARY KEY (`tile_key`),
+  KEY `idx_zone_tiles_fetched` (`fetched_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (28, 0);
 
 INSERT INTO `tags` (`tag`, `name_de`, `name_en`, `icon`, `sort`) VALUES
   ('roof', 'Überdacht', 'Roof', 'roof', 10),

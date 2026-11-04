@@ -88,7 +88,21 @@ type Config struct {
 	// up 2FA (they can still reach /admin/2fa to set it up). Off by default
 	// so turning it on cannot lock out an owner who has no 2FA yet.
 	RequireAdminTOTP bool
+
+	// Zones configures the no-consumption zone layer (internal/zones).
+	Zones ZonesConfig
 }
+
+// ZonesConfig configures GET /zones, which proxies Overpass (OpenStreetMap).
+type ZonesConfig struct {
+	// Enabled turns the endpoint on (default true).
+	Enabled bool
+	// OverpassURL is the Overpass API interpreter endpoint.
+	OverpassURL string
+}
+
+// DefaultOverpassURL is the public Overpass instance.
+const DefaultOverpassURL = "https://overpass-api.de/api/interpreter"
 
 // DefaultPowDifficulty is the registration proof-of-work difficulty when
 // pow_difficulty is not set.
@@ -125,6 +139,7 @@ type Limits struct {
 	Search              ratelimit.Rule // GET /spots/search and GET /feed, per IP
 	FollowsPerDay       int            // new follows per user per day
 	LikesPerDay         int            // likes per user per day
+	Zones               ratelimit.Rule // GET /zones, per IP
 }
 
 // DefaultLimits are generous for people and tight for scripts. The feed and
@@ -149,6 +164,7 @@ func DefaultLimits() Limits {
 		Search:              ratelimit.Rule{N: 60, Per: time.Minute},
 		FollowsPerDay:       200,
 		LikesPerDay:         300,
+		Zones:               ratelimit.Rule{N: 120, Per: time.Minute},
 	}
 }
 
@@ -171,6 +187,13 @@ type file struct {
 	AppBaseURL       string `yaml:"app_base_url"`
 	PowDifficulty    int    `yaml:"pow_difficulty"`
 	RequireAdminTOTP bool   `yaml:"require_admin_totp"`
+
+	Zones fileZones `yaml:"zones"`
+}
+
+type fileZones struct {
+	Enabled     *bool  `yaml:"enabled"`
+	OverpassURL string `yaml:"overpass_url"`
 }
 
 type fileMail struct {
@@ -200,6 +223,7 @@ type fileLimits struct {
 	Search              fileRule `yaml:"search"`
 	FollowsPerDay       int      `yaml:"follows_per_day"`
 	LikesPerDay         int      `yaml:"likes_per_day"`
+	Zones               fileRule `yaml:"zones"`
 }
 
 type fileRule struct {
@@ -401,6 +425,10 @@ func Read() (Config, error) {
 		AppBaseURL:       strings.TrimRight(getenv("APP_BASE_URL", f.AppBaseURL), "/"),
 		PowDifficulty:    getenvInt("POW_DIFFICULTY", f.PowDifficulty, DefaultPowDifficulty),
 		RequireAdminTOTP: getenvBool("REQUIRE_ADMIN_TOTP", f.RequireAdminTOTP),
+		Zones: ZonesConfig{
+			Enabled:     getenvBool("ZONES_ENABLED", f.Zones.Enabled == nil || *f.Zones.Enabled),
+			OverpassURL: getenv("ZONES_OVERPASS_URL", or(f.Zones.OverpassURL, DefaultOverpassURL)),
+		},
 	}, nil
 }
 
@@ -455,6 +483,7 @@ func parseLimits(f fileLimits) Limits {
 		Search:              ruleOrDefault(f.Search, def.Search),
 		FollowsPerDay:       intOrDefault(f.FollowsPerDay, def.FollowsPerDay),
 		LikesPerDay:         intOrDefault(f.LikesPerDay, def.LikesPerDay),
+		Zones:               ruleOrDefault(f.Zones, def.Zones),
 	}
 }
 
