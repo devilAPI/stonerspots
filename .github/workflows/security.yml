@@ -1,0 +1,55 @@
+name: Security checks
+
+# Known vulnerabilities in the Go dependencies (govulncheck reports only
+# those the code actually reaches), go vet, and the installer: syntax,
+# shellcheck and its tests (tests/install-backend-test.sh, no root needed).
+# Weekly as well, because new advisories appear for unchanged code. Separate
+# from the release workflow, so a new advisory does not hold up dev builds.
+
+on:
+  push:
+    branches: [main, v2]
+  pull_request:
+    branches: [main, v2]
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  go:
+    name: govulncheck and go vet
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: go vet
+        working-directory: backend
+        run: go vet ./...
+      - name: govulncheck
+        working-directory: backend
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+
+  installer:
+    name: Installer checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Syntax
+        run: bash -n install-backend.sh && bash -n tests/install-backend-test.sh
+      - name: shellcheck
+        run: shellcheck -x -S warning install-backend.sh tests/install-backend-test.sh
+      - name: Tests
+        run: bash tests/install-backend-test.sh

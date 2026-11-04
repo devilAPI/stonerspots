@@ -28,7 +28,8 @@ not() { ! "$@"; }
 
 # Defines the installer's functions and constants, then stops (see the end
 # of its function section).
-# shellcheck source=../install-backend.sh
+# (shellcheck -x runs from the repository root, as in CI)
+# shellcheck source=install-backend.sh
 source "$installer"
 set +e # the installer's set -e must not end the tests
 
@@ -56,6 +57,7 @@ ran() { [ "$(cat "$root/ran" 2>/dev/null)" = "$1" ]; }
 ran_nothing() { [ ! -e "$root/ran" ]; }
 request_gone() { [ ! -e "$req" ] && [ ! -L "$req" ]; }
 state_is() { grep -qx "state=$1" "$root/update/status/state"; }
+quick() { [ $((SECONDS - start)) -lt 10 ]; } # since $start
 
 runner_setup release
 printf 'release\n' > "$req"
@@ -97,7 +99,8 @@ runner_setup fifo
 mkfifo "$req"
 start=$SECONDS
 run_runner
-check "runner: a FIFO does not hang it" eval '[ $((SECONDS - start)) -lt 10 ] && ran_nothing && request_gone'
+check "runner: a FIFO does not hang it" quick
+check "runner: a FIFO is ignored and removed" eval 'ran_nothing && request_gone'
 
 # A FIFO swapped in between the check and the read: the read gives up.
 runner_setup fifo-race
@@ -106,7 +109,8 @@ check "runner: (test setup) the plain-file check could be skipped" grep -q '^if 
 mkfifo "$req"
 start=$SECONDS
 run_runner
-check "runner: a FIFO read times out within seconds" eval '[ $((SECONDS - start)) -lt 10 ] && ran_nothing && request_gone'
+check "runner: a FIFO read times out within seconds" quick
+check "runner: ... and that FIFO is ignored and removed" eval 'ran_nothing && request_gone'
 
 runner_setup none
 run_runner

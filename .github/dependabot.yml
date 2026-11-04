@@ -1,0 +1,30 @@
+# Weekly update pull requests for the Go modules, the Flutter packages and
+# the GitHub Actions (which are pinned to commit SHAs; Dependabot moves the
+# SHA and the version comment together). Security updates come as soon as an
+# advisory is published, independent of this schedule, once "Dependabot
+# security updates" is on (Settings -> Code security).
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /backend
+    schedule:
+      interval: weekly
+    groups:
+      go-minor:
+        update-types: [minor, patch]
+
+  - package-ecosystem: pub
+    directory: /app
+    schedule:
+      interval: weekly
+    groups:
+      pub-minor:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

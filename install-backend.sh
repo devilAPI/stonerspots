@@ -529,9 +529,9 @@ systemctl enable --now --quiet "${UPDATER}.path"
 # A unit is active as soon as its process exists, so one good look proves
 # nothing: the API fails on start only after it tried the migrations.
 restart_and_check() {
-  local i
+  local _
   systemctl restart "$SERVICE" || return 1
-  for i in $(seq "$STARTUP_SECONDS"); do
+  for _ in $(seq "$STARTUP_SECONDS"); do
     sleep 1
     systemctl is-active --quiet "$SERVICE" || return 1
   done
