@@ -21,7 +21,7 @@ func TestReviewReportsListShape(t *testing.T) {
 	gone := newReview(t, e, sp, testutil.NewUser(t, e.db), 2, "bye")
 	var rs []uint64
 	for i := 0; i < 3; i++ {
-		u := testutil.NewUser(t, e.db)
+		u := testutil.NewTrustedUser(t, e.db)
 		rs = append(rs, u)
 		e.reportVia(t, u, "review", rv)
 	}
@@ -172,7 +172,7 @@ func TestDismissReview(t *testing.T) {
 	e := setup(t)
 	owner, author := testutil.NewUser(t, e.db), testutil.NewUser(t, e.db)
 	sp := newSpot(t, e.db, owner, "S", "active")
-	reporters := []uint64{testutil.NewUser(t, e.db), testutil.NewUser(t, e.db), testutil.NewUser(t, e.db)}
+	reporters := []uint64{testutil.NewTrustedUser(t, e.db), testutil.NewTrustedUser(t, e.db), testutil.NewTrustedUser(t, e.db)}
 	rv := newReview(t, e, sp, author, 3, "x")
 	for _, r := range reporters {
 		e.reportVia(t, r, "review", rv)

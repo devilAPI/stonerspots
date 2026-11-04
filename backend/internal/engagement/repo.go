@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
+	"time"
 
 	"stonerspots/backend/internal/activity"
 )
@@ -13,9 +15,53 @@ var (
 	errBadType  = errors.New("invalid target type")
 )
 
-const hideThreshold = 3
+// Auto-hide. Reported content is hidden at once when enough trusted
+// accounts have reported it; admins still see every report (GET
+// /admin/reports) and can restore it. A reporter is trusted when the
+// account
+//   - is at least trustedAge old and not banned,
+//   - has a verified email address, when mail (and so verification) is on,
+//   - has at least one contribution others can see: an active spot, spot
+//     update or review.
+//
+// So a burst of fresh throwaway accounts cannot hide anything; their
+// reports still reach the admins. Spots, which carry the most content,
+// need more trusted reporters than single updates, reviews and comments.
+const (
+	trustedAge        = 7 * 24 * time.Hour
+	hideThresholdSpot = 5
+	hideThreshold     = 3
+)
 
-type repo struct{ db *sql.DB }
+type repo struct {
+	db *sql.DB
+	// requireVerified: only reporters with a verified email count (mail on)
+	requireVerified bool
+}
+
+func threshold(targetType string) int {
+	if targetType == "spot" {
+		return hideThresholdSpot
+	}
+	return hideThreshold
+}
+
+// trustedReporters counts the distinct trusted accounts (see above) that
+// reported the target.
+func (r repo) trustedReporters(ctx context.Context, tx *sql.Tx, targetType string, targetID uint64) (int, error) {
+	var n int
+	err := tx.QueryRowContext(ctx, `SELECT COUNT(DISTINCT rp.user_id)
+		FROM reports rp JOIN users u ON u.id = rp.user_id
+		WHERE rp.target_type = ? AND rp.target_id = ?
+		  AND u.banned_at IS NULL
+		  AND u.created_at <= NOW() - INTERVAL ? SECOND
+		  AND (? = 0 OR u.email_verified = 1)
+		  AND (EXISTS (SELECT 1 FROM spots s WHERE s.user_id = u.id AND s.status = 'active')
+		    OR EXISTS (SELECT 1 FROM spot_updates su WHERE su.user_id = u.id AND su.status = 'active')
+		    OR EXISTS (SELECT 1 FROM spot_reviews rv WHERE rv.user_id = u.id AND rv.status = 'active'))`,
+		targetType, targetID, int64(trustedAge/time.Second), r.requireVerified).Scan(&n)
+	return n, err
+}
 
 func (r repo) inTx(ctx context.Context, fn func(tx *sql.Tx) error) error {
 	tx, err := r.db.BeginTx(ctx, nil)
@@ -87,7 +133,8 @@ func (r repo) SetLike(ctx context.Context, userID, spotID uint64, liked bool) (i
 }
 
 // AddReport records a report. created is false when this user had already
-// reported the target. At hideThreshold distinct reporters the target is hidden.
+// reported the target. When enough trusted reporters (see threshold) have
+// reported it, the target is hidden.
 func (r repo) AddReport(ctx context.Context, userID uint64, targetType string, targetID uint64, reason string) (bool, error) {
 	var table string
 	switch targetType {
@@ -130,15 +177,17 @@ func (r repo) AddReport(ctx context.Context, userID uint64, targetType string, t
 			return nil
 		}
 		created = true
-		var distinct int
-		if err := tx.QueryRowContext(ctx,
-			`SELECT COUNT(DISTINCT user_id) FROM reports WHERE target_type = ? AND target_id = ?`,
-			targetType, targetID).Scan(&distinct); err != nil {
+		trusted, err := r.trustedReporters(ctx, tx, targetType, targetID)
+		if err != nil {
 			return err
 		}
-		if distinct >= hideThreshold {
-			if _, err := tx.ExecContext(ctx, `UPDATE `+table+` SET status = 'hidden' WHERE id = ?`, targetID); err != nil {
+		if trusted >= threshold(targetType) {
+			res, err := tx.ExecContext(ctx, `UPDATE `+table+` SET status = 'hidden' WHERE id = ? AND status = 'active'`, targetID)
+			if err != nil {
 				return err
+			}
+			if n, _ := res.RowsAffected(); n == 1 {
+				log.Printf("auto_hide target=%s id=%d trusted_reporters=%d", targetType, targetID, trusted)
 			}
 		}
 		return nil

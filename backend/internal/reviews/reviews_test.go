@@ -293,7 +293,7 @@ func TestReportHidesReview(t *testing.T) {
 	if c := rep(testutil.NewUser(t, db), 999999); c != 404 {
 		t.Fatalf("missing %d", c)
 	}
-	r1, r2, r3 := testutil.NewUser(t, db), testutil.NewUser(t, db), testutil.NewUser(t, db)
+	r1, r2, r3 := testutil.NewTrustedUser(t, db), testutil.NewTrustedUser(t, db), testutil.NewTrustedUser(t, db)
 	if c := rep(r1, rv.ID); c != 201 {
 		t.Fatalf("%d", c)
 	}
