@@ -14,10 +14,12 @@ import (
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/auth"
 	"stonerspots/backend/internal/comments"
+	"stonerspots/backend/internal/dataexport"
 	"stonerspots/backend/internal/engagement"
 	"stonerspots/backend/internal/feed"
 	"stonerspots/backend/internal/geocode"
 	"stonerspots/backend/internal/httpx"
+	"stonerspots/backend/internal/legal"
 	"stonerspots/backend/internal/lists"
 	"stonerspots/backend/internal/photos"
 	"stonerspots/backend/internal/quotas"
@@ -86,6 +88,8 @@ func New(d app.Deps) http.Handler {
 		comments.Mount(r, d, quotaTracker)
 		activity.Mount(r, d)
 		geocode.Mount(r, d)
+		legal.Mount(r, d)
+		dataexport.Mount(r, d)
 		admin.Mount(r, d)
 	})
 	return r
