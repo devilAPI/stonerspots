@@ -2875,6 +2875,144 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Deine Admin-Sitzung ist abgelaufen. Gib einen neuen Code aus deiner Authenticator-App ein.'**
   String get adminCodeExpired;
+
+  /// No description provided for @settingsLegal.
+  ///
+  /// In de, this message translates to:
+  /// **'Rechtliches'**
+  String get settingsLegal;
+
+  /// No description provided for @legalImprint.
+  ///
+  /// In de, this message translates to:
+  /// **'Impressum'**
+  String get legalImprint;
+
+  /// No description provided for @legalPrivacy.
+  ///
+  /// In de, this message translates to:
+  /// **'Datenschutzerklärung'**
+  String get legalPrivacy;
+
+  /// No description provided for @legalRules.
+  ///
+  /// In de, this message translates to:
+  /// **'Nutzungsregeln'**
+  String get legalRules;
+
+  /// No description provided for @legalImprintHeading.
+  ///
+  /// In de, this message translates to:
+  /// **'Angaben gemäß § 5 DDG'**
+  String get legalImprintHeading;
+
+  /// No description provided for @legalContact.
+  ///
+  /// In de, this message translates to:
+  /// **'Kontakt'**
+  String get legalContact;
+
+  /// No description provided for @legalEmail.
+  ///
+  /// In de, this message translates to:
+  /// **'E-Mail'**
+  String get legalEmail;
+
+  /// No description provided for @legalPhone.
+  ///
+  /// In de, this message translates to:
+  /// **'Telefon'**
+  String get legalPhone;
+
+  /// No description provided for @legalResponsible.
+  ///
+  /// In de, this message translates to:
+  /// **'Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV'**
+  String get legalResponsible;
+
+  /// No description provided for @legalNotConfigured.
+  ///
+  /// In de, this message translates to:
+  /// **'Der Betreiber dieses Servers hat die Angaben für das Impressum noch nicht eingerichtet.'**
+  String get legalNotConfigured;
+
+  /// No description provided for @legalNotConfiguredPrivacy.
+  ///
+  /// In de, this message translates to:
+  /// **'Der Betreiber dieses Servers hat seine Kontaktdaten noch nicht eingerichtet. Der Text unten beschreibt, was die App und der Server mit deinen Daten tun.'**
+  String get legalNotConfiguredPrivacy;
+
+  /// No description provided for @legalController.
+  ///
+  /// In de, this message translates to:
+  /// **'Verantwortlicher'**
+  String get legalController;
+
+  /// No description provided for @legalPrivacyContact.
+  ///
+  /// In de, this message translates to:
+  /// **'Kontakt für Datenschutzfragen'**
+  String get legalPrivacyContact;
+
+  /// No description provided for @registerConsent.
+  ///
+  /// In de, this message translates to:
+  /// **'Mit der Registrierung akzeptierst du die [Nutzungsregeln] und hast die [Datenschutzerklärung] gelesen.'**
+  String get registerConsent;
+
+  /// No description provided for @zoneNoticeTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Verbotszonen ohne Gewähr'**
+  String get zoneNoticeTitle;
+
+  /// No description provided for @zoneNoticeBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Karte zeigt Verbotszonen nach Daten von OpenStreetMap. Diese können unvollständig oder falsch sein: Die Karte ist keine Rechtsberatung, du bleibst selbst dafür verantwortlich, dich an das Gesetz zu halten. In Deutschland ist Kiffen in Sichtweite (bis 100 m) von Schulen, Spielplätzen, Kinder- und Jugendeinrichtungen und Sportstätten verboten, ebenso neben Minderjährigen und in Fußgängerzonen von 7 bis 20 Uhr. In Österreich, der Schweiz und Liechtenstein gelten eigene Regeln; Cannabis ist dort nicht legal.'**
+  String get zoneNoticeBody;
+
+  /// No description provided for @zoneNoticeDismiss.
+  ///
+  /// In de, this message translates to:
+  /// **'Verstanden'**
+  String get zoneNoticeDismiss;
+
+  /// No description provided for @exportData.
+  ///
+  /// In de, this message translates to:
+  /// **'Meine Daten herunterladen'**
+  String get exportData;
+
+  /// No description provided for @exportPreparing.
+  ///
+  /// In de, this message translates to:
+  /// **'Deine Daten werden zusammengestellt …'**
+  String get exportPreparing;
+
+  /// No description provided for @exportSaved.
+  ///
+  /// In de, this message translates to:
+  /// **'Gespeichert unter {path}'**
+  String exportSaved(String path);
+
+  /// No description provided for @exportDownloaded.
+  ///
+  /// In de, this message translates to:
+  /// **'Download gestartet: {name}'**
+  String exportDownloaded(String name);
+
+  /// No description provided for @exportFailed.
+  ///
+  /// In de, this message translates to:
+  /// **'Das hat nicht geklappt. Versuch es später noch mal.'**
+  String get exportFailed;
+
+  /// No description provided for @exportRateLimited.
+  ///
+  /// In de, this message translates to:
+  /// **'Du kannst deine Daten höchstens dreimal am Tag herunterladen. Versuch es später noch mal.'**
+  String get exportRateLimited;
 }
 
 class _AppLocalizationsDelegate

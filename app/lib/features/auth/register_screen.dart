@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../legal/legal_links.dart';
 import 'auth_controller.dart';
 import 'auth_form_page.dart';
 
@@ -96,6 +97,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           value: _adult,
           onChanged: (v) => setState(() => _adult = v ?? false),
           title: Text(l10n.adultConfirm),
+        ),
+        const Padding(
+          padding: EdgeInsets.only(bottom: 4),
+          child: RegisterConsentText(),
         ),
       ],
     );

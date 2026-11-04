@@ -158,8 +158,12 @@ class ApiClient {
     _adminSession = _AdminSession(body['token'] as String, expires);
   }
 
-  Future<T> get<T>(String path, {Map<String, dynamic>? query}) =>
-      _send<T>('GET', path, query: query);
+  /// [receiveTimeout] overrides the client's 30 s for slow endpoints.
+  Future<T> get<T>(
+    String path, {
+    Map<String, dynamic>? query,
+    Duration? receiveTimeout,
+  }) => _send<T>('GET', path, query: query, receiveTimeout: receiveTimeout);
 
   /// [receiveTimeout] overrides the client's 30 s for slow endpoints. On the
   /// web it bounds the whole request, upload included (dio sets the XHR

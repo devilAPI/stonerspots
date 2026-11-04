@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/back_or_home.dart';
 import '../../l10n/app_localizations.dart';
+import '../legal/legal_links.dart';
 import 'auth_errors.dart';
 
 /// Page frame shared by login and registration: [fields] in a narrow
@@ -60,6 +61,8 @@ class AuthFormPage extends StatelessWidget {
                   onPressed: () => context.pushReplacement(switchTo),
                   child: Text(switchLabel),
                 ),
+                const SizedBox(height: 24),
+                const LegalLinksFooter(),
               ],
             ),
           ),
