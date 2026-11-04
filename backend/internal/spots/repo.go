@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/spots/tagset"
 )
 
@@ -24,7 +25,13 @@ const selectCols = `s.id, s.title, s.description, ST_Y(s.location), ST_X(s.locat
             WHERE u.spot_id = s.id AND u.status = 'active' AND p.status = 'approved'
             ORDER BY p.id LIMIT 1), ''),
   (SELECT COALESCE(ROUND(AVG(rv.rating), 1), 0) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active'),
-  (SELECT COUNT(*) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active')`
+  (SELECT COUNT(*) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active'),
+  u.id, u.display_name, u.avatar_key`
+
+// fromSpots is the FROM clause for selectCols: the author comes from one
+// primary-key join; a LEFT JOIN, so a spot whose account is gone still lists
+// (with author null).
+const fromSpots = ` FROM spots s LEFT JOIN users u ON u.id = s.user_id`
 
 func f(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
 
@@ -108,11 +115,11 @@ func (r *Repo) attachTags(ctx context.Context, list []Spot) error {
 // Get returns an active spot, or sql.ErrNoRows.
 func (r *Repo) Get(ctx context.Context, id uint64) (*Spot, error) {
 	rows, err := r.DB.QueryContext(ctx,
-		`SELECT `+selectCols+` FROM spots s WHERE s.id = ? AND s.status = 'active'`, r.PublicBaseURL, id)
+		`SELECT `+selectCols+fromSpots+` WHERE s.id = ? AND s.status = 'active'`, r.PublicBaseURL, id)
 	if err != nil {
 		return nil, err
 	}
-	list, err := scan(rows, false)
+	list, err := r.scan(rows, false)
 	if err != nil {
 		return nil, err
 	}
@@ -122,12 +129,10 @@ func (r *Repo) Get(ctx context.Context, id uint64) (*Spot, error) {
 	if err := r.attachTags(ctx, list); err != nil {
 		return nil, err
 	}
-	var a Author
 	if err := r.DB.QueryRowContext(ctx,
-		`SELECT u.id, u.display_name, s.locked FROM spots s JOIN users u ON u.id = s.user_id WHERE s.id = ?`, id).Scan(&a.ID, &a.DisplayName, &list[0].Locked); err != nil {
+		`SELECT locked FROM spots WHERE id = ?`, id).Scan(&list[0].Locked); err != nil {
 		return nil, err
 	}
-	list[0].Author = &a
 	return &list[0], nil
 }
 
@@ -142,11 +147,11 @@ func (r *Repo) ByIDs(ctx context.Context, ids []uint64) ([]Spot, error) {
 		args = append(args, id)
 	}
 	rows, err := r.DB.QueryContext(ctx,
-		`SELECT `+selectCols+` FROM spots s WHERE s.status = 'active' AND s.id IN (?`+strings.Repeat(",?", len(ids)-1)+`)`, args...)
+		`SELECT `+selectCols+fromSpots+` WHERE s.status = 'active' AND s.id IN (?`+strings.Repeat(",?", len(ids)-1)+`)`, args...)
 	if err != nil {
 		return nil, err
 	}
-	found, err := scan(rows, false)
+	found, err := r.scan(rows, false)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +173,7 @@ func (r *Repo) ByIDs(ctx context.Context, ids []uint64) ([]Spot, error) {
 
 // bboxQuery builds the bounding-box query. MBRContains lets MariaDB use the spatial index.
 func bboxQuery(b BBox, fl Filter) (string, []any) {
-	q := `SELECT ` + selectCols + ` FROM spots s WHERE s.status = 'active' AND MBRContains(ST_GeomFromText(?), s.location)`
+	q := `SELECT ` + selectCols + fromSpots + ` WHERE s.status = 'active' AND MBRContains(ST_GeomFromText(?), s.location)`
 	args := []any{"", polygon(b)}
 	tq, targs := tagset.FilterSQL("s", fl.Tags)
 	q += tq
@@ -199,7 +204,7 @@ func (r *Repo) InBBox(ctx context.Context, b BBox, fl Filter) ([]Spot, error) {
 	if err != nil {
 		return nil, err
 	}
-	list, err := scan(rows, false)
+	list, err := r.scan(rows, false)
 	if err != nil {
 		return nil, err
 	}
@@ -218,14 +223,14 @@ func (r *Repo) Nearby(ctx context.Context, lat, lon float64, radiusM, limit int,
 	args = append(args, radiusM, clampLimit(limit))
 	rows, err := r.DB.QueryContext(ctx,
 		`SELECT `+selectCols+`, ST_Distance_Sphere(s.location, POINT(?, ?)) AS dist
-		 FROM spots s
+		`+fromSpots+`
 		 WHERE s.status = 'active' AND MBRContains(ST_GeomFromText(?), s.location)`+tq+`
 		 HAVING dist <= ?
 		 ORDER BY dist ASC, s.id ASC LIMIT ?`, args...)
 	if err != nil {
 		return nil, err
 	}
-	list, err := scan(rows, true)
+	list, err := r.scan(rows, true)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +253,7 @@ func (r *Repo) nearestWithin(ctx context.Context, lat, lon, meters float64) ([]S
 	box := BBox{South: lat - dLat, North: lat + dLat, West: lon - dLon, East: lon + dLon}
 	rows, err := r.DB.QueryContext(ctx,
 		`SELECT `+selectCols+`, ST_Distance_Sphere(s.location, POINT(?, ?)) AS dist
-		 FROM spots s
+		`+fromSpots+`
 		 WHERE s.status = 'active' AND MBRContains(ST_GeomFromText(?), s.location)
 		 HAVING dist <= ?
 		 ORDER BY dist ASC, s.id ASC LIMIT 1`,
@@ -256,15 +261,21 @@ func (r *Repo) nearestWithin(ctx context.Context, lat, lon, meters float64) ([]S
 	if err != nil {
 		return nil, err
 	}
-	return scan(rows, true)
+	return r.scan(rows, true)
 }
 
-func scan(rows *sql.Rows, withDist bool) ([]Spot, error) {
+func (r *Repo) scan(rows *sql.Rows, withDist bool) ([]Spot, error) {
 	defer rows.Close()
 	out := []Spot{}
 	for rows.Next() {
 		s := Spot{Tags: []string{}}
-		dst := []any{&s.ID, &s.Title, &s.Description, &s.Lat, &s.Lon, &s.LikeCount, &s.CreatedAt, &s.CoverURL, &s.RatingAvg, &s.RatingCount}
+		var (
+			authorID   sql.NullInt64
+			authorName sql.NullString
+			avatarKey  sql.NullString
+		)
+		dst := []any{&s.ID, &s.Title, &s.Description, &s.Lat, &s.Lon, &s.LikeCount, &s.CreatedAt, &s.CoverURL, &s.RatingAvg, &s.RatingCount,
+			&authorID, &authorName, &avatarKey}
 		var d float64
 		if withDist {
 			dst = append(dst, &d)
@@ -275,6 +286,10 @@ func scan(rows *sql.Rows, withDist bool) ([]Spot, error) {
 		if withDist {
 			d = math.Round(d*10) / 10
 			s.DistanceM = &d
+		}
+		if authorID.Valid {
+			s.Author = &Author{ID: uint64(authorID.Int64), DisplayName: authorName.String,
+				AvatarURL: app.AvatarURL(r.PublicBaseURL, avatarKey)}
 		}
 		out = append(out, s)
 	}

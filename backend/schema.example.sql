@@ -246,12 +246,14 @@ CREATE TABLE `users` (
   `password_reset_token` varchar(255) DEFAULT NULL,
   `password_reset_expires` timestamp NULL DEFAULT NULL,
   `banned_at` datetime DEFAULT NULL,
+  `avatar_key` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_users_email` (`email`),
-  UNIQUE KEY `uq_users_display_name` (`display_name`)
+  UNIQUE KEY `uq_users_display_name` (`display_name`),
+  UNIQUE KEY `uq_users_avatar_key` (`avatar_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (23, 0);
+INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (24, 0);
 
 INSERT INTO `tags` (`tag`, `name_de`, `name_en`, `icon`, `sort`) VALUES
   ('roof', 'Überdacht', 'Roof', 'roof', 10),

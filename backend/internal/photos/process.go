@@ -31,23 +31,9 @@ var (
 // re-encodes it as metadata-free JPEG: full (long edge <= 1600) and thumb
 // (long edge <= 400). w and h are the dimensions of full.
 func Normalize(r io.Reader, maxBytes int64) (full, thumb []byte, w, h int, err error) {
-	data, err := io.ReadAll(io.LimitReader(r, maxBytes+1))
+	img, err := decode(r, maxBytes)
 	if err != nil {
 		return nil, nil, 0, 0, err
-	}
-	if int64(len(data)) > maxBytes {
-		return nil, nil, 0, 0, ErrTooLarge
-	}
-	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
-	if err != nil || (format != "jpeg" && format != "png" && format != "webp" && format != "avif") {
-		return nil, nil, 0, 0, ErrUnsupported
-	}
-	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width*cfg.Height > maxPixels {
-		return nil, nil, 0, 0, ErrUnsupported
-	}
-	img, err := imaging.Decode(bytes.NewReader(data), imaging.AutoOrientation(true))
-	if err != nil {
-		return nil, nil, 0, 0, ErrUnsupported
 	}
 	fullImg := fit(img, fullMaxEdge)
 	thumbImg := fit(fullImg, thumbMaxEdge)
@@ -59,6 +45,44 @@ func Normalize(r io.Reader, maxBytes int64) (full, thumb []byte, w, h int, err e
 	}
 	b := fullImg.Bounds()
 	return full, thumb, b.Dx(), b.Dy(), nil
+}
+
+// AvatarEdge is the width and height of a stored avatar.
+const AvatarEdge = 384
+
+// NormalizeAvatar is Normalize for a profile picture: same limits and
+// accepted types, then centre-cropped to a square and scaled to
+// AvatarEdge x AvatarEdge (small images are scaled up), as metadata-free JPEG.
+func NormalizeAvatar(r io.Reader, maxBytes int64) ([]byte, error) {
+	img, err := decode(r, maxBytes)
+	if err != nil {
+		return nil, err
+	}
+	return encodeJPEG(imaging.Fill(img, AvatarEdge, AvatarEdge, imaging.Center, imaging.Lanczos))
+}
+
+// decode reads at most maxBytes from r and decodes a JPEG/PNG/WebP/AVIF
+// (checked by content) with its EXIF orientation applied.
+func decode(r io.Reader, maxBytes int64) (image.Image, error) {
+	data, err := io.ReadAll(io.LimitReader(r, maxBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > maxBytes {
+		return nil, ErrTooLarge
+	}
+	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil || (format != "jpeg" && format != "png" && format != "webp" && format != "avif") {
+		return nil, ErrUnsupported
+	}
+	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width*cfg.Height > maxPixels {
+		return nil, ErrUnsupported
+	}
+	img, err := imaging.Decode(bytes.NewReader(data), imaging.AutoOrientation(true))
+	if err != nil {
+		return nil, ErrUnsupported
+	}
+	return img, nil
 }
 
 // fit scales down so the long edge is at most max; never upscales.

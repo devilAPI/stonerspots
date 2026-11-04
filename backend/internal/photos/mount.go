@@ -12,7 +12,8 @@ import (
 	"stonerspots/backend/internal/ratelimit"
 )
 
-// Mount registers POST /photos (auth, rate limited per user) and GET
+// Mount registers POST /photos and PUT /me/avatar (auth, rate limited per
+// user, one shared limit), DELETE /me/avatar (auth) and GET
 // /media/* (public static files). It is called on the /api/v1 router, so
 // media is served at /api/v1/media/*.
 func Mount(r chi.Router, d app.Deps) {
@@ -24,6 +25,9 @@ func Mount(r chi.Router, d app.Deps) {
 		return ""
 	})
 	r.With(auth.Middleware(d.Cfg.JWTSecret), perUser).Post("/photos", h.upload)
+	// avatars share the photo upload limit (same limiter, same key)
+	r.With(auth.Middleware(d.Cfg.JWTSecret), perUser).Put("/me/avatar", h.putAvatar)
+	r.With(auth.Middleware(d.Cfg.JWTSecret)).Delete("/me/avatar", h.deleteAvatar)
 	r.Get("/media/*", h.serveMedia)
 }
 

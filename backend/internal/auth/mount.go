@@ -49,7 +49,7 @@ func MountWithOptions(r chi.Router, d app.Deps, opts MountOptions) {
 		powIssuer = pow.NewIssuer(d.Cfg.JWTSecret, "register", 18) // Difficulty 18 ~ 2^18 iterations
 	}
 	h := &handler{
-		svc:      &service{db: d.DB, secret: d.Cfg.JWTSecret, uploadDir: d.Cfg.UploadDir, mail: mc},
+		svc:      &service{db: d.DB, secret: d.Cfg.JWTSecret, uploadDir: d.Cfg.UploadDir, base: d.Cfg.PublicBaseURL, mail: mc},
 		hibp:     hibp.NewClient(),
 		failures: ratelimit.New(lim.LoginFailures),
 		pow:      powIssuer,

@@ -20,7 +20,9 @@ type Spot struct {
 	RatingAvg   float64  `json:"rating_avg"`
 	RatingCount int      `json:"rating_count"`
 	Tags        []string `json:"tags"`
-	Author      *Author  `json:"author,omitempty"` // only on GET /spots/{id}
+	// Author is the spot's creator on every spot object; null when the
+	// account no longer exists.
+	Author *Author `json:"author"`
 	// Locked spots take no new updates or edits from non-admins. Only set on
 	// GET /spots/{id}.
 	Locked    bool      `json:"locked"`
@@ -30,8 +32,9 @@ type Spot struct {
 
 // Author is the user who created a spot.
 type Author struct {
-	ID          uint64 `json:"id"`
-	DisplayName string `json:"display_name"`
+	ID          uint64  `json:"id"`
+	DisplayName string  `json:"display_name"`
+	AvatarURL   *string `json:"avatar_url"`
 }
 
 // NormalizeTags validates against the tag catalog, dedupes and orders tags

@@ -127,7 +127,7 @@ func (r repo) setBanned(ctx context.Context, id uint64, ban bool) (userItem, err
 	} else if _, err := tx.ExecContext(ctx, `UPDATE users SET banned_at = NULL WHERE id = ?`, id); err != nil {
 		return userItem{}, err
 	}
-	it, err := scanUser(tx.QueryRowContext(ctx, userSelect+`WHERE u.id = ?`, id))
+	it, err := r.scanUser(tx.QueryRowContext(ctx, userSelect+`WHERE u.id = ?`, id))
 	if err != nil {
 		return userItem{}, err
 	}

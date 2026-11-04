@@ -33,6 +33,7 @@ var errNotFound = errors.New("users: not found")
 type Profile struct {
 	ID             uint64    `json:"id"`
 	DisplayName    string    `json:"display_name"`
+	AvatarURL      *string   `json:"avatar_url"`
 	CreatedAt      time.Time `json:"created_at"`
 	SpotCount      int       `json:"spot_count"`
 	UpdateCount    int       `json:"update_count"`
@@ -98,7 +99,8 @@ func (h *handler) visible(ctx context.Context, id uint64) error {
 // active spots, and follows between users who are not banned.
 func (h *handler) profile(ctx context.Context, id, viewer uint64) (Profile, error) {
 	var p Profile
-	err := h.db.QueryRowContext(ctx, `SELECT u.id, u.display_name, u.created_at,
+	var avatarKey sql.NullString
+	err := h.db.QueryRowContext(ctx, `SELECT u.id, u.display_name, u.avatar_key, u.created_at,
 		(SELECT COUNT(*) FROM spots s WHERE s.user_id = u.id AND s.status = 'active'),
 		(SELECT COUNT(*) FROM spot_updates su JOIN spots s ON s.id = su.spot_id
 		  WHERE su.user_id = u.id AND su.status = 'active' AND s.status = 'active'),
@@ -108,12 +110,13 @@ func (h *handler) profile(ctx context.Context, id, viewer uint64) (Profile, erro
 		  WHERE f.follower_id = u.id AND o.banned_at IS NULL),
 		EXISTS(SELECT 1 FROM follows f WHERE f.follower_id = ? AND f.followee_id = u.id)
 		FROM users u WHERE u.id = ? AND u.banned_at IS NULL`, viewer, id).
-		Scan(&p.ID, &p.DisplayName, &p.CreatedAt, &p.SpotCount, &p.UpdateCount,
+		Scan(&p.ID, &p.DisplayName, &avatarKey, &p.CreatedAt, &p.SpotCount, &p.UpdateCount,
 			&p.FollowerCount, &p.FollowingCount, &p.Following)
 	if errors.Is(err, sql.ErrNoRows) {
 		return p, errNotFound
 	}
 	p.IsMe = viewer != 0 && viewer == id
+	p.AvatarURL = app.AvatarURL(h.base, avatarKey)
 	return p, err
 }
 

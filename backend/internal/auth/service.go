@@ -17,6 +17,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"golang.org/x/crypto/bcrypt"
 
+	"stonerspots/backend/internal/app"
 	mailpkg "stonerspots/backend/internal/mail"
 )
 
@@ -40,6 +41,8 @@ type User struct {
 	Email       string `json:"email"`
 	DisplayName string `json:"display_name"`
 	IsAdmin     bool   `json:"is_admin"`
+	// AvatarURL is the profile picture, null when there is none.
+	AvatarURL *string `json:"avatar_url"`
 
 	banned bool // only read by refresh
 }
@@ -55,6 +58,7 @@ type service struct {
 	db        *sql.DB
 	secret    []byte
 	uploadDir string
+	base      string // public base URL, for avatar URLs
 	mail      *mailpkg.Client
 }
 
@@ -209,10 +213,12 @@ func (s *service) login(ctx context.Context, login, password string) (*Session, 
 	var hash string
 	var verified sql.NullBool
 	var banned sql.NullTime
+	var avatarKey sql.NullString
 	where, arg := byLogin(login)
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, email, display_name, is_admin, password_hash, email_verified, banned_at FROM users WHERE `+where, arg,
-	).Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin, &hash, &verified, &banned)
+		`SELECT id, email, display_name, is_admin, avatar_key, password_hash, email_verified, banned_at FROM users WHERE `+where, arg,
+	).Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin, &avatarKey, &hash, &verified, &banned)
+	u.AvatarURL = app.AvatarURL(s.base, avatarKey)
 	if errors.Is(err, sql.ErrNoRows) {
 		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
 		return nil, errBadCredentials
@@ -318,11 +324,13 @@ func newUUID() string {
 func (s *service) user(ctx context.Context, id uint64) (*User, error) {
 	var u User
 	var banned sql.NullTime
-	err := s.db.QueryRowContext(ctx, `SELECT id, email, display_name, is_admin, banned_at FROM users WHERE id = ?`, id).
-		Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin, &banned)
+	var avatarKey sql.NullString
+	err := s.db.QueryRowContext(ctx, `SELECT id, email, display_name, is_admin, avatar_key, banned_at FROM users WHERE id = ?`, id).
+		Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin, &avatarKey, &banned)
 	if err != nil {
 		return nil, err
 	}
 	u.banned = banned.Valid
+	u.AvatarURL = app.AvatarURL(s.base, avatarKey)
 	return &u, nil
 }

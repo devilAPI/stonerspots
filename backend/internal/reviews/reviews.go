@@ -30,7 +30,7 @@ const (
 
 // Mount registers review routes with full paths on the /api/v1 router.
 func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
-	h := &handler{db: d.DB, quota: quota}
+	h := &handler{db: d.DB, quota: quota, base: d.Cfg.PublicBaseURL}
 	r.With(auth.Optional(d.Cfg.JWTSecret)).Get("/spots/{id}/reviews", h.list)
 	authed := r.With(auth.Middleware(d.Cfg.JWTSecret))
 	authed.Put("/spots/{id}/review", h.put)
@@ -40,11 +40,13 @@ func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
 type handler struct {
 	db    *sql.DB
 	quota *quotas.Tracker
+	base  string // public base URL, for avatar URLs
 }
 
 type author struct {
-	ID          uint64 `json:"id"`
-	DisplayName string `json:"display_name"`
+	ID          uint64  `json:"id"`
+	DisplayName string  `json:"display_name"`
+	AvatarURL   *string `json:"avatar_url"`
 }
 
 type review struct {
@@ -62,12 +64,14 @@ type summary struct {
 	Distribution map[string]int `json:"distribution"`
 }
 
-const selectReview = `SELECT r.id, r.rating, r.body, r.created_at, r.updated_at, u.id, u.display_name
+const selectReview = `SELECT r.id, r.rating, r.body, r.created_at, r.updated_at, u.id, u.display_name, u.avatar_key
   FROM spot_reviews r JOIN users u ON u.id = r.user_id`
 
-func scanReview(row interface{ Scan(...any) error }) (review, error) {
+func scanReview(row interface{ Scan(...any) error }, base string) (review, error) {
 	var v review
-	err := row.Scan(&v.ID, &v.Rating, &v.Body, &v.CreatedAt, &v.UpdatedAt, &v.Author.ID, &v.Author.DisplayName)
+	var avatarKey sql.NullString
+	err := row.Scan(&v.ID, &v.Rating, &v.Body, &v.CreatedAt, &v.UpdatedAt, &v.Author.ID, &v.Author.DisplayName, &avatarKey)
+	v.Author.AvatarURL = app.AvatarURL(base, avatarKey)
 	return v, err
 }
 
@@ -177,7 +181,7 @@ func (h *handler) save(ctx context.Context, sid, owner, uid uint64, rating int, 
 			return review{}, err
 		}
 	}
-	v, err := scanReview(tx.QueryRowContext(ctx, selectReview+` WHERE r.spot_id = ? AND r.user_id = ?`, sid, uid))
+	v, err := scanReview(tx.QueryRowContext(ctx, selectReview+` WHERE r.spot_id = ? AND r.user_id = ?`, sid, uid), h.base)
 	if err != nil {
 		return review{}, err
 	}
@@ -319,7 +323,7 @@ func (h *handler) list(w http.ResponseWriter, r *http.Request) {
 
 	if uid, ok := auth.UserID(ctx); ok {
 		v, err := scanReview(h.db.QueryRowContext(ctx,
-			selectReview+` WHERE r.spot_id = ? AND r.user_id = ? AND r.status = 'active'`, sid, uid))
+			selectReview+` WHERE r.spot_id = ? AND r.user_id = ? AND r.status = 'active'`, sid, uid), h.base)
 		if err == nil {
 			out.Mine = &v
 		} else if !errors.Is(err, sql.ErrNoRows) {
@@ -343,7 +347,7 @@ func (h *handler) list(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		v, err := scanReview(rows)
+		v, err := scanReview(rows, h.base)
 		if err != nil {
 			internal(w)
 			return
