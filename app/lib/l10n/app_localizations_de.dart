@@ -1470,4 +1470,115 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get commentsShowLess => 'Weniger anzeigen';
+
+  @override
+  String updateAvailableTitle(String tag) {
+    return 'Update verfügbar ($tag)';
+  }
+
+  @override
+  String updateInstalledVersion(String version) {
+    return 'Installiert: $version';
+  }
+
+  @override
+  String get updateNow => 'Jetzt aktualisieren';
+
+  @override
+  String get updateLater => 'Später';
+
+  @override
+  String get updateSkip => 'Diese Version überspringen';
+
+  @override
+  String get updateOpenReleasePage => 'Release-Seite öffnen';
+
+  @override
+  String get updateNoKeyHint =>
+      'Dieser Build kann Updates nicht verifizieren und installiert deshalb nichts selbst. Lade das Update von der Release-Seite.';
+
+  @override
+  String get updateNotWritableHint =>
+      'Der Ordner der App ist nicht beschreibbar. Lade das Update von der Release-Seite.';
+
+  @override
+  String get updatePermissionHint =>
+      'Erlaube Stonerspots in den Einstellungen, Apps zu installieren, und tippe dann noch mal auf „Jetzt aktualisieren“.';
+
+  @override
+  String get updateOpenSettings => 'Einstellungen öffnen';
+
+  @override
+  String updateDownloading(int percent) {
+    return 'Wird heruntergeladen … $percent %';
+  }
+
+  @override
+  String get updateVerifying => 'Signatur und Prüfsumme werden geprüft …';
+
+  @override
+  String get updateInstalling => 'Wird installiert …';
+
+  @override
+  String get updateHandedOff =>
+      'Bestätige die Installation im Dialog des Systems.';
+
+  @override
+  String get updateErrorSignature =>
+      'Die Signatur des Updates stimmt nicht. Es wurde nichts installiert.';
+
+  @override
+  String get updateErrorChecksum =>
+      'Die Datei passt nicht zur signierten Prüfsumme. Es wurde nichts installiert.';
+
+  @override
+  String get updateErrorMissing =>
+      'Dieses Release hat keine Datei für dieses Gerät.';
+
+  @override
+  String get updateErrorDownload => 'Download fehlgeschlagen.';
+
+  @override
+  String get updateErrorInstall =>
+      'Installation fehlgeschlagen. Die bisherige Version bleibt.';
+
+  @override
+  String get updateRetry => 'Erneut versuchen';
+
+  @override
+  String get settingsUpdates => 'Updates';
+
+  @override
+  String get settingsAutoUpdate => 'Automatisch nach Updates suchen';
+
+  @override
+  String get settingsAutoUpdateHint =>
+      'Beim Start, höchstens alle 6 Stunden, bei GitHub.';
+
+  @override
+  String get settingsCheckUpdates => 'Nach Updates suchen';
+
+  @override
+  String get updateStatusChecking => 'Suche …';
+
+  @override
+  String updateStatusUpToDate(String version) {
+    return 'Aktuell ($version)';
+  }
+
+  @override
+  String updateStatusAvailable(String tag) {
+    return 'Update verfügbar: $tag';
+  }
+
+  @override
+  String get updateStatusRateLimited =>
+      'GitHub bittet um eine Pause. Versuch es später noch mal.';
+
+  @override
+  String get updateStatusOffline => 'GitHub ist gerade nicht erreichbar.';
+
+  @override
+  String get settingsNoUpdateChannel =>
+      'Dieser Build sucht nicht nach Updates.';
 }

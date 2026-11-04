@@ -2509,6 +2509,186 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Weniger anzeigen'**
   String get commentsShowLess;
+
+  /// No description provided for @updateAvailableTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Update verfügbar ({tag})'**
+  String updateAvailableTitle(String tag);
+
+  /// No description provided for @updateInstalledVersion.
+  ///
+  /// In de, this message translates to:
+  /// **'Installiert: {version}'**
+  String updateInstalledVersion(String version);
+
+  /// No description provided for @updateNow.
+  ///
+  /// In de, this message translates to:
+  /// **'Jetzt aktualisieren'**
+  String get updateNow;
+
+  /// No description provided for @updateLater.
+  ///
+  /// In de, this message translates to:
+  /// **'Später'**
+  String get updateLater;
+
+  /// No description provided for @updateSkip.
+  ///
+  /// In de, this message translates to:
+  /// **'Diese Version überspringen'**
+  String get updateSkip;
+
+  /// No description provided for @updateOpenReleasePage.
+  ///
+  /// In de, this message translates to:
+  /// **'Release-Seite öffnen'**
+  String get updateOpenReleasePage;
+
+  /// No description provided for @updateNoKeyHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieser Build kann Updates nicht verifizieren und installiert deshalb nichts selbst. Lade das Update von der Release-Seite.'**
+  String get updateNoKeyHint;
+
+  /// No description provided for @updateNotWritableHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Der Ordner der App ist nicht beschreibbar. Lade das Update von der Release-Seite.'**
+  String get updateNotWritableHint;
+
+  /// No description provided for @updatePermissionHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Erlaube Stonerspots in den Einstellungen, Apps zu installieren, und tippe dann noch mal auf „Jetzt aktualisieren“.'**
+  String get updatePermissionHint;
+
+  /// No description provided for @updateOpenSettings.
+  ///
+  /// In de, this message translates to:
+  /// **'Einstellungen öffnen'**
+  String get updateOpenSettings;
+
+  /// No description provided for @updateDownloading.
+  ///
+  /// In de, this message translates to:
+  /// **'Wird heruntergeladen … {percent} %'**
+  String updateDownloading(int percent);
+
+  /// No description provided for @updateVerifying.
+  ///
+  /// In de, this message translates to:
+  /// **'Signatur und Prüfsumme werden geprüft …'**
+  String get updateVerifying;
+
+  /// No description provided for @updateInstalling.
+  ///
+  /// In de, this message translates to:
+  /// **'Wird installiert …'**
+  String get updateInstalling;
+
+  /// No description provided for @updateHandedOff.
+  ///
+  /// In de, this message translates to:
+  /// **'Bestätige die Installation im Dialog des Systems.'**
+  String get updateHandedOff;
+
+  /// No description provided for @updateErrorSignature.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Signatur des Updates stimmt nicht. Es wurde nichts installiert.'**
+  String get updateErrorSignature;
+
+  /// No description provided for @updateErrorChecksum.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Datei passt nicht zur signierten Prüfsumme. Es wurde nichts installiert.'**
+  String get updateErrorChecksum;
+
+  /// No description provided for @updateErrorMissing.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieses Release hat keine Datei für dieses Gerät.'**
+  String get updateErrorMissing;
+
+  /// No description provided for @updateErrorDownload.
+  ///
+  /// In de, this message translates to:
+  /// **'Download fehlgeschlagen.'**
+  String get updateErrorDownload;
+
+  /// No description provided for @updateErrorInstall.
+  ///
+  /// In de, this message translates to:
+  /// **'Installation fehlgeschlagen. Die bisherige Version bleibt.'**
+  String get updateErrorInstall;
+
+  /// No description provided for @updateRetry.
+  ///
+  /// In de, this message translates to:
+  /// **'Erneut versuchen'**
+  String get updateRetry;
+
+  /// No description provided for @settingsUpdates.
+  ///
+  /// In de, this message translates to:
+  /// **'Updates'**
+  String get settingsUpdates;
+
+  /// No description provided for @settingsAutoUpdate.
+  ///
+  /// In de, this message translates to:
+  /// **'Automatisch nach Updates suchen'**
+  String get settingsAutoUpdate;
+
+  /// No description provided for @settingsAutoUpdateHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Beim Start, höchstens alle 6 Stunden, bei GitHub.'**
+  String get settingsAutoUpdateHint;
+
+  /// No description provided for @settingsCheckUpdates.
+  ///
+  /// In de, this message translates to:
+  /// **'Nach Updates suchen'**
+  String get settingsCheckUpdates;
+
+  /// No description provided for @updateStatusChecking.
+  ///
+  /// In de, this message translates to:
+  /// **'Suche …'**
+  String get updateStatusChecking;
+
+  /// No description provided for @updateStatusUpToDate.
+  ///
+  /// In de, this message translates to:
+  /// **'Aktuell ({version})'**
+  String updateStatusUpToDate(String version);
+
+  /// No description provided for @updateStatusAvailable.
+  ///
+  /// In de, this message translates to:
+  /// **'Update verfügbar: {tag}'**
+  String updateStatusAvailable(String tag);
+
+  /// No description provided for @updateStatusRateLimited.
+  ///
+  /// In de, this message translates to:
+  /// **'GitHub bittet um eine Pause. Versuch es später noch mal.'**
+  String get updateStatusRateLimited;
+
+  /// No description provided for @updateStatusOffline.
+  ///
+  /// In de, this message translates to:
+  /// **'GitHub ist gerade nicht erreichbar.'**
+  String get updateStatusOffline;
+
+  /// No description provided for @settingsNoUpdateChannel.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieser Build sucht nicht nach Updates.'**
+  String get settingsNoUpdateChannel;
 }
 
 class _AppLocalizationsDelegate

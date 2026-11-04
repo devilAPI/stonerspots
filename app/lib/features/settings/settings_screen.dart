@@ -5,6 +5,8 @@ import '../../core/back_or_home.dart';
 import '../../core/glass.dart';
 import '../../core/settings.dart';
 import '../../l10n/app_localizations.dart';
+import '../updater/update_controller.dart';
+import '../updater/update_ui.dart';
 import 'whats_new.dart';
 
 /// App settings, in sections. A new setting is one more tile in a section,
@@ -48,6 +50,13 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              if (ref.watch(updaterConfigProvider).platform != null) ...[
+                const SizedBox(height: 16),
+                _Section(
+                  title: l10n.settingsUpdates,
+                  children: const [UpdateSettingsTiles()],
+                ),
+              ],
               const SizedBox(height: 16),
               _Section(
                 title: l10n.settingsAbout,
