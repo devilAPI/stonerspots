@@ -1454,6 +1454,210 @@ abstract class AppLocalizations {
   /// **'Mein Standort'**
   String get mapMyLocation;
 
+  /// No description provided for @mapSearch.
+  ///
+  /// In de, this message translates to:
+  /// **'Spots suchen'**
+  String get mapSearch;
+
+  /// No description provided for @mapSearchHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Name eines Spots'**
+  String get mapSearchHint;
+
+  /// No description provided for @mapSearchClose.
+  ///
+  /// In de, this message translates to:
+  /// **'Suche schließen'**
+  String get mapSearchClose;
+
+  /// No description provided for @mapSearchClear.
+  ///
+  /// In de, this message translates to:
+  /// **'Leeren'**
+  String get mapSearchClear;
+
+  /// No description provided for @mapSearchTooShort.
+  ///
+  /// In de, this message translates to:
+  /// **'Mindestens 2 Zeichen eingeben'**
+  String get mapSearchTooShort;
+
+  /// No description provided for @mapSearchNoResult.
+  ///
+  /// In de, this message translates to:
+  /// **'Kein Spot mit diesem Namen gefunden'**
+  String get mapSearchNoResult;
+
+  /// No description provided for @mapSearchError.
+  ///
+  /// In de, this message translates to:
+  /// **'Suche fehlgeschlagen'**
+  String get mapSearchError;
+
+  /// No description provided for @weatherTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Wetter'**
+  String get weatherTitle;
+
+  /// No description provided for @weatherWind.
+  ///
+  /// In de, this message translates to:
+  /// **'Wind {speed} km/h'**
+  String weatherWind(String speed);
+
+  /// No description provided for @weatherRainChance.
+  ///
+  /// In de, this message translates to:
+  /// **'Regen {percent} %'**
+  String weatherRainChance(int percent);
+
+  /// No description provided for @weatherPrecipitation.
+  ///
+  /// In de, this message translates to:
+  /// **'{amount} mm'**
+  String weatherPrecipitation(String amount);
+
+  /// No description provided for @weatherNextHours.
+  ///
+  /// In de, this message translates to:
+  /// **'Nächste Stunden'**
+  String get weatherNextHours;
+
+  /// No description provided for @weatherAttribution.
+  ///
+  /// In de, this message translates to:
+  /// **'Wetter: Open-Meteo.com'**
+  String get weatherAttribution;
+
+  /// No description provided for @weatherClear.
+  ///
+  /// In de, this message translates to:
+  /// **'Klar'**
+  String get weatherClear;
+
+  /// No description provided for @weatherMainlyClear.
+  ///
+  /// In de, this message translates to:
+  /// **'Überwiegend klar'**
+  String get weatherMainlyClear;
+
+  /// No description provided for @weatherPartlyCloudy.
+  ///
+  /// In de, this message translates to:
+  /// **'Teils bewölkt'**
+  String get weatherPartlyCloudy;
+
+  /// No description provided for @weatherOvercast.
+  ///
+  /// In de, this message translates to:
+  /// **'Bedeckt'**
+  String get weatherOvercast;
+
+  /// No description provided for @weatherFog.
+  ///
+  /// In de, this message translates to:
+  /// **'Nebel'**
+  String get weatherFog;
+
+  /// No description provided for @weatherDrizzle.
+  ///
+  /// In de, this message translates to:
+  /// **'Nieselregen'**
+  String get weatherDrizzle;
+
+  /// No description provided for @weatherFreezingDrizzle.
+  ///
+  /// In de, this message translates to:
+  /// **'Gefrierender Nieselregen'**
+  String get weatherFreezingDrizzle;
+
+  /// No description provided for @weatherRainLight.
+  ///
+  /// In de, this message translates to:
+  /// **'Leichter Regen'**
+  String get weatherRainLight;
+
+  /// No description provided for @weatherRain.
+  ///
+  /// In de, this message translates to:
+  /// **'Regen'**
+  String get weatherRain;
+
+  /// No description provided for @weatherRainHeavy.
+  ///
+  /// In de, this message translates to:
+  /// **'Starker Regen'**
+  String get weatherRainHeavy;
+
+  /// No description provided for @weatherFreezingRain.
+  ///
+  /// In de, this message translates to:
+  /// **'Gefrierender Regen'**
+  String get weatherFreezingRain;
+
+  /// No description provided for @weatherSnowLight.
+  ///
+  /// In de, this message translates to:
+  /// **'Leichter Schneefall'**
+  String get weatherSnowLight;
+
+  /// No description provided for @weatherSnow.
+  ///
+  /// In de, this message translates to:
+  /// **'Schneefall'**
+  String get weatherSnow;
+
+  /// No description provided for @weatherSnowHeavy.
+  ///
+  /// In de, this message translates to:
+  /// **'Starker Schneefall'**
+  String get weatherSnowHeavy;
+
+  /// No description provided for @weatherSnowGrains.
+  ///
+  /// In de, this message translates to:
+  /// **'Schneegriesel'**
+  String get weatherSnowGrains;
+
+  /// No description provided for @weatherShowers.
+  ///
+  /// In de, this message translates to:
+  /// **'Regenschauer'**
+  String get weatherShowers;
+
+  /// No description provided for @weatherShowersHeavy.
+  ///
+  /// In de, this message translates to:
+  /// **'Starke Regenschauer'**
+  String get weatherShowersHeavy;
+
+  /// No description provided for @weatherSnowShowers.
+  ///
+  /// In de, this message translates to:
+  /// **'Schneeschauer'**
+  String get weatherSnowShowers;
+
+  /// No description provided for @weatherThunderstorm.
+  ///
+  /// In de, this message translates to:
+  /// **'Gewitter'**
+  String get weatherThunderstorm;
+
+  /// No description provided for @weatherThunderstormHail.
+  ///
+  /// In de, this message translates to:
+  /// **'Gewitter mit Hagel'**
+  String get weatherThunderstormHail;
+
+  /// No description provided for @weatherUnknown.
+  ///
+  /// In de, this message translates to:
+  /// **'Unbekannt'**
+  String get weatherUnknown;
+
   /// No description provided for @loginId.
   ///
   /// In de, this message translates to:

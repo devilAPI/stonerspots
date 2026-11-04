@@ -10,11 +10,13 @@ import '../../core/models.dart';
 import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import 'map_filter_bar.dart';
+import 'map_flight.dart';
 import 'map_tiles.dart';
 import 'spot_cluster_layer.dart';
 import 'spot_marker.dart';
 import 'spot_preview_sheet.dart';
 import 'spot_pull_sheet.dart';
+import 'spot_search.dart';
 import 'spots_controller.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
@@ -24,8 +26,12 @@ class MapScreen extends ConsumerStatefulWidget {
   ConsumerState<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends ConsumerState<MapScreen> {
+class _MapScreenState extends ConsumerState<MapScreen>
+    with SingleTickerProviderStateMixin {
   final _mapController = MapController();
+  late final _flight = MapFlight(_mapController, this);
+  final _searchFocus = FocusNode();
+  bool _searchOpen = false;
   bool _deniedShown = false;
   bool _locating = false;
   MapBase _base = MapBase.streets;
@@ -44,6 +50,45 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void initState() {
     super.initState();
     _locate();
+  }
+
+  @override
+  void dispose() {
+    _flight.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
+
+  void _openSearch() {
+    if (_searchOpen) {
+      _searchFocus.requestFocus();
+      return;
+    }
+    setState(() => _searchOpen = true);
+    // autofocus would give way to whatever had focus before
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _searchOpen) _searchFocus.requestFocus();
+    });
+  }
+
+  void _closeSearch() => setState(() => _searchOpen = false);
+
+  /// A search result: fly there and show its card as a marker tap would.
+  void _pickSearchResult(Spot spot) {
+    _closeSearch();
+    _userMoved = true;
+    final camera = _mapController.camera;
+    final zoom = camera.zoom < 15 ? 15.0 : camera.zoom;
+    // The card covers the lower part of the map: keep the spot above it.
+    final lift = camera.nonRotatedSize.height * 0.2;
+    final centre = camera.unprojectAtZoom(
+      camera.projectAtZoom(LatLng(spot.lat, spot.lon), zoom) + Offset(0, lift),
+      zoom,
+    );
+    _flight.fly(centre, zoom).then((_) {
+      if (mounted) _notifyBounds();
+    });
+    _showPreview(spot);
   }
 
   Future<void> _locate() async {
@@ -157,7 +202,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               initialZoom: kRegionZoom,
               onMapReady: _notifyBounds,
               onPositionChanged: (camera, hasGesture) {
-                if (hasGesture) _userMoved = true;
+                if (hasGesture) {
+                  _userMoved = true;
+                  _flight.stop();
+                }
                 ref
                     .read(spotsControllerProvider.notifier)
                     .onCameraMoved(camera.visibleBounds);
@@ -172,12 +220,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
             ],
           ),
-          Positioned(
-            top: insets.top + 8,
-            left: insets.left + 12,
-            right: insets.right + 12,
-            child: const MapFilterBar(),
-          ),
+          if (!_searchOpen)
+            Positioned(
+              top: insets.top + 8,
+              left: insets.left + 12,
+              right: insets.right + 12,
+              child: const MapFilterBar(),
+            ),
           // below the filter chips
           Positioned(
             top: insets.top + 72,
@@ -189,6 +238,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    MapSearchButton(onPressed: _openSearch),
                     MapLayerButton(
                       key: const Key('mapLayer'),
                       base: _base,
@@ -224,6 +274,24 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               label: Text(l10n.addSpot),
             ),
           ),
+          // over the map controls: the results may reach down past them
+          if (_searchOpen)
+            Positioned(
+              top: insets.top + 8,
+              left: insets.left + 12,
+              right: insets.right + 12,
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: MapSpotSearch(
+                    focusNode: _searchFocus,
+                    onPick: _pickSearchResult,
+                    onClose: _closeSearch,
+                  ),
+                ),
+              ),
+            ),
           const _LoadingBar(),
           const _ErrorBanner(),
         ],

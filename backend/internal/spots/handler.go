@@ -27,6 +27,7 @@ func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
 	}
 	r.With(auth.Middleware(d.Cfg.JWTSecret)).Post("/spots", h.create)
 	r.Get("/spots/nearby", h.nearby)
+	r.Get("/spots/search", h.search)
 	r.With(auth.Middleware(d.Cfg.JWTSecret)).Put("/spots/{id}/tags", h.putTags)
 	r.Get("/spots/{id}", h.get)
 	r.Get("/spots", h.list)
