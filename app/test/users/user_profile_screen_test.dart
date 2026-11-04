@@ -143,6 +143,34 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
+  testWidgets('landscape phones: update cards put the picture beside', (
+    t,
+  ) async {
+    portrait(t, const Size(844, 390));
+    await pumpProfile(t, FakeUsers(spotIds: [1, 2], updateIds: [1, 2]));
+    // spot rows stay compact
+    expect(t.getSize(find.byKey(const Key('userSpot-1'))).height, 72);
+
+    await t.tap(_tab('Updates'));
+    await t.pumpAndSettle();
+    final card = find.byType(FeedCard).first;
+    expect(t.widget<FeedCard>(card).layout, FeedCardLayout.side);
+    // a whole card fits the short screen
+    expect(t.getSize(card).height, lessThan(390 / 2));
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('portrait phones keep the picture on top', (t) async {
+    portrait(t);
+    await pumpProfile(t, FakeUsers(updateIds: [1]));
+    await t.tap(_tab('Updates'));
+    await t.pumpAndSettle();
+    expect(
+      t.widget<FeedCard>(find.byType(FeedCard)).layout,
+      FeedCardLayout.stacked,
+    );
+  });
+
   testWidgets('empty lists say so', (t) async {
     portrait(t);
     await pumpProfile(t, FakeUsers());
