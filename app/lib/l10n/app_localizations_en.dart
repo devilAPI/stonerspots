@@ -1687,4 +1687,84 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get adminCodeExpired =>
       'Your admin session has expired. Enter a new code from your authenticator app.';
+
+  @override
+  String get settingsLegal => 'Legal';
+
+  @override
+  String get legalImprint => 'Legal notice';
+
+  @override
+  String get legalPrivacy => 'Privacy policy';
+
+  @override
+  String get legalRules => 'Community rules';
+
+  @override
+  String get legalImprintHeading =>
+      'Information pursuant to § 5 DDG (German Digital Services Act)';
+
+  @override
+  String get legalContact => 'Contact';
+
+  @override
+  String get legalEmail => 'Email';
+
+  @override
+  String get legalPhone => 'Phone';
+
+  @override
+  String get legalResponsible =>
+      'Responsible for the content pursuant to § 18 (2) MStV';
+
+  @override
+  String get legalNotConfigured =>
+      'The operator of this server has not set up the legal notice yet.';
+
+  @override
+  String get legalNotConfiguredPrivacy =>
+      'The operator of this server has not set up their contact details yet. The text below describes what the app and the server do with your data.';
+
+  @override
+  String get legalController => 'Controller';
+
+  @override
+  String get legalPrivacyContact => 'Contact for privacy questions';
+
+  @override
+  String get registerConsent =>
+      'By registering you accept the [community rules] and confirm that you have read the [privacy policy].';
+
+  @override
+  String get zoneNoticeTitle => 'No-smoking zones without guarantee';
+
+  @override
+  String get zoneNoticeBody =>
+      'The map shows no-smoking zones from OpenStreetMap data, which can be incomplete or wrong: the map is no legal advice, and you remain responsible for following the law. In Germany smoking weed is not allowed within sight (up to 100 m) of schools, playgrounds, children\'s and youth facilities and sports grounds, next to minors, or in pedestrian zones from 7 am to 8 pm. Austria, Switzerland and Liechtenstein have their own rules; cannabis is not legal there.';
+
+  @override
+  String get zoneNoticeDismiss => 'Got it';
+
+  @override
+  String get exportData => 'Download my data';
+
+  @override
+  String get exportPreparing => 'Putting your data together …';
+
+  @override
+  String exportSaved(String path) {
+    return 'Saved to $path';
+  }
+
+  @override
+  String exportDownloaded(String name) {
+    return 'Download started: $name';
+  }
+
+  @override
+  String get exportFailed => 'That did not work. Please try again later.';
+
+  @override
+  String get exportRateLimited =>
+      'You can download your data at most three times a day. Please try again later.';
 }

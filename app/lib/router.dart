@@ -12,6 +12,7 @@ import 'features/auth/login_screen.dart';
 import 'features/auth/profile_screen.dart';
 import 'features/auth/register_screen.dart';
 import 'features/feed/feed_screen.dart';
+import 'features/legal/legal_pages.dart';
 import 'core/glass.dart';
 import 'core/adaptive_nav.dart';
 import 'core/models.dart' show User;
@@ -222,6 +223,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings',
         builder: (_, _) => const BackToHomeScope(child: SettingsScreen()),
+      ),
+      // public, logged in or not, and linkable from outside (web)
+      GoRoute(
+        path: kImprintPath,
+        builder: (_, _) => const BackToHomeScope(child: ImprintScreen()),
+      ),
+      GoRoute(
+        path: kPrivacyPath,
+        builder: (_, _) => const BackToHomeScope(child: PrivacyScreen()),
+      ),
+      GoRoute(
+        path: kRulesPath,
+        builder: (_, _) => const BackToHomeScope(child: RulesScreen()),
       ),
     ],
   );

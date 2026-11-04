@@ -88,6 +88,73 @@ type Config struct {
 	// up 2FA (they can still reach /admin/2fa to set it up). Off by default
 	// so turning it on cannot lock out an owner who has no 2FA yet.
 	RequireAdminTOTP bool
+
+	// Legal holds the operator details for the legal notice (Impressum) and
+	// the privacy policy, served at GET /legal. They come only from the
+	// server's config, never from the repository.
+	Legal LegalConfig
+}
+
+// LegalConfig is the operator of this server as the app's legal notice
+// (§ 5 DDG, § 18 MStV) and privacy policy name them.
+type LegalConfig struct {
+	OperatorName string
+	// Address is a summonable postal address, several lines.
+	Address string
+	Email   string
+	Phone   string // optional
+	// ResponsiblePerson is the person responsible for the content
+	// (§ 18 Abs. 2 MStV); empty: OperatorName.
+	ResponsiblePerson string
+	Country           string // optional
+	// PrivacyContactEmail is where privacy requests go; empty: Email.
+	PrivacyContactEmail string
+	Extra               string // optional free text below the details
+}
+
+// Configured reports whether name, address and email are set and do not
+// look like the placeholders of config.example.yaml.
+func (l LegalConfig) Configured() bool {
+	return l.problem() == ""
+}
+
+// problem says what keeps the legal notice from being shown, or "".
+func (l LegalConfig) problem() string {
+	if strings.TrimSpace(l.OperatorName) == "" || strings.TrimSpace(l.Address) == "" || strings.TrimSpace(l.Email) == "" {
+		return "legal.operator_name, legal.address and legal.email are not all set"
+	}
+	if isExampleMail(l.Email) || isExampleMail(l.PrivacyContactEmail) {
+		return "legal.email is an example address"
+	}
+	return ""
+}
+
+// isExampleMail reports whether addr is at one of the reserved example
+// domains the config example uses.
+func isExampleMail(addr string) bool {
+	at := strings.LastIndex(addr, "@")
+	if at < 0 {
+		return false
+	}
+	h := strings.ToLower(strings.TrimSpace(addr[at+1:]))
+	for _, d := range []string{"example.com", "example.org", "example.net"} {
+		if h == d || strings.HasSuffix(h, "."+d) {
+			return true
+		}
+	}
+	return false
+}
+
+// WithDefaults fills ResponsiblePerson and PrivacyContactEmail from
+// OperatorName and Email when they are empty.
+func (l LegalConfig) WithDefaults() LegalConfig {
+	if strings.TrimSpace(l.ResponsiblePerson) == "" {
+		l.ResponsiblePerson = l.OperatorName
+	}
+	if strings.TrimSpace(l.PrivacyContactEmail) == "" {
+		l.PrivacyContactEmail = l.Email
+	}
+	return l
 }
 
 // DefaultPowDifficulty is the registration proof-of-work difficulty when
@@ -125,6 +192,7 @@ type Limits struct {
 	Search              ratelimit.Rule // GET /spots/search and GET /feed, per IP
 	FollowsPerDay       int            // new follows per user per day
 	LikesPerDay         int            // likes per user per day
+	Exports             ratelimit.Rule // GET /me/export (data download), per user
 }
 
 // DefaultLimits are generous for people and tight for scripts. The feed and
@@ -149,6 +217,7 @@ func DefaultLimits() Limits {
 		Search:              ratelimit.Rule{N: 60, Per: time.Minute},
 		FollowsPerDay:       200,
 		LikesPerDay:         300,
+		Exports:             ratelimit.Rule{N: 3, Per: 24 * time.Hour},
 	}
 }
 
@@ -171,6 +240,19 @@ type file struct {
 	AppBaseURL       string `yaml:"app_base_url"`
 	PowDifficulty    int    `yaml:"pow_difficulty"`
 	RequireAdminTOTP bool   `yaml:"require_admin_totp"`
+
+	Legal fileLegal `yaml:"legal"`
+}
+
+type fileLegal struct {
+	OperatorName        string `yaml:"operator_name"`
+	Address             string `yaml:"address"`
+	Email               string `yaml:"email"`
+	Phone               string `yaml:"phone"`
+	ResponsiblePerson   string `yaml:"responsible_person"`
+	Country             string `yaml:"country"`
+	PrivacyContactEmail string `yaml:"privacy_contact_email"`
+	Extra               string `yaml:"extra"`
 }
 
 type fileMail struct {
@@ -200,6 +282,7 @@ type fileLimits struct {
 	Search              fileRule `yaml:"search"`
 	FollowsPerDay       int      `yaml:"follows_per_day"`
 	LikesPerDay         int      `yaml:"likes_per_day"`
+	Exports             fileRule `yaml:"exports"`
 }
 
 type fileRule struct {
@@ -265,6 +348,9 @@ func Load() (Config, error) {
 	for _, w := range listenWarnings(c) {
 		log.Printf("WARNING: %s", w)
 	}
+	if w := legalWarning(c); w != "" {
+		log.Printf("WARNING: %s", w)
+	}
 	if c.PowDifficulty < 1 || c.PowDifficulty > 32 {
 		return Config{}, fmt.Errorf("pow_difficulty must be between 1 and 32, got %d", c.PowDifficulty)
 	}
@@ -304,6 +390,21 @@ func listenWarnings(c Config) []string {
 			`limit. Set trusted_proxies: ["127.0.0.1", "::1"]`, c.Addr)}
 	}
 	return nil
+}
+
+// legalWarning points out a public server without operator details: the
+// app then shows no legal notice (Impressum), which a service offered in
+// Germany needs (§ 5 DDG).
+func legalWarning(c Config) string {
+	if isLocal(c.PublicBaseURL) {
+		return ""
+	}
+	if p := c.Legal.problem(); p != "" {
+		return p + ": the app shows no legal notice (Impressum) and no privacy contact. " +
+			"Fill in the legal: section of config.yaml (a summonable address, e.g. a c/o " +
+			"Impressum service, not a PO box); see config.example.yaml"
+	}
+	return ""
 }
 
 func isLoopback(host string) bool {
@@ -401,7 +502,27 @@ func Read() (Config, error) {
 		AppBaseURL:       strings.TrimRight(getenv("APP_BASE_URL", f.AppBaseURL), "/"),
 		PowDifficulty:    getenvInt("POW_DIFFICULTY", f.PowDifficulty, DefaultPowDifficulty),
 		RequireAdminTOTP: getenvBool("REQUIRE_ADMIN_TOTP", f.RequireAdminTOTP),
+		Legal: LegalConfig{
+			OperatorName:        strings.TrimSpace(getenv("LEGAL_OPERATOR_NAME", f.Legal.OperatorName)),
+			Address:             strings.TrimSpace(getenvLines("LEGAL_ADDRESS", f.Legal.Address)),
+			Email:               strings.TrimSpace(getenv("LEGAL_EMAIL", f.Legal.Email)),
+			Phone:               strings.TrimSpace(getenv("LEGAL_PHONE", f.Legal.Phone)),
+			ResponsiblePerson:   strings.TrimSpace(getenv("LEGAL_RESPONSIBLE_PERSON", f.Legal.ResponsiblePerson)),
+			Country:             strings.TrimSpace(getenv("LEGAL_COUNTRY", f.Legal.Country)),
+			PrivacyContactEmail: strings.TrimSpace(getenv("LEGAL_PRIVACY_CONTACT_EMAIL", f.Legal.PrivacyContactEmail)),
+			Extra:               strings.TrimSpace(getenvLines("LEGAL_EXTRA", f.Legal.Extra)),
+		},
 	}, nil
+}
+
+// getenvLines is getenv for multi-line values: in the environment variable
+// a literal \n separates the lines (systemd Environment= and docker
+// cannot easily hold line breaks).
+func getenvLines(key, fileVal string) string {
+	if v := os.Getenv(key); v != "" {
+		return strings.ReplaceAll(v, `\n`, "\n")
+	}
+	return fileVal
 }
 
 func getenvBool(key string, fileVal bool) bool {
@@ -455,6 +576,7 @@ func parseLimits(f fileLimits) Limits {
 		Search:              ruleOrDefault(f.Search, def.Search),
 		FollowsPerDay:       intOrDefault(f.FollowsPerDay, def.FollowsPerDay),
 		LikesPerDay:         intOrDefault(f.LikesPerDay, def.LikesPerDay),
+		Exports:             ruleOrDefault(f.Exports, def.Exports),
 	}
 }
 

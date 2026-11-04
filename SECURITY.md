@@ -71,6 +71,8 @@ trust the loopback proxy; the API warns at start when this looks wrong).
 - Images re-encoded without EXIF/GPS metadata
 - Random 128-bit file names, path traversal blocked
 - No personal data in shared caches (`Cache-Control: no-store`)
+- Users can download everything stored about them (`GET /me/export`) and
+  delete their account with all of it
 
 ### Infrastructure (Production)
 - systemd unit written by `install-backend.sh`: dedicated user, no

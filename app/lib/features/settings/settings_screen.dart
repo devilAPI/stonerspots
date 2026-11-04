@@ -5,6 +5,8 @@ import '../../core/back_or_home.dart';
 import '../../core/glass.dart';
 import '../../core/settings.dart';
 import '../../l10n/app_localizations.dart';
+import '../legal/legal_links.dart';
+import '../legal/legal_pages.dart';
 import '../updater/update_controller.dart';
 import '../updater/update_ui.dart';
 import 'whats_new.dart';
@@ -68,6 +70,39 @@ class SettingsScreen extends ConsumerWidget {
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => showWhatsNewDialog(context),
                   ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _Section(
+                title: l10n.settingsLegal,
+                children: [
+                  for (final (key, icon, label, path) in [
+                    (
+                      'settings-imprint',
+                      Icons.info_outline,
+                      l10n.legalImprint,
+                      kImprintPath,
+                    ),
+                    (
+                      'settings-privacy',
+                      Icons.privacy_tip_outlined,
+                      l10n.legalPrivacy,
+                      kPrivacyPath,
+                    ),
+                    (
+                      'settings-rules',
+                      Icons.rule_outlined,
+                      l10n.legalRules,
+                      kRulesPath,
+                    ),
+                  ])
+                    ListTile(
+                      key: Key(key),
+                      leading: Icon(icon),
+                      title: Text(label),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => openLegalPage(context, path),
+                    ),
                 ],
               ),
             ],

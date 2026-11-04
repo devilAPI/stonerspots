@@ -6,6 +6,7 @@ import '../../core/glass.dart';
 import '../../core/models.dart';
 import '../../l10n/app_localizations.dart';
 import '../activity/activity_bell.dart';
+import '../legal/data_export.dart';
 import '../users/user_profile_screen.dart';
 import 'auth_controller.dart';
 import 'profile_dialogs.dart';
@@ -107,7 +108,7 @@ class _OwnButtons extends StatelessWidget {
   }
 }
 
-enum _AccountAction { password, logout, delete }
+enum _AccountAction { password, export, logout, delete }
 
 /// Your email and what you can do with the account.
 class _AccountMenu extends ConsumerWidget {
@@ -141,6 +142,15 @@ class _AccountMenu extends ConsumerWidget {
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.lock_outline),
             title: Text(l10n.changePassword),
+          ),
+        ),
+        PopupMenuItem(
+          key: const Key('export-data'),
+          value: _AccountAction.export,
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.download_outlined),
+            title: Text(l10n.exportData),
           ),
         ),
         PopupMenuItem(
@@ -180,6 +190,8 @@ class _AccountMenu extends ConsumerWidget {
         if (await showChangePasswordDialog(context)) {
           messenger.showSnackBar(SnackBar(content: Text(l10n.passwordChanged)));
         }
+      case _AccountAction.export:
+        await downloadMyData(context, ref);
       case _AccountAction.logout:
         await ref.read(authControllerProvider.notifier).logout();
       case _AccountAction.delete:

@@ -1703,4 +1703,84 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get adminCodeExpired =>
       'Deine Admin-Sitzung ist abgelaufen. Gib einen neuen Code aus deiner Authenticator-App ein.';
+
+  @override
+  String get settingsLegal => 'Rechtliches';
+
+  @override
+  String get legalImprint => 'Impressum';
+
+  @override
+  String get legalPrivacy => 'Datenschutzerklärung';
+
+  @override
+  String get legalRules => 'Nutzungsregeln';
+
+  @override
+  String get legalImprintHeading => 'Angaben gemäß § 5 DDG';
+
+  @override
+  String get legalContact => 'Kontakt';
+
+  @override
+  String get legalEmail => 'E-Mail';
+
+  @override
+  String get legalPhone => 'Telefon';
+
+  @override
+  String get legalResponsible =>
+      'Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV';
+
+  @override
+  String get legalNotConfigured =>
+      'Der Betreiber dieses Servers hat die Angaben für das Impressum noch nicht eingerichtet.';
+
+  @override
+  String get legalNotConfiguredPrivacy =>
+      'Der Betreiber dieses Servers hat seine Kontaktdaten noch nicht eingerichtet. Der Text unten beschreibt, was die App und der Server mit deinen Daten tun.';
+
+  @override
+  String get legalController => 'Verantwortlicher';
+
+  @override
+  String get legalPrivacyContact => 'Kontakt für Datenschutzfragen';
+
+  @override
+  String get registerConsent =>
+      'Mit der Registrierung akzeptierst du die [Nutzungsregeln] und hast die [Datenschutzerklärung] gelesen.';
+
+  @override
+  String get zoneNoticeTitle => 'Verbotszonen ohne Gewähr';
+
+  @override
+  String get zoneNoticeBody =>
+      'Die Karte zeigt Verbotszonen nach Daten von OpenStreetMap. Diese können unvollständig oder falsch sein: Die Karte ist keine Rechtsberatung, du bleibst selbst dafür verantwortlich, dich an das Gesetz zu halten. In Deutschland ist Kiffen in Sichtweite (bis 100 m) von Schulen, Spielplätzen, Kinder- und Jugendeinrichtungen und Sportstätten verboten, ebenso neben Minderjährigen und in Fußgängerzonen von 7 bis 20 Uhr. In Österreich, der Schweiz und Liechtenstein gelten eigene Regeln; Cannabis ist dort nicht legal.';
+
+  @override
+  String get zoneNoticeDismiss => 'Verstanden';
+
+  @override
+  String get exportData => 'Meine Daten herunterladen';
+
+  @override
+  String get exportPreparing => 'Deine Daten werden zusammengestellt …';
+
+  @override
+  String exportSaved(String path) {
+    return 'Gespeichert unter $path';
+  }
+
+  @override
+  String exportDownloaded(String name) {
+    return 'Download gestartet: $name';
+  }
+
+  @override
+  String get exportFailed =>
+      'Das hat nicht geklappt. Versuch es später noch mal.';
+
+  @override
+  String get exportRateLimited =>
+      'Du kannst deine Daten höchstens dreimal am Tag herunterladen. Versuch es später noch mal.';
 }

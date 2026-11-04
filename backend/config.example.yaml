@@ -70,6 +70,7 @@ limits:
   search:                { n: 60, per: "1m" }  # GET /spots/search and GET /feed per IP
   follows_per_day:  200   # new follows per user per day (0 = unlimited)
   likes_per_day:    300   # likes per user per day (0 = unlimited)
+  exports:               { n: 3, per: "24h" }  # GET /me/export (data download) per user
 
 # Global request body size limit as a safety net (bytes). Per-handler limits
 # still apply (e.g. 8 MB for photo uploads). Default 10 MB [MAX_BODY_BYTES].
@@ -103,6 +104,41 @@ pow_difficulty: 18
 # still reach /admin/2fa to set it up). Set up 2FA for every admin before
 # turning it on [REQUIRE_ADMIN_TOTP]
 require_admin_totp: false
+
+# Operator details for the app's legal notice (Impressum) and privacy policy,
+# served at GET /api/v1/legal. A service offered in Germany must name its
+# operator (§ 5 DDG): name, a postal address where documents can be served
+# (a c/o address of an Impressum / address service works, a PO box does not),
+# and a fast way of contact (email). These are personal details: they belong
+# in config.yaml on the server only, never in git, the app or its build.
+# Until operator_name, address and email are set, the app says the operator
+# has not set up the legal notice yet, and the API warns at start (on a
+# public server). Example values (example.org addresses count as not set):
+#
+#   operator_name: "Max Mustermann"
+#   address: |
+#     c/o Beispiel Impressum-Service GmbH
+#     Musterstraße 1
+#     12345 Musterstadt
+#   email: "kontakt@example.org"
+#   phone: "+49 30 1234567"                 # optional
+#   responsible_person: "Max Mustermann"    # optional, § 18 Abs. 2 MStV; default operator_name
+#   country: "Deutschland"                  # optional
+#   privacy_contact_email: "datenschutz@example.org"  # optional, default email
+#   extra: "Privates, nicht-kommerzielles Projekt."   # optional free text
+#
+# [LEGAL_OPERATOR_NAME, LEGAL_ADDRESS (lines separated by a literal \n),
+#  LEGAL_EMAIL, LEGAL_PHONE, LEGAL_RESPONSIBLE_PERSON, LEGAL_COUNTRY,
+#  LEGAL_PRIVACY_CONTACT_EMAIL, LEGAL_EXTRA]
+legal:
+  operator_name: ""
+  address: ""
+  email: ""
+  phone: ""
+  responsible_person: ""
+  country: ""
+  privacy_contact_email: ""
+  extra: ""
 
 # MariaDB 11.4 (see schema.example.sql for the table layout).
 database:

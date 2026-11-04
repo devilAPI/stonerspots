@@ -9,33 +9,22 @@ import (
 )
 
 func TestIsBreached(t *testing.T) {
-	// Test vector: "password" -> SHA1 = 5BAA61E4C9B93F3F0682250B6CF8331B7EE68FD8
-	// Prefix: 5BAA6, Suffix: 1E4C9B93F3F0682250B6CF8331B7EE68FD8
+	// "password": SHA-1 5BAA61E4C9B93F3F0682250B6CF8331B7EE68FD8, sent as
+	// the prefix 5BAA6; the answer lists suffixes (the other 35 characters).
 	mux := http.NewServeMux()
-	// "password" SHA1 = 5BAA61E4C9B93F3F0682250B6CF8331B7EE68FD8
-	// First 5 bytes (10 hex chars) = 5BAA61E4C9 (lowercase: 5baa61e4c9)
-	// Suffix = B93F3F0682250B6CF8331B7EE68FD8
-	mux.HandleFunc("/range/5baa61e4c9", func(w http.ResponseWriter, r *http.Request) {
-		t.Logf("Handler called: %s", r.URL.Path)
-		// Return a list containing our suffix (uppercase)
+	mux.HandleFunc("/range/5BAA6", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("B93F3F0682250B6CF8331B7EE68FD8:12345\nOTHER:1\n"))
+		w.Write([]byte("1E4C9B93F3F0682250B6CF8331B7EE68FD8:12345\r\n0018A45C4D1DEF81644B54AB7F969B88D65:1\r\n"))
 	})
-	// "notapassword" SHA1 = 0707B407EAF5E9E2B5C8E3A4F5D6E7F8A9B0C1D2
-	// First 5 bytes = 0707B407EA (lowercase: 0707b407ea)
-	mux.HandleFunc("/range/0707b407ea", func(w http.ResponseWriter, r *http.Request) {
-		t.Logf("Handler called: %s", r.URL.Path)
+	// "notapassword": SHA-1 0707B407EA49B96FAAA1AD126F56697DC974DCCA
+	mux.HandleFunc("/range/0707B", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OTHER:1\n")) // suffix not found
+		w.Write([]byte("0018A45C4D1DEF81644B54AB7F969B88D65:1\r\n"))
 	})
-	mux.HandleFunc("/range/NOTFOUND", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OTHER:1\n"))
-	})
-	// Catch-all to see what paths are requested
+	// The real API answers 400 to any prefix that is not 5 hex characters.
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		t.Logf("Catch-all: %s", r.URL.Path)
-		w.WriteHeader(http.StatusNotFound)
+		t.Errorf("unexpected request %s (only a 5-character prefix may be sent)", r.URL.Path)
+		w.WriteHeader(http.StatusBadRequest)
 	})
 	// The client uses baseURL + prefix, so we need the full path
 
@@ -71,9 +60,6 @@ func TestIsBreached(t *testing.T) {
 	if breached {
 		t.Fatal("expected breached=false for 'notapassword'")
 	}
-
-	// Verify the NOTFOUND handler was called
-	// (it should have been called for "notapassword")
 }
 
 func TestIsBreachedTimeout(t *testing.T) {
