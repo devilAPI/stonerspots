@@ -529,5 +529,6 @@
   "liked": "Liked",
   "commentsShowAll": "{count, plural, =1{Show 1 comment} other{Show all {count} comments}}",
   "@commentsShowAll": {"placeholders": {"count": {"type": "int"}}},
-  "commentsShowLess": "Show less"
+  "commentsShowLess": "Show less",
+  "mapNorthUp": "Turn north up"
 }

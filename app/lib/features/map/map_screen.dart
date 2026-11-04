@@ -10,6 +10,7 @@ import '../../core/models.dart';
 import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import '../users/author_link.dart' show userPath;
+import 'map_compass.dart';
 import 'map_filter_bar.dart';
 import 'map_flight.dart';
 import 'map_tiles.dart';
@@ -261,6 +262,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                             )
                           : const Icon(Icons.my_location),
                     ),
+                    MapCompass(controller: _mapController),
                   ],
                 ),
               ),

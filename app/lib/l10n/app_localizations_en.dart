@@ -1457,4 +1457,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commentsShowLess => 'Show less';
+
+  @override
+  String get mapNorthUp => 'Turn north up';
 }

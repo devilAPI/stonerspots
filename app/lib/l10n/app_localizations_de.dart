@@ -1470,4 +1470,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get commentsShowLess => 'Weniger anzeigen';
+
+  @override
+  String get mapNorthUp => 'Nach Norden ausrichten';
 }

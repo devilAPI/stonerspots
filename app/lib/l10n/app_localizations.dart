@@ -2509,6 +2509,12 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Weniger anzeigen'**
   String get commentsShowLess;
+
+  /// No description provided for @mapNorthUp.
+  ///
+  /// In de, this message translates to:
+  /// **'Nach Norden ausrichten'**
+  String get mapNorthUp;
 }
 
 class _AppLocalizationsDelegate

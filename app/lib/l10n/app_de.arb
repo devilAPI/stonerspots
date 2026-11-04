@@ -541,5 +541,6 @@
   "liked": "Gefällt dir",
   "commentsShowAll": "{count, plural, =1{1 Kommentar anzeigen} other{Alle {count} Kommentare anzeigen}}",
   "@commentsShowAll": {"placeholders": {"count": {"type": "int"}}},
-  "commentsShowLess": "Weniger anzeigen"
+  "commentsShowLess": "Weniger anzeigen",
+  "mapNorthUp": "Nach Norden ausrichten"
 }
