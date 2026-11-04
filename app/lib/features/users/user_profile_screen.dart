@@ -15,6 +15,7 @@ import '../feed/feed_card.dart';
 import '../feed/satellite_thumb.dart';
 import '../reviews/rating_widgets.dart';
 import 'author_link.dart';
+import 'avatar_editor.dart';
 import 'users_controller.dart';
 import 'users_repository.dart';
 
@@ -150,6 +151,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         ],
       );
     }
+    final myId = ref.watch(authControllerProvider.select((a) => a.value?.id));
     // Both lists stay loaded, so switching between them is instant.
     final spots = ref.watch(userSpotsProvider(widget.userId));
     final updates = ref.watch(userUpdatesProvider(widget.userId));
@@ -177,6 +179,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             profile: p,
             busy: _busy,
             onFollow: () => _toggleFollow(p),
+            editable: p.isMe && myId == p.id,
             extra: widget.headerExtra,
           ),
           Padding(
@@ -275,6 +278,7 @@ class _Header extends StatelessWidget {
     required this.profile,
     required this.busy,
     required this.onFollow,
+    required this.editable,
     this.extra,
   });
 
@@ -282,6 +286,9 @@ class _Header extends StatelessWidget {
   final bool busy;
   final VoidCallback onFollow;
   final Widget? extra;
+
+  /// Your own profile: tapping the picture changes it.
+  final bool editable;
 
   @override
   Widget build(BuildContext context) {
@@ -295,15 +302,21 @@ class _Header extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 28,
-                child: Text(
-                  p.displayName.isEmpty
-                      ? '?'
-                      : p.displayName.characters.first.toUpperCase(),
-                  style: theme.textTheme.titleLarge,
+              if (editable)
+                OwnAvatarEditor(
+                  userId: p.id,
+                  name: p.displayName,
+                  url: p.avatarUrl,
+                )
+              else
+                AuthorAvatar(
+                  author: Author(
+                    id: p.id,
+                    displayName: p.displayName,
+                    avatarUrl: p.avatarUrl,
+                  ),
+                  radius: 28,
                 ),
-              ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(

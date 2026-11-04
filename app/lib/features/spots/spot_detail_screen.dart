@@ -16,6 +16,7 @@ import '../auth/auth_controller.dart';
 import '../reviews/rating_widgets.dart';
 import '../reviews/reviews_section.dart';
 import '../saved/save_spot_button.dart';
+import '../users/author_link.dart';
 import '../weather/spot_weather_card.dart';
 import 'edit_tags_dialog.dart';
 import 'maps_link.dart';
@@ -39,9 +40,13 @@ final spotUpdatesProvider = FutureProvider.autoDispose
     );
 
 class SpotDetailScreen extends ConsumerStatefulWidget {
-  const SpotDetailScreen({super.key, required this.spotId});
+  const SpotDetailScreen({super.key, required this.spotId, this.focusUpdateId});
 
   final int spotId;
+
+  /// An update to scroll to, with its comments open (from a feed card's
+  /// comment button).
+  final int? focusUpdateId;
 
   @override
   ConsumerState<SpotDetailScreen> createState() => _SpotDetailScreenState();
@@ -50,6 +55,25 @@ class SpotDetailScreen extends ConsumerStatefulWidget {
 class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
   bool _liked = false;
   int? _likeCount;
+  final _focusKey = GlobalKey();
+  bool _focused = false;
+
+  /// Scrolls [SpotDetailScreen.focusUpdateId] into view once it is built.
+  void _scrollToFocus() {
+    if (_focused || widget.focusUpdateId == null) return;
+    _focused = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = _focusKey.currentContext;
+      if (!mounted || target == null) return;
+      Scrollable.ensureVisible(
+        target,
+        // below the glass app bar
+        alignment: 0.15,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
 
   Future<void> _openInMaps(Spot spot) async {
     final errorText = AppLocalizations.of(context).errorGeneric;
@@ -305,6 +329,9 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
         ),
         data: (spot) {
           final items = updates.value ?? const <FeedItem>[];
+          if (items.any((u) => u.id == widget.focusUpdateId)) {
+            _scrollToFocus();
+          }
           final urls = validPhotoUrls([
             if (spot.coverUrl != null) spot.coverUrl!,
             for (final i in items)
@@ -327,6 +354,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   spot.title,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
+                const SizedBox(height: 6),
+                SpotOwnerLine(author: spot.author),
                 if (spot.locked)
                   Padding(
                     key: const Key('spotLockedNotice'),
@@ -343,11 +372,33 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                       ],
                     ),
                   ),
-                const SizedBox(height: 4),
-                RatingBadge(
-                  key: const Key('spotRating'),
-                  avg: spot.ratingAvg,
-                  count: spot.ratingCount,
+                const SizedBox(height: 6),
+                Wrap(
+                  key: const Key('spotStats'),
+                  spacing: 12,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _liked ? Icons.favorite : Icons.favorite_border,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          l.likesCount(_likeCount ?? spot.likeCount),
+                          key: const Key('spotLikeCount'),
+                        ),
+                      ],
+                    ),
+                    RatingBadge(
+                      key: const Key('spotRating'),
+                      avg: spot.ratingAvg,
+                      count: spot.ratingCount,
+                    ),
+                  ],
                 ),
                 if (spot.tags.isNotEmpty) ...[
                   const SizedBox(height: 8),
@@ -370,21 +421,13 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   runSpacing: 8,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FilledButton.tonalIcon(
-                          key: const Key('like'),
-                          onPressed: () => _gated(_toggleLike),
-                          icon: Icon(
-                            _liked ? Icons.favorite : Icons.favorite_border,
-                          ),
-                          label: Text(l.like),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(l.likesCount(_likeCount ?? spot.likeCount)),
-                        const SizedBox(width: 8),
-                      ],
+                    FilledButton.tonalIcon(
+                      key: const Key('like'),
+                      onPressed: () => _gated(_toggleLike),
+                      icon: Icon(
+                        _liked ? Icons.favorite : Icons.favorite_border,
+                      ),
+                      label: Text(_liked ? l.liked : l.like),
                     ),
                     SaveSpotButton(spotId: widget.spotId),
                     if (canChange)
@@ -409,15 +452,18 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ],
-                // hides itself while loading and when the service fails
-                SpotWeatherCard(
-                  spotId: spot.id,
-                  lat: spot.lat,
-                  lon: spot.lon,
-                  padding: const EdgeInsets.only(top: 16),
-                ),
               ],
             ),
+          );
+          // Its own section, heading included; it hides itself (divider and
+          // all) while loading and when the service fails.
+          final weather = SpotWeatherCard(
+            spotId: spot.id,
+            lat: spot.lat,
+            lon: spot.lon,
+            title: l.weatherTitle,
+            dividerAbove: true,
+            padding: const EdgeInsets.all(16),
           );
           final timeline = Padding(
             padding: const EdgeInsets.all(16),
@@ -444,7 +490,11 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                           children: [
                             for (final u in list)
                               UpdateTile(
+                                key: u.id == widget.focusUpdateId
+                                    ? _focusKey
+                                    : ValueKey('update-${u.id}'),
                                 item: u,
+                                commentsExpanded: u.id == widget.focusUpdateId,
                                 isMine: myId != null && u.author.id == myId,
                                 onEdit: () => _editUpdate(u),
                                 onDelete: () => _deleteUpdate(u),
@@ -487,6 +537,13 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
             ),
           );
 
+          // styled like the reviews' and updates' headings
+          final mapHeading = Text(
+            l.mapTitle,
+            key: const Key('mapHeading'),
+            style: Theme.of(context).textTheme.titleLarge,
+          );
+
           return LayoutBuilder(
             builder: (context, c) {
               final width = c.maxWidth;
@@ -512,11 +569,21 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                         onPhotoTap: openPhoto,
                       ),
                     info,
-                    if (urls.isNotEmpty)
+                    weather,
+                    if (urls.isNotEmpty) ...[
+                      const Divider(),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        child: locationMap((width * 0.6).clamp(200.0, 320.0)),
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            mapHeading,
+                            const SizedBox(height: 12),
+                            locationMap((width * 0.6).clamp(200.0, 320.0)),
+                          ],
+                        ),
                       ),
+                    ],
                     const Divider(),
                     reviewsSection,
                     const Divider(),
@@ -536,6 +603,11 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   padding: EdgeInsets.fromLTRB(12, barBottom, 12, 12),
                   children: [
                     // where it is first, then what it looks like
+                    Padding(
+                      // in line with the headings of the other pane
+                      padding: const EdgeInsets.fromLTRB(4, 16, 4, 12),
+                      child: mapHeading,
+                    ),
                     locationMap((mediaWidth - 24) * 0.75),
                     if (urls.isNotEmpty) ...[
                       const SizedBox(height: 8),
@@ -556,6 +628,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                     child: _ReadablePane(
                       children: [
                         info,
+                        weather,
                         const Divider(),
                         reviewsSection,
                         if (!threePane) ...[const Divider(), timeline],

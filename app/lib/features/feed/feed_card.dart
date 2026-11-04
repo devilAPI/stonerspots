@@ -135,7 +135,7 @@ class _Text extends StatelessWidget {
           Wrap(
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              AuthorLink(author: item.author),
+              AuthorLink(author: item.author, avatarRadius: 10),
               Text(' · ${relativeTime(item.createdAt)}'),
               if (item.updateCount > 1)
                 InkWell(

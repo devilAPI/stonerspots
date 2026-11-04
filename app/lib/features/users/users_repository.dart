@@ -17,10 +17,14 @@ class UserProfile {
     this.followingCount = 0,
     this.following = false,
     this.isMe = false,
+    this.avatarUrl,
   });
 
   final int id;
   final String displayName;
+
+  /// The profile picture, or null when there is none.
+  final String? avatarUrl;
   final DateTime createdAt;
   final int spotCount;
   final int updateCount;
@@ -43,6 +47,7 @@ class UserProfile {
     followingCount: (j['following_count'] ?? 0) as int,
     following: (j['following'] ?? false) as bool,
     isMe: (j['is_me'] ?? false) as bool,
+    avatarUrl: parseAvatarUrl(j['avatar_url']),
   );
 
   /// This profile after the caller followed ([follow]) or unfollowed it.
@@ -58,6 +63,7 @@ class UserProfile {
           followingCount: followingCount,
           following: follow,
           isMe: isMe,
+          avatarUrl: avatarUrl,
         );
 }
 

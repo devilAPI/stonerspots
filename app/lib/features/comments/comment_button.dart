@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/models.dart' show FeedItem;
 import '../../l10n/app_localizations.dart';
 import 'comments_controller.dart';
-import 'comments_sheet.dart';
 
-/// Speech bubble with the update's comment count; opens its thread.
+/// The page of [item]'s spot, scrolled to the update with its comments open.
+String updateCommentsPath(FeedItem item) =>
+    '/spot/${item.spot.id}?update=${item.id}';
+
+/// Speech bubble with the update's comment count; opens the spot page at
+/// this update, where its comments are.
 class CommentButton extends ConsumerWidget {
   const CommentButton({super.key, required this.item});
 
@@ -21,7 +26,7 @@ class CommentButton extends ConsumerWidget {
       child: InkWell(
         key: Key('commentButton_${item.id}'),
         borderRadius: BorderRadius.circular(16),
-        onTap: () => showCommentsSheet(context, item),
+        onTap: () => context.push(updateCommentsPath(item)),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
           child: Row(

@@ -76,8 +76,19 @@ class ApiClient {
     receiveTimeout: receiveTimeout,
   );
 
-  Future<T> put<T>(String path, {Object? data}) =>
-      _send<T>('PUT', path, data: data);
+  /// [onSendProgress] and [receiveTimeout] as for [post].
+  Future<T> put<T>(
+    String path, {
+    Object? data,
+    void Function(int sent, int total)? onSendProgress,
+    Duration? receiveTimeout,
+  }) => _send<T>(
+    'PUT',
+    path,
+    data: data,
+    onSendProgress: onSendProgress,
+    receiveTimeout: receiveTimeout,
+  );
 
   Future<T> patch<T>(String path, {Object? data}) =>
       _send<T>('PATCH', path, data: data);

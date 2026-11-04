@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/glass.dart';
 import '../../core/models.dart';
 import '../spots/spot_detail_screen.dart';
+import '../users/author_link.dart' show userPath;
 import 'spot_preview_sheet.dart';
 
 const double _margin = 8;
@@ -48,6 +49,10 @@ Future<void> showSpotPullSheet(BuildContext context, Spot spot) {
           context.push('/spot/$id');
         },
         onExpanded: () => context.push('/spot/$id', extra: kSpotFromSheet),
+        onOpenAuthor: (userId) {
+          Navigator.of(sheetContext).pop();
+          context.push(userPath(userId));
+        },
       ),
     ),
   );
@@ -64,12 +69,16 @@ class SpotPullSheet extends StatefulWidget {
     required this.page,
     required this.onOpen,
     required this.onExpanded,
+    this.onOpenAuthor,
   });
 
   final Spot spot;
   final Widget page;
   final VoidCallback onOpen;
   final VoidCallback onExpanded;
+
+  /// Opens the owner's profile.
+  final void Function(int userId)? onOpenAuthor;
 
   @override
   State<SpotPullSheet> createState() => _SpotPullSheetState();
@@ -126,6 +135,7 @@ class _SpotPullSheetState extends State<SpotPullSheet> {
   Widget _card(ScrollController? scroll) => SpotPreviewSheet(
     spot: widget.spot,
     onOpen: widget.onOpen,
+    onOpenAuthor: widget.onOpenAuthor,
     scrollController: scroll,
     header: const SizedBox(
       width: double.infinity,

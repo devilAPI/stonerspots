@@ -6,7 +6,7 @@ import '../../core/paging.dart';
 import 'comment_models.dart';
 import 'comments_repository.dart';
 
-/// The comment thread of one update (by id), while its sheet is open.
+/// The comment thread of one update (by id), while it is on screen.
 final commentThreadProvider = NotifierProvider.autoDispose
     .family<CommentThreadController, Paged<Comment>, int>(
       CommentThreadController.new,

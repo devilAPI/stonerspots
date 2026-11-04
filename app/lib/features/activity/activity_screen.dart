@@ -8,6 +8,7 @@ import '../../core/paging.dart';
 import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import '../feed/feed_card.dart' show relativeTime;
+import '../users/author_link.dart';
 import 'activity_controller.dart';
 import 'activity_models.dart';
 
@@ -178,12 +179,42 @@ class _ActivityTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         clipBehavior: Clip.antiAlias,
         child: ListTile(
-          leading: CircleAvatar(
-            backgroundColor: unread
-                ? scheme.primary
-                : scheme.surfaceContainerHighest,
-            foregroundColor: unread ? scheme.onPrimary : scheme.onSurface,
-            child: Icon(_icon(item.kind), size: 20),
+          // the actor's picture opens their profile; a badge tells what
+          // they did
+          leading: SizedBox.square(
+            dimension: 40,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                AuthorAvatar(author: item.actor, radius: 20),
+                Positioned(
+                  right: -4,
+                  bottom: -4,
+                  child: IgnorePointer(
+                    child: Container(
+                      key: Key('activityKind-${item.id}'),
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: unread
+                            ? scheme.primary
+                            : scheme.surfaceContainerHighest,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Icon(
+                        _icon(item.kind),
+                        size: 12,
+                        color: unread ? scheme.onPrimary : scheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           title: Text(
             _text(l),

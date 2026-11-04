@@ -141,6 +141,7 @@ class AdminUser {
     required this.spotCount,
     required this.reportsReceived,
     this.banned = false,
+    this.avatarUrl,
   });
 
   final int id;
@@ -154,6 +155,9 @@ class AdminUser {
   /// Cannot log in; their content stays.
   final bool banned;
 
+  /// The profile picture, or null when there is none.
+  final String? avatarUrl;
+
   factory AdminUser.fromJson(Map<String, dynamic> j) => AdminUser(
     id: j['id'] as int,
     email: (j['email'] ?? '') as String,
@@ -163,6 +167,19 @@ class AdminUser {
     spotCount: (j['spot_count'] ?? 0) as int,
     reportsReceived: (j['reports_received'] ?? 0) as int,
     banned: (j['banned'] ?? false) as bool,
+    avatarUrl: parseAvatarUrl(j['avatar_url']),
+  );
+
+  /// This user after an admin removed their profile picture.
+  AdminUser withoutAvatar() => AdminUser(
+    id: id,
+    email: email,
+    displayName: displayName,
+    isAdmin: isAdmin,
+    createdAt: createdAt,
+    spotCount: spotCount,
+    reportsReceived: reportsReceived,
+    banned: banned,
   );
 }
 

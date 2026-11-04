@@ -8,6 +8,7 @@ import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/models.dart' show Author, FeedItem;
 import '../auth/auth_controller.dart';
+import '../users/author_link.dart';
 import '../spots/update_actions.dart';
 import '../spots/updates_repository.dart';
 import 'admin_bulk.dart';
@@ -233,6 +234,44 @@ Future<void> _editUser(
   if (updated == null) return;
   ref.read(adminUsersProvider.notifier).replace(updated);
   messenger.showSnackBar(SnackBar(content: Text(l10n.adminUserSaved)));
+}
+
+/// Asks, then removes [user]'s profile picture.
+Future<void> _removeAvatar(
+  BuildContext context,
+  WidgetRef ref,
+  AdminUser user,
+) async {
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(l10n.adminRemoveAvatar),
+      content: Text(l10n.adminRemoveAvatarBody(user.displayName)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          key: const Key('user-avatar-remove-confirm'),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(l10n.adminRemoveAvatar),
+        ),
+      ],
+    ),
+  );
+  if (ok != true) return;
+  try {
+    await ref.read(adminRepositoryProvider).deleteUserAvatar(user.id);
+  } catch (_) {
+    messenger.showSnackBar(SnackBar(content: Text(l10n.errorGeneric)));
+    return;
+  }
+  ref.read(adminUsersProvider.notifier).replace(user.withoutAvatar());
+  ref.read(avatarOverridesProvider.notifier).set(user.id, null);
+  messenger.showSnackBar(SnackBar(content: Text(l10n.adminAvatarRemoved)));
 }
 
 /// Opens the spot edit dialog. [fallbackTitle] is used to look the spot up on
@@ -818,6 +857,15 @@ class _UsersTabState extends ConsumerState<_UsersTab>
                 body: [
                   Row(
                     children: [
+                      AuthorAvatar(
+                        author: Author(
+                          id: u.id,
+                          displayName: u.displayName,
+                          avatarUrl: u.avatarUrl,
+                        ),
+                        radius: 16,
+                      ),
+                      const SizedBox(width: 10),
                       Flexible(
                         child: Text(
                           u.displayName,
@@ -875,6 +923,12 @@ class _UsersTabState extends ConsumerState<_UsersTab>
                     },
                     child: Text(l10n.adminShowUserSpots),
                   ),
+                  if (u.avatarUrl != null)
+                    OutlinedButton(
+                      key: Key('user-avatar-remove-${u.id}'),
+                      onPressed: () => _removeAvatar(ctx, ref, u),
+                      child: Text(l10n.adminRemoveAvatar),
+                    ),
                 ],
               );
             },

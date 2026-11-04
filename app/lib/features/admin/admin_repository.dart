@@ -39,6 +39,9 @@ abstract class AdminRepository {
   /// Updates the given user fields; returns the updated user.
   Future<AdminUser> updateUser(int id, AdminUserPatch patch);
 
+  /// Removes a user's profile picture (moderation).
+  Future<void> deleteUserAvatar(int id);
+
   /// Updates the given spot fields; returns the updated spot.
   Future<AdminSpot> updateSpot(int id, AdminSpotPatch patch);
 
@@ -157,6 +160,11 @@ class ApiAdminRepository implements AdminRepository {
           data: patch.toJson(),
         ),
       );
+
+  @override
+  Future<void> deleteUserAvatar(int id) async {
+    await _api.delete<dynamic>('/admin/users/$id/avatar');
+  }
 
   @override
   Future<AdminSpot> updateSpot(int id, AdminSpotPatch patch) async =>

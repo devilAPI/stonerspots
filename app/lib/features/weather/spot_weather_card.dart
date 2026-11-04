@@ -16,14 +16,22 @@ class SpotWeatherCard extends ConsumerWidget {
     required this.lat,
     required this.lon,
     this.padding = EdgeInsets.zero,
+    this.title,
+    this.dividerAbove = false,
   });
 
   final int spotId;
   final double lat;
   final double lon;
 
-  /// Around the card when it is shown.
+  /// Around the card (and [title]) when it is shown.
   final EdgeInsetsGeometry padding;
+
+  /// A section heading above the card, hidden with it.
+  final String? title;
+
+  /// A divider above it all, hidden with it, for a section of a page.
+  final bool dividerAbove;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -31,9 +39,28 @@ class SpotWeatherCard extends ConsumerWidget {
         .watch(spotWeatherProvider((spotId: spotId, lat: lat, lon: lon)))
         .value;
     if (weather == null) return const SizedBox.shrink();
-    return Padding(
+    final title = this.title;
+    final Widget content = Padding(
       padding: padding,
-      child: _WeatherCard(weather: weather),
+      child: title == null
+          ? _WeatherCard(weather: weather)
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  key: const Key('weatherHeading'),
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 12),
+                _WeatherCard(weather: weather),
+              ],
+            ),
+    );
+    if (!dividerAbove) return content;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [const Divider(), content],
     );
   }
 }

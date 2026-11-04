@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../saved/save_spot_button.dart';
 import '../spots/spot_media.dart';
 import '../reviews/rating_widgets.dart';
+import '../users/author_link.dart';
 
 class SpotPreviewSheet extends StatelessWidget {
   const SpotPreviewSheet({
@@ -15,10 +16,15 @@ class SpotPreviewSheet extends StatelessWidget {
     required this.onOpen,
     this.scrollController,
     this.header,
+    this.onOpenAuthor,
   });
 
   final Spot spot;
   final VoidCallback onOpen;
+
+  /// Opens the owner's profile (e.g. after closing the sheet); by default
+  /// it is pushed.
+  final void Function(int userId)? onOpenAuthor;
 
   /// Set inside a draggable sheet: drags on the card then move the sheet.
   final ScrollController? scrollController;
@@ -70,7 +76,14 @@ class SpotPreviewSheet extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
+            SpotOwnerLine(
+              author: spot.author,
+              avatarRadius: 10,
+              style: Theme.of(context).textTheme.bodySmall,
+              onTap: onOpenAuthor,
+            ),
+            const SizedBox(height: 6),
             Row(
               children: [
                 const Icon(Icons.favorite, size: 16),
