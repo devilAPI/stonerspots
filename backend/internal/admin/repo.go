@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/spots/tagset"
 )
 
@@ -17,11 +18,13 @@ var errNotFound = errors.New("not found")
 type repo struct {
 	db        *sql.DB
 	uploadDir string
+	base      string // public base URL, for avatar URLs
 }
 
 type person struct {
-	ID          uint64 `json:"id"`
-	DisplayName string `json:"display_name"`
+	ID          uint64  `json:"id"`
+	DisplayName string  `json:"display_name"`
+	AvatarURL   *string `json:"avatar_url"`
 }
 
 type reporter struct {
@@ -65,7 +68,7 @@ func (r repo) reports(ctx context.Context, limit int, after uint64) ([]reportIte
 		ru.id, ru.display_name, ru.email,
 		s.id, s.title, CASE r.target_type WHEN 'review' THEN rv.status WHEN 'comment' THEN cm.status ELSE s.status END,
 		COALESCE(cm.id, up.id, rv.id),
-		COALESCE(cm.body, up.body, rv.body), COALESCE(rv.rating, 0), au.id, au.display_name, cm.update_id
+		COALESCE(cm.body, up.body, rv.body), COALESCE(rv.rating, 0), au.id, au.display_name, au.avatar_key, cm.update_id
 	FROM reports r
 	JOIN users ru ON ru.id = r.user_id
 	LEFT JOIN comments cm ON r.target_type = 'comment' AND cm.id = r.target_id
@@ -87,11 +90,12 @@ func (r repo) reports(ctx context.Context, limit int, after uint64) ([]reportIte
 			spotID, subID, authorID  sql.NullInt64
 			commentUpdateID          sql.NullInt64
 			title, status, body, aun sql.NullString
+			authorAvatar             sql.NullString
 			rating                   int
 		)
 		if err := rows.Scan(&it.ID, &it.TargetType, &it.TargetID, &it.Reason, &it.CreatedAt, &it.ReportCount,
 			&it.Reporter.ID, &it.Reporter.DisplayName, &it.Reporter.Email,
-			&spotID, &title, &status, &subID, &body, &rating, &authorID, &aun, &commentUpdateID); err != nil {
+			&spotID, &title, &status, &subID, &body, &rating, &authorID, &aun, &authorAvatar, &commentUpdateID); err != nil {
 			return nil, err
 		}
 		it.CreatedAt = it.CreatedAt.UTC()
@@ -100,7 +104,8 @@ func (r repo) reports(ctx context.Context, limit int, after uint64) ([]reportIte
 			it.Target = reportTarget{Exists: true, SpotID: uint64(spotID.Int64), Title: title.String,
 				Status: status.String, Body: body.String, Rating: rating}
 			if authorID.Valid {
-				it.Target.Author = &person{ID: uint64(authorID.Int64), DisplayName: aun.String}
+				it.Target.Author = &person{ID: uint64(authorID.Int64), DisplayName: aun.String,
+					AvatarURL: app.AvatarURL(r.base, authorAvatar)}
 			}
 			if commentUpdateID.Valid {
 				it.Target.UpdateID = uint64(commentUpdateID.Int64)
@@ -115,6 +120,7 @@ type userItem struct {
 	ID              uint64    `json:"id"`
 	Email           string    `json:"email"`
 	DisplayName     string    `json:"display_name"`
+	AvatarURL       *string   `json:"avatar_url"`
 	IsAdmin         bool      `json:"is_admin"`
 	Banned          bool      `json:"banned"`
 	CreatedAt       time.Time `json:"created_at"`
@@ -122,7 +128,7 @@ type userItem struct {
 	ReportsReceived int       `json:"reports_received"`
 }
 
-const userSelect = `SELECT u.id, u.email, u.display_name, u.is_admin, u.banned_at IS NOT NULL, u.created_at,
+const userSelect = `SELECT u.id, u.email, u.display_name, u.avatar_key, u.is_admin, u.banned_at IS NOT NULL, u.created_at,
 		(SELECT COUNT(*) FROM spots s WHERE s.user_id = u.id),
 		(SELECT COUNT(*) FROM reports r JOIN spots s ON r.target_type = 'spot' AND r.target_id = s.id WHERE s.user_id = u.id)
 		+ (SELECT COUNT(*) FROM reports r JOIN spot_updates su ON r.target_type = 'update' AND r.target_id = su.id WHERE su.user_id = u.id)
@@ -130,10 +136,12 @@ const userSelect = `SELECT u.id, u.email, u.display_name, u.is_admin, u.banned_a
 		+ (SELECT COUNT(*) FROM reports r JOIN comments cr ON r.target_type = 'comment' AND r.target_id = cr.id WHERE cr.user_id = u.id)
 	FROM users u `
 
-func scanUser(row interface{ Scan(...any) error }) (userItem, error) {
+func (r repo) scanUser(row interface{ Scan(...any) error }) (userItem, error) {
 	var it userItem
-	err := row.Scan(&it.ID, &it.Email, &it.DisplayName, &it.IsAdmin, &it.Banned, &it.CreatedAt, &it.SpotCount, &it.ReportsReceived)
+	var avatarKey sql.NullString
+	err := row.Scan(&it.ID, &it.Email, &it.DisplayName, &avatarKey, &it.IsAdmin, &it.Banned, &it.CreatedAt, &it.SpotCount, &it.ReportsReceived)
 	it.CreatedAt = it.CreatedAt.UTC()
+	it.AvatarURL = app.AvatarURL(r.base, avatarKey)
 	return it, err
 }
 
@@ -150,7 +158,7 @@ func (r repo) users(ctx context.Context, search string, limit int, after uint64)
 	defer rows.Close()
 	var out []userItem
 	for rows.Next() {
-		it, err := scanUser(rows)
+		it, err := r.scanUser(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -175,15 +183,17 @@ type spotItem struct {
 }
 
 const spotSelect = `SELECT s.id, s.title, s.description, ST_Y(s.location), ST_X(s.location), s.status, s.locked, s.like_count, s.created_at,
-		u.id, u.display_name,
+		u.id, u.display_name, u.avatar_key,
 		(SELECT COUNT(DISTINCT r.user_id) FROM reports r WHERE r.target_type = 'spot' AND r.target_id = s.id)
 	FROM spots s JOIN users u ON u.id = s.user_id `
 
-func scanSpot(row interface{ Scan(...any) error }) (spotItem, error) {
+func (r repo) scanSpot(row interface{ Scan(...any) error }) (spotItem, error) {
 	var it spotItem
+	var avatarKey sql.NullString
 	err := row.Scan(&it.ID, &it.Title, &it.Description, &it.Lat, &it.Lon, &it.Status, &it.Locked, &it.LikeCount, &it.CreatedAt,
-		&it.Author.ID, &it.Author.DisplayName, &it.ReportCount)
+		&it.Author.ID, &it.Author.DisplayName, &avatarKey, &it.ReportCount)
 	it.CreatedAt = it.CreatedAt.UTC()
+	it.Author.AvatarURL = app.AvatarURL(r.base, avatarKey)
 	it.Tags = []string{}
 	return it, err
 }
@@ -204,7 +214,7 @@ func (r repo) spots(ctx context.Context, search, status string, owner uint64, li
 	defer rows.Close()
 	var out []spotItem
 	for rows.Next() {
-		it, err := scanSpot(rows)
+		it, err := r.scanSpot(rows)
 		if err != nil {
 			return nil, err
 		}

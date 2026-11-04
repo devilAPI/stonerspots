@@ -41,13 +41,13 @@ func (r *Repo) Search(ctx context.Context, q string, near *[2]float64) ([]Spot, 
 	if near != nil {
 		lat, lon := near[0], near[1]
 		query = `SELECT ` + selectCols + `, ST_Distance_Sphere(s.location, POINT(?, ?)) AS dist
-		 FROM spots s
+		` + fromSpots + `
 		 WHERE s.status = 'active' AND s.title LIKE ?
 		 ORDER BY dist ASC, ` + matchRank + `, s.id DESC LIMIT ?`
 		args = append([]any{r.PublicBaseURL, lon, lat, "%" + esc + "%"}, rankArgs...)
 	} else {
 		query = `SELECT ` + selectCols + `
-		 FROM spots s
+		` + fromSpots + `
 		 WHERE s.status = 'active' AND s.title LIKE ?
 		 ORDER BY ` + matchRank + `,
 		   (SELECT COALESCE(AVG(rv.rating), 0) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active') DESC,
@@ -59,7 +59,7 @@ func (r *Repo) Search(ctx context.Context, q string, near *[2]float64) ([]Spot, 
 	if err != nil {
 		return nil, err
 	}
-	list, err := scan(rows, near != nil)
+	list, err := r.scan(rows, near != nil)
 	if err != nil {
 		return nil, err
 	}

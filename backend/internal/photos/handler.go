@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -38,42 +39,62 @@ func randomKey(ext string) (string, error) {
 	return fmt.Sprintf("%04d/%02d/%s%s", now.Year(), int(now.Month()), hex.EncodeToString(b), ext), nil
 }
 
-func (h *handler) upload(w http.ResponseWriter, r *http.Request) {
-	uid, ok := auth.UserID(r.Context())
-	if !ok {
-		httpx.Error(w, http.StatusUnauthorized, "unauthorized", "authentication required")
-		return
-	}
+// formFile reads the multipart upload in field, with the photo size limit.
+// It writes the error response itself when it returns false; otherwise the
+// caller must close the file and call r.MultipartForm.RemoveAll.
+func formFile(w http.ResponseWriter, r *http.Request, field string) (multipart.File, bool) {
 	// Allow a little overhead for multipart framing; the file itself is capped in Normalize.
 	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadBytes+(1<<20))
 	if err := r.ParseMultipartForm(1 << 20); err != nil {
 		var mbe *http.MaxBytesError
 		if errors.As(err, &mbe) {
 			httpx.Error(w, http.StatusRequestEntityTooLarge, "too_large", "photo must be at most 8 MB")
-			return
+			return nil, false
 		}
-		httpx.Error(w, http.StatusBadRequest, "file_required", "multipart field 'file' is required")
+		httpx.Error(w, http.StatusBadRequest, "file_required", "multipart field '"+field+"' is required")
+		return nil, false
+	}
+	f, _, err := r.FormFile(field)
+	if err != nil {
+		r.MultipartForm.RemoveAll()
+		httpx.Error(w, http.StatusBadRequest, "file_required", "multipart field '"+field+"' is required")
+		return nil, false
+	}
+	return f, true
+}
+
+// normalizeOK maps an error of Normalize or NormalizeAvatar to its response
+// and reports whether there was none.
+func normalizeOK(w http.ResponseWriter, err error) bool {
+	switch {
+	case err == nil:
+		return true
+	case errors.Is(err, ErrTooLarge):
+		httpx.Error(w, http.StatusRequestEntityTooLarge, "too_large", "photo must be at most 8 MB")
+	case errors.Is(err, ErrUnsupported):
+		httpx.Error(w, http.StatusUnsupportedMediaType, "unsupported_type", "only JPEG, PNG, WebP and AVIF images are accepted")
+	default:
+		log.Printf("photos: normalize: %v", err)
+		httpx.Error(w, http.StatusInternalServerError, "internal", "could not process photo")
+	}
+	return false
+}
+
+func (h *handler) upload(w http.ResponseWriter, r *http.Request) {
+	uid, ok := auth.UserID(r.Context())
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "unauthorized", "authentication required")
+		return
+	}
+	f, ok := formFile(w, r, "file")
+	if !ok {
 		return
 	}
 	defer r.MultipartForm.RemoveAll()
-	f, _, err := r.FormFile("file")
-	if err != nil {
-		httpx.Error(w, http.StatusBadRequest, "file_required", "multipart field 'file' is required")
-		return
-	}
 	defer f.Close()
 
 	full, thumb, width, height, err := Normalize(f, MaxUploadBytes)
-	switch {
-	case errors.Is(err, ErrTooLarge):
-		httpx.Error(w, http.StatusRequestEntityTooLarge, "too_large", "photo must be at most 8 MB")
-		return
-	case errors.Is(err, ErrUnsupported):
-		httpx.Error(w, http.StatusUnsupportedMediaType, "unsupported_type", "only JPEG, PNG, WebP and AVIF images are accepted")
-		return
-	case err != nil:
-		log.Printf("photos: normalize: %v", err)
-		httpx.Error(w, http.StatusInternalServerError, "internal", "could not process photo")
+	if !normalizeOK(w, err) {
 		return
 	}
 
@@ -120,18 +141,31 @@ func (h *handler) serveMedia(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	// Check if photo is approved
-	var status string
-	err := h.d.DB.QueryRowContext(r.Context(),
-		"SELECT status FROM photos WHERE `key` = ? OR thumb_key = ?", rest, rest).Scan(&status)
-	if errors.Is(err, sql.ErrNoRows) || status != "approved" {
-		http.NotFound(w, r)
-		return
-	}
-	if err != nil {
-		log.Printf("photos: serveMedia status check: %v", err)
-		http.NotFound(w, r)
-		return
+	if strings.HasPrefix(rest, avatarPrefix) {
+		// a user's current avatar (users.avatar_key, see avatar.go)
+		var one int
+		err := h.d.DB.QueryRowContext(r.Context(), "SELECT 1 FROM users WHERE avatar_key = ?", rest).Scan(&one)
+		if err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				log.Printf("photos: serveMedia avatar check: %v", err)
+			}
+			http.NotFound(w, r)
+			return
+		}
+	} else {
+		// Check if photo is approved
+		var status string
+		err := h.d.DB.QueryRowContext(r.Context(),
+			"SELECT status FROM photos WHERE `key` = ? OR thumb_key = ?", rest, rest).Scan(&status)
+		if errors.Is(err, sql.ErrNoRows) || status != "approved" {
+			http.NotFound(w, r)
+			return
+		}
+		if err != nil {
+			log.Printf("photos: serveMedia status check: %v", err)
+			http.NotFound(w, r)
+			return
+		}
 	}
 	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 	w.Header().Set("X-Content-Type-Options", "nosniff")

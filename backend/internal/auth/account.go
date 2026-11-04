@@ -13,6 +13,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/httpx"
 )
 
@@ -26,9 +27,11 @@ var (
 func (s *service) checkPassword(ctx context.Context, userID uint64, password string) (*User, error) {
 	var u User
 	var hash string
+	var avatarKey sql.NullString
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, email, display_name, is_admin, password_hash FROM users WHERE id = ?`, userID,
-	).Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin, &hash)
+		`SELECT id, email, display_name, is_admin, avatar_key, password_hash FROM users WHERE id = ?`, userID,
+	).Scan(&u.ID, &u.Email, &u.DisplayName, &u.IsAdmin, &avatarKey, &hash)
+	u.AvatarURL = app.AvatarURL(s.base, avatarKey)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errNoUser
 	}
@@ -85,7 +88,7 @@ var ErrNoUser = errNoUser
 
 // DeleteUser deletes the user (cascading to all owned rows, including the
 // spots they created) in one transaction and then removes their photo
-// files best-effort.
+// and avatar files best-effort.
 func DeleteUser(ctx context.Context, db *sql.DB, uploadDir string, userID uint64) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -110,6 +113,13 @@ func DeleteUser(ctx context.Context, db *sql.DB, uploadDir string, userID uint64
 		return err
 	}
 	rows.Close()
+	var avatar sql.NullString
+	if err := tx.QueryRowContext(ctx, `SELECT avatar_key FROM users WHERE id = ?`, userID).Scan(&avatar); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	if avatar.Valid {
+		keys = append(keys, avatar.String)
+	}
 	// Reports are polymorphic (no FK): drop those about the user's spots and
 	// everything below them, and their own updates/reviews, before the cascade.
 	const mySpots = `(SELECT id FROM spots WHERE user_id = ?)`

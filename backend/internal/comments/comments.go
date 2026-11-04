@@ -40,7 +40,7 @@ var (
 
 // Mount registers comment routes with full paths on the /api/v1 router.
 func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
-	h := &handler{db: d.DB, quota: quota}
+	h := &handler{db: d.DB, quota: quota, base: d.Cfg.PublicBaseURL}
 	r.With(auth.Optional(d.Cfg.JWTSecret)).Get("/updates/{id}/comments", h.list)
 	authed := r.With(auth.Middleware(d.Cfg.JWTSecret))
 	authed.Post("/updates/{id}/comments", h.create)
@@ -50,11 +50,13 @@ func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
 type handler struct {
 	db    *sql.DB
 	quota *quotas.Tracker
+	base  string // public base URL, for avatar URLs
 }
 
 type author struct {
-	ID          uint64 `json:"id"`
-	DisplayName string `json:"display_name"`
+	ID          uint64  `json:"id"`
+	DisplayName string  `json:"display_name"`
+	AvatarURL   *string `json:"avatar_url"`
 }
 
 // Comment is one comment as the API returns it.
@@ -68,12 +70,14 @@ type Comment struct {
 	Mine bool `json:"mine"`
 }
 
-const selectComment = `SELECT c.id, c.update_id, c.body, c.created_at, a.id, a.display_name
+const selectComment = `SELECT c.id, c.update_id, c.body, c.created_at, a.id, a.display_name, a.avatar_key
   FROM comments c JOIN users a ON a.id = c.user_id`
 
-func scan(row interface{ Scan(...any) error }, caller uint64) (Comment, error) {
+func scan(row interface{ Scan(...any) error }, caller uint64, base string) (Comment, error) {
 	var c Comment
-	err := row.Scan(&c.ID, &c.UpdateID, &c.Body, &c.CreatedAt, &c.Author.ID, &c.Author.DisplayName)
+	var avatarKey sql.NullString
+	err := row.Scan(&c.ID, &c.UpdateID, &c.Body, &c.CreatedAt, &c.Author.ID, &c.Author.DisplayName, &avatarKey)
+	c.Author.AvatarURL = app.AvatarURL(base, avatarKey)
 	c.CreatedAt = c.CreatedAt.UTC()
 	c.Mine = caller != 0 && c.Author.ID == caller
 	return c, err
@@ -165,7 +169,7 @@ func (h *handler) list(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 	items := []Comment{}
 	for rows.Next() {
-		c, err := scan(rows, caller)
+		c, err := scan(rows, caller, h.base)
 		if err != nil {
 			internal(w)
 			return
@@ -191,7 +195,7 @@ func (h *handler) list(w http.ResponseWriter, r *http.Request) {
 // Create adds a comment by userID under a visible update and tells the
 // update's author through their activity. The body is trimmed and must be
 // 1..MaxBodyLen characters.
-func Create(ctx context.Context, db *sql.DB, userID, updateID uint64, body string) (Comment, error) {
+func Create(ctx context.Context, db *sql.DB, base string, userID, updateID uint64, body string) (Comment, error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return Comment{}, err
@@ -221,7 +225,7 @@ func Create(ctx context.Context, db *sql.DB, userID, updateID uint64, body strin
 	}); err != nil {
 		return Comment{}, err
 	}
-	c, err := scan(tx.QueryRowContext(ctx, selectComment+` WHERE c.id = ?`, lid), userID)
+	c, err := scan(tx.QueryRowContext(ctx, selectComment+` WHERE c.id = ?`, lid), userID, base)
 	if err != nil {
 		return Comment{}, err
 	}
@@ -256,7 +260,7 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusTooManyRequests, "quota_exceeded", "daily comment limit reached")
 		return
 	}
-	c, err := Create(r.Context(), h.db, uid, id, body)
+	c, err := Create(r.Context(), h.db, h.base, uid, id, body)
 	switch {
 	case errors.Is(err, errUpdateNotFound):
 		updateNotFound(w)

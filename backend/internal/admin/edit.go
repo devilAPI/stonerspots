@@ -204,7 +204,7 @@ func (r repo) patchUser(ctx context.Context, id, caller uint64, p userPatch) (us
 		}
 		return userItem{}, err
 	}
-	it, err := scanUser(tx.QueryRowContext(ctx, userSelect+`WHERE u.id = ?`, id))
+	it, err := r.scanUser(tx.QueryRowContext(ctx, userSelect+`WHERE u.id = ?`, id))
 	if err != nil {
 		return userItem{}, err
 	}
@@ -382,7 +382,7 @@ func (r repo) patchSpot(ctx context.Context, id uint64, p spotPatch) (spotItem, 
 			return spotItem{}, err
 		}
 	}
-	it, err := scanSpot(tx.QueryRowContext(ctx, spotSelect+`WHERE s.id = ?`, id))
+	it, err := r.scanSpot(tx.QueryRowContext(ctx, spotSelect+`WHERE s.id = ?`, id))
 	if err != nil {
 		return spotItem{}, err
 	}

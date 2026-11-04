@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/spots/tagset"
 )
 
@@ -51,8 +52,9 @@ type PhotoRef struct {
 }
 
 type Author struct {
-	ID          uint64 `json:"id"`
-	DisplayName string `json:"display_name"`
+	ID          uint64  `json:"id"`
+	DisplayName string  `json:"display_name"`
+	AvatarURL   *string `json:"avatar_url"`
 }
 
 type SpotRef struct {
@@ -219,7 +221,7 @@ type query struct {
 
 // The last selected column is always the sort key (see scanItem).
 const selectBase = `SELECT u.id, u.body, u.created_at, u.tag, u.edited_at,
-  a.id, a.display_name,
+  a.id, a.display_name, a.avatar_key,
   s.id, s.title, ST_Y(s.location), ST_X(s.location), s.like_count,
   (SELECT COALESCE(ROUND(AVG(rv.rating), 1), 0) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active'),
   (SELECT COUNT(*) FROM spot_reviews rv WHERE rv.spot_id = s.id AND rv.status = 'active'),
@@ -234,15 +236,17 @@ const activeOnly = ` WHERE u.status = 'active' AND s.status = 'active'`
 
 const distExpr = "ST_Distance_Sphere(s.location, POINT(?, ?))"
 
-func scanItem(rows *sql.Rows) (FeedItem, error) {
+func scanItem(rows *sql.Rows, base string) (FeedItem, error) {
 	var it FeedItem
+	var avatarKey sql.NullString
 	err := rows.Scan(&it.ID, &it.Body, &it.CreatedAt, &it.Tag, &it.EditedAt,
-		&it.Author.ID, &it.Author.DisplayName,
+		&it.Author.ID, &it.Author.DisplayName, &avatarKey,
 		&it.Spot.ID, &it.Spot.Title, &it.Spot.Lat, &it.Spot.Lon, &it.Spot.LikeCount,
 		&it.Spot.RatingAvg, &it.Spot.RatingCount,
 		&it.UpdateCount,
 		&it.CommentCount,
 		&it.sortKey)
+	it.Author.AvatarURL = app.AvatarURL(base, avatarKey)
 	it.Photos = []PhotoRef{}
 	it.Spot.Tags = []string{}
 	return it, err
@@ -309,7 +313,7 @@ func list(ctx context.Context, db *sql.DB, base string, q query) ([]FeedItem, *s
 	defer rows.Close()
 	items := []FeedItem{}
 	for rows.Next() {
-		it, err := scanItem(rows)
+		it, err := scanItem(rows, base)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -415,7 +419,7 @@ func getItem(ctx context.Context, db *sql.DB, base string, id uint64) (FeedItem,
 		}
 		return FeedItem{}, sql.ErrNoRows
 	}
-	it, err := scanItem(rows)
+	it, err := scanItem(rows, base)
 	if err != nil {
 		return FeedItem{}, err
 	}

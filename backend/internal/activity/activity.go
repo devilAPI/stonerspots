@@ -114,8 +114,9 @@ func UnreadCount(ctx context.Context, db *sql.DB, userID uint64) (int, error) {
 
 // Actor is the user who acted.
 type Actor struct {
-	ID          uint64 `json:"id"`
-	DisplayName string `json:"display_name"`
+	ID          uint64  `json:"id"`
+	DisplayName string  `json:"display_name"`
+	AvatarURL   *string `json:"avatar_url"`
 }
 
 // Spot is the spot an item is about.
@@ -142,8 +143,8 @@ type Item struct {
 // List returns a page of userID's visible activity, newest first, starting
 // below the id before (0: from the top), and the id to continue from (0 at
 // the end).
-func List(ctx context.Context, db *sql.DB, userID, before uint64, limit int) ([]Item, uint64, error) {
-	q := `SELECT a.id, a.kind, a.created_at, a.read_at IS NOT NULL, act.id, act.display_name,
+func List(ctx context.Context, db *sql.DB, base string, userID, before uint64, limit int) ([]Item, uint64, error) {
+	q := `SELECT a.id, a.kind, a.created_at, a.read_at IS NOT NULL, act.id, act.display_name, act.avatar_key,
 	  s.id, s.title, a.update_id, a.comment_id, LEFT(c.body, ` + strconv.Itoa(PreviewLen) + `)` + visibleFrom
 	args := []any{userID}
 	if before != 0 {
@@ -162,12 +163,14 @@ func List(ctx context.Context, db *sql.DB, userID, before uint64, limit int) ([]
 			spotID              sql.NullInt64
 			spotTitle, preview  sql.NullString
 			updateID, commentID sql.NullInt64
+			avatarKey           sql.NullString
 		)
-		if err := rows.Scan(&it.ID, &it.Kind, &it.CreatedAt, &it.Read, &it.Actor.ID, &it.Actor.DisplayName,
+		if err := rows.Scan(&it.ID, &it.Kind, &it.CreatedAt, &it.Read, &it.Actor.ID, &it.Actor.DisplayName, &avatarKey,
 			&spotID, &spotTitle, &updateID, &commentID, &preview); err != nil {
 			return nil, 0, err
 		}
 		it.CreatedAt = it.CreatedAt.UTC()
+		it.Actor.AvatarURL = app.AvatarURL(base, avatarKey)
 		if spotID.Valid {
 			it.Spot = &Spot{ID: uint64(spotID.Int64), Title: spotTitle.String}
 		}
@@ -219,13 +222,16 @@ func UnreadCounter(db *sql.DB) func(context.Context, uint64) (int, error) {
 // Mount registers GET /me/activity and POST /me/activity/read on the
 // /api/v1 router.
 func Mount(r chi.Router, d app.Deps) {
-	h := &handler{db: d.DB}
+	h := &handler{db: d.DB, base: d.Cfg.PublicBaseURL}
 	authed := r.With(auth.Middleware(d.Cfg.JWTSecret))
 	authed.Get("/me/activity", h.list)
 	authed.Post("/me/activity/read", h.read)
 }
 
-type handler struct{ db *sql.DB }
+type handler struct {
+	db   *sql.DB
+	base string // public base URL, for avatar URLs
+}
 
 func internal(w http.ResponseWriter) {
 	httpx.Error(w, http.StatusInternalServerError, "internal", "internal error")
@@ -267,7 +273,7 @@ func (h *handler) list(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	items, next, err := List(r.Context(), h.db, uid, before, limit)
+	items, next, err := List(r.Context(), h.db, h.base, uid, before, limit)
 	if err != nil {
 		internal(w)
 		return

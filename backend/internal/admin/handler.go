@@ -447,3 +447,21 @@ func (h handler) deletePhoto(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
+
+// deleteAvatar removes a user's avatar with its file (moderation): 204,
+// also when the user has none; 404 for an unknown user.
+func (h handler) deleteAvatar(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(r)
+	if !ok {
+		notFound(w, "user")
+		return
+	}
+	switch err := photos.RemoveAvatar(r.Context(), h.repo.db, h.photos, id); {
+	case errors.Is(err, photos.ErrNoUser):
+		notFound(w, "user")
+	case err != nil:
+		serverError(w)
+	default:
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
