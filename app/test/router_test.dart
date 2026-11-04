@@ -51,6 +51,16 @@ void main() {
       isNull,
     );
     expect(authRedirect(loggedIn: true, location: '/feed'), isNull);
+    // the 2FA setup page is an admin page too
+    expect(
+      authRedirect(loggedIn: false, location: '/admin/2fa'),
+      '/login?from=%2Fadmin%2F2fa',
+    );
+    expect(authRedirect(loggedIn: true, location: '/admin/2fa'), '/');
+    expect(
+      authRedirect(loggedIn: true, isAdmin: true, location: '/admin/2fa'),
+      isNull,
+    );
   });
 
   test(

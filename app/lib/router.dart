@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import 'features/activity/activity_bell.dart';
 import 'features/activity/activity_screen.dart';
+import 'features/admin/admin_code_dialog.dart';
 import 'features/admin/admin_screen.dart';
+import 'features/admin/admin_two_factor_card.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/profile_screen.dart';
@@ -13,6 +15,7 @@ import 'features/feed/feed_screen.dart';
 import 'core/glass.dart';
 import 'core/adaptive_nav.dart';
 import 'core/models.dart' show User;
+import 'core/providers.dart' show apiClientProvider;
 import 'core/back_or_home.dart';
 import 'core/tab_keys.dart';
 import 'features/map/map_screen.dart';
@@ -34,14 +37,15 @@ String? authRedirect({
   bool isAdmin = false,
 }) {
   final saved = location == '/saved' || location.startsWith('/saved/');
+  final admin = location == '/admin' || location.startsWith('/admin/');
   if (!loggedIn &&
       (_protectedPaths.contains(location) ||
           saved ||
-          location == '/admin' ||
+          admin ||
           location == '/activity')) {
     return '/login?from=${Uri.encodeComponent(location)}';
   }
-  if (loggedIn && !isAdmin && location == '/admin') return '/';
+  if (loggedIn && !isAdmin && admin) return '/';
   return null;
 }
 
@@ -98,6 +102,8 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(refresh.dispose);
 
   final router = GoRouter(
+    // Dialogs from outside the widget tree (the admin 2FA prompt) open on it.
+    navigatorKey: GlobalKey<NavigatorState>(debugLabel: 'root'),
     refreshListenable: refresh,
     redirect: (context, state) {
       final auth = ref.read(authControllerProvider);
@@ -206,6 +212,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const BackToHomeScope(child: AdminScreen()),
       ),
       GoRoute(
+        path: kAdminTwoFactorPath,
+        builder: (_, _) => const BackToHomeScope(child: AdminTwoFactorScreen()),
+      ),
+      GoRoute(
         path: '/register',
         builder: (_, _) => const BackToHomeScope(child: RegisterScreen()),
       ),
@@ -217,4 +227,35 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
   ref.onDispose(router.dispose);
   return router;
+});
+
+/// Lets the API client ask the admin for a 2FA code (a dialog on the root
+/// navigator) and sends admins who must set up 2FA first to its page. Watch
+/// it once at the top of the app.
+final adminTwoFactorPromptsProvider = Provider<void>((ref) {
+  final api = ref.watch(apiClientProvider);
+  final router = ref.watch(routerProvider);
+  api.onAdminCodeNeeded = (reason) async {
+    final context = router.routerDelegate.navigatorKey.currentContext;
+    if (context == null || !context.mounted) return null;
+    return showAdminCodeDialog(context, reason);
+  };
+  // Several requests are refused at once (the admin page loads its lists
+  // together): open the page once.
+  DateTime? opened;
+  api.onAdminSetupRequired = () {
+    final now = DateTime.now();
+    final here = router.routerDelegate.currentConfiguration.uri.path;
+    if (here == kAdminTwoFactorPath) return;
+    if (opened != null &&
+        now.difference(opened!) < const Duration(seconds: 3)) {
+      return;
+    }
+    opened = now;
+    router.push(kAdminTwoFactorPath);
+  };
+  ref.onDispose(() {
+    api.onAdminCodeNeeded = null;
+    api.onAdminSetupRequired = null;
+  });
 });

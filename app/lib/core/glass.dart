@@ -534,6 +534,61 @@ class GlassFab extends StatelessWidget {
   }
 }
 
+/// A dialog on glass, laid out like an [AlertDialog]: [title], [content]
+/// and the [actions] in a row at the end. Show it with `showDialog`.
+class GlassDialog extends StatelessWidget {
+  const GlassDialog({
+    super.key,
+    required this.title,
+    required this.content,
+    this.actions = const [],
+  });
+
+  final Widget title;
+  final Widget content;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      shadowColor: Colors.transparent,
+      elevation: 0,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: GlassSurface(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 22, 24, 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                DefaultTextStyle.merge(
+                  style: text.titleLarge?.copyWith(color: kOnGlass),
+                  child: title,
+                ),
+                const SizedBox(height: 14),
+                Flexible(child: SingleChildScrollView(child: content)),
+                if (actions.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  OverflowBar(
+                    alignment: MainAxisAlignment.end,
+                    spacing: 8,
+                    overflowAlignment: OverflowBarAlignment.end,
+                    children: actions,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Modal sheet floating above the bottom edge, on glass.
 Future<T?> showGlassSheet<T>({
   required BuildContext context,
