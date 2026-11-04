@@ -10,6 +10,30 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS `activity`;
+CREATE TABLE `activity` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `actor_id` bigint(20) unsigned NOT NULL,
+  `kind` enum('follow','comment','like','review') NOT NULL,
+  `spot_id` bigint(20) unsigned DEFAULT NULL,
+  `update_id` bigint(20) unsigned DEFAULT NULL,
+  `comment_id` bigint(20) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `read_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_activity_user` (`user_id`,`id`),
+  KEY `idx_activity_actor` (`actor_id`),
+  KEY `idx_activity_spot` (`spot_id`),
+  KEY `idx_activity_update` (`update_id`),
+  KEY `idx_activity_comment` (`comment_id`),
+  CONSTRAINT `fk_activity_actor` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_activity_comment` FOREIGN KEY (`comment_id`) REFERENCES `comments` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_activity_spot` FOREIGN KEY (`spot_id`) REFERENCES `spots` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_activity_update` FOREIGN KEY (`update_id`) REFERENCES `spot_updates` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_activity_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 DROP TABLE IF EXISTS `comments`;
 CREATE TABLE `comments` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -227,7 +251,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `uq_users_display_name` (`display_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (21, 0);
+INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (23, 0);
 
 INSERT INTO `tags` (`tag`, `name_de`, `name_en`, `icon`, `sort`) VALUES
   ('roof', 'Überdacht', 'Roof', 'roof', 10),

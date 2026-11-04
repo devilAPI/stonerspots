@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"stonerspots/backend/internal/activity"
 	"stonerspots/backend/internal/admin"
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/auth"
@@ -67,7 +68,10 @@ func New(d app.Deps) http.Handler {
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", health(d))
-		auth.MountWithOptions(r, d, auth.MountOptions{DisablePoW: d.Cfg.DisablePoW})
+		auth.MountWithOptions(r, d, auth.MountOptions{
+			DisablePoW:     d.Cfg.DisablePoW,
+			UnreadActivity: activity.UnreadCounter(d.DB),
+		})
 		spots.Mount(r, d, quotaTracker)
 		photos.Mount(r, d)
 		feed.Mount(r, d, quotaTracker)
@@ -76,6 +80,7 @@ func New(d app.Deps) http.Handler {
 		lists.Mount(r, d)
 		users.Mount(r, d)
 		comments.Mount(r, d, quotaTracker)
+		activity.Mount(r, d)
 		geocode.Mount(r, d)
 		admin.Mount(r, d)
 	})

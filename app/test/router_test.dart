@@ -28,6 +28,14 @@ void main() {
     expect(authRedirect(loggedIn: false, location: '/savedish'), isNull);
   });
 
+  test('the activity page requires login', () {
+    expect(
+      authRedirect(loggedIn: false, location: '/activity'),
+      '/login?from=%2Factivity',
+    );
+    expect(authRedirect(loggedIn: true, location: '/activity'), isNull);
+  });
+
   test('admin route guard', () {
     expect(
       authRedirect(loggedIn: false, location: '/admin'),

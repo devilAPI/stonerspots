@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
+	"stonerspots/backend/internal/activity"
 )
 
 var (
@@ -28,26 +30,27 @@ func (r repo) inTx(ctx context.Context, fn func(tx *sql.Tx) error) error {
 }
 
 // lockSpot locks the spot row (serialising concurrent like changes) and
-// returns errNotFound if it does not exist.
-func lockSpot(ctx context.Context, tx *sql.Tx, id uint64) error {
-	var x uint64
-	err := tx.QueryRowContext(ctx, `SELECT id FROM spots WHERE id = ? FOR UPDATE`, id).Scan(&x)
+// returns its owner, or errNotFound if it does not exist.
+func lockSpot(ctx context.Context, tx *sql.Tx, id uint64) (uint64, error) {
+	var owner uint64
+	err := tx.QueryRowContext(ctx, `SELECT user_id FROM spots WHERE id = ? FOR UPDATE`, id).Scan(&owner)
 	if errors.Is(err, sql.ErrNoRows) {
-		return errNotFound
+		return 0, errNotFound
 	}
-	return err
+	return owner, err
 }
 
 // SetLike adds or removes the like and keeps spots.like_count equal to the
-// number of spot_likes rows. It returns the resulting count.
+// number of spot_likes rows. A new like tells the spot's author through their
+// activity; removing it takes the unread notice back. It returns the resulting count.
 func (r repo) SetLike(ctx context.Context, userID, spotID uint64, liked bool) (int, error) {
 	var count int
 	err := r.inTx(ctx, func(tx *sql.Tx) error {
-		if err := lockSpot(ctx, tx, spotID); err != nil {
+		owner, err := lockSpot(ctx, tx, spotID)
+		if err != nil {
 			return err
 		}
 		var res sql.Result
-		var err error
 		if liked {
 			res, err = tx.ExecContext(ctx, `INSERT IGNORE INTO spot_likes (user_id, spot_id) VALUES (?, ?)`, userID, spotID)
 		} else {
@@ -68,6 +71,15 @@ func (r repo) SetLike(ctx context.Context, userID, spotID uint64, liked bool) (i
 			if _, err := tx.ExecContext(ctx, `UPDATE spots SET like_count = GREATEST(like_count + ?, 0) WHERE id = ?`, delta, spotID); err != nil {
 				return err
 			}
+		}
+		ev := activity.Event{Recipient: owner, Actor: userID, Kind: activity.Like, SpotID: spotID}
+		if liked && n > 0 {
+			err = activity.Add(ctx, tx, ev)
+		} else if !liked {
+			err = activity.RemoveUnread(ctx, tx, ev)
+		}
+		if err != nil {
+			return err
 		}
 		return tx.QueryRowContext(ctx, `SELECT like_count FROM spots WHERE id = ?`, spotID).Scan(&count)
 	})

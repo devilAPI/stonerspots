@@ -1322,4 +1322,93 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminCommentRemoved => 'Comment removed';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get activityTitle => 'Activity';
+
+  @override
+  String activityTooltip(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Activity, $count new',
+      one: 'Activity, 1 new',
+      zero: 'Activity',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get activityEmpty =>
+      'Nothing yet. Here you see when someone follows you, comments on your updates or likes or rates your spots.';
+
+  @override
+  String activityFollow(String name) {
+    return '$name started following you';
+  }
+
+  @override
+  String activityComment(String name, String spot, String text) {
+    return '$name commented on your update at $spot: $text';
+  }
+
+  @override
+  String activityLike(String name, String spot) {
+    return '$name liked $spot';
+  }
+
+  @override
+  String activityReview(String name, String spot) {
+    return '$name rated $spot';
+  }
+
+  @override
+  String get settingsAbout => 'About Stonerspots';
+
+  @override
+  String get whatsNewTitle => 'What\'s new in 2.0';
+
+  @override
+  String get whatsNewProfilesTitle => 'Profiles & following';
+
+  @override
+  String get whatsNewProfilesBody =>
+      'Tap a name to see someone\'s profile and follow them.';
+
+  @override
+  String get whatsNewFollowingTitle => 'Following feed';
+
+  @override
+  String get whatsNewFollowingBody =>
+      'Shows only updates from people you follow in the feed.';
+
+  @override
+  String get whatsNewCommentsTitle => 'Comments';
+
+  @override
+  String get whatsNewCommentsBody =>
+      'Join the conversation under every update.';
+
+  @override
+  String get whatsNewActivityTitle => 'Activity';
+
+  @override
+  String get whatsNewActivityBody =>
+      'The bell on your profile shows who followed you, commented, or liked or rated your spots.';
+
+  @override
+  String get whatsNewSearchTitle => 'Spot search';
+
+  @override
+  String get whatsNewSearchBody => 'Find spots by name on the map (Ctrl+K).';
+
+  @override
+  String get whatsNewWeatherTitle => 'Weather';
+
+  @override
+  String get whatsNewWeatherBody =>
+      'Spot pages show the current weather and the next hours.';
 }

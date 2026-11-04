@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'features/activity/activity_bell.dart';
+import 'features/activity/activity_screen.dart';
 import 'features/admin/admin_screen.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
@@ -33,7 +35,10 @@ String? authRedirect({
 }) {
   final saved = location == '/saved' || location.startsWith('/saved/');
   if (!loggedIn &&
-      (_protectedPaths.contains(location) || saved || location == '/admin')) {
+      (_protectedPaths.contains(location) ||
+          saved ||
+          location == '/admin' ||
+          location == '/activity')) {
     return '/login?from=${Uri.encodeComponent(location)}';
   }
   if (loggedIn && !isAdmin && location == '/admin') return '/';
@@ -71,7 +76,11 @@ class _ScaffoldWithNav extends StatelessWidget {
           NavItem(Icons.dynamic_feed_outlined, l10n.navFeed),
           NavItem(Icons.person_outline, l10n.navProfile),
         ],
-        body: shell,
+        // The profile tab (index 2) carries the activity bell.
+        body: ActivityRefresher(
+          profileShown: shell.currentIndex == 2,
+          child: shell,
+        ),
       ),
     );
   }
@@ -181,6 +190,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             userId: int.tryParse(state.pathParameters['id']!) ?? 0,
           ),
         ),
+      ),
+      GoRoute(
+        path: '/activity',
+        builder: (_, _) => const BackToHomeScope(child: ActivityScreen()),
       ),
       GoRoute(
         path: '/login',
