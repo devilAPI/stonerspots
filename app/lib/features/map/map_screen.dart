@@ -9,6 +9,7 @@ import '../../core/location_service.dart';
 import '../../core/models.dart';
 import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
+import '../users/author_link.dart' show userPath;
 import 'map_filter_bar.dart';
 import 'map_flight.dart';
 import 'map_tiles.dart';
@@ -163,6 +164,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
         onOpen: () {
           Navigator.of(sheetContext).pop();
           context.push('/spot/${spot.id}');
+        },
+        onOpenAuthor: (userId) {
+          Navigator.of(sheetContext).pop();
+          context.push(userPath(userId));
         },
       ),
     );

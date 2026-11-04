@@ -1427,4 +1427,47 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get profileAccountMenu => 'Konto';
+
+  @override
+  String get spotAddedBy => 'Hinzugefügt von';
+
+  @override
+  String get deletedAccount => 'Gelöschtes Konto';
+
+  @override
+  String get avatarChange => 'Profilbild ändern';
+
+  @override
+  String get avatarChoose => 'Foto auswählen';
+
+  @override
+  String get avatarRemove => 'Foto entfernen';
+
+  @override
+  String get adminRemoveAvatar => 'Profilbild entfernen';
+
+  @override
+  String adminRemoveAvatarBody(String name) {
+    return 'Das Profilbild von $name wird gelöscht.';
+  }
+
+  @override
+  String get adminAvatarRemoved => 'Profilbild entfernt';
+
+  @override
+  String get liked => 'Gefällt dir';
+
+  @override
+  String commentsShowAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Alle $count Kommentare anzeigen',
+      one: '1 Kommentar anzeigen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get commentsShowLess => 'Weniger anzeigen';
 }

@@ -108,6 +108,15 @@ class _Fake implements AdminRepository {
   @override
   Future<void> deleteSpot(int id) async {}
 
+  final removedAvatars = <int>[];
+  ApiException? avatarError;
+
+  @override
+  Future<void> deleteUserAvatar(int id) async {
+    removedAvatars.add(id);
+    if (avatarError != null) throw avatarError!;
+  }
+
   @override
   Future<AdminUser> updateUser(int id, AdminUserPatch patch) async {
     userPatches.add(patch.toJson());
@@ -641,4 +650,65 @@ void main() {
       });
     });
   }
+
+  group('profile pictures', () {
+    AdminUser withAvatar(int id) => AdminUser(
+      id: id,
+      email: 'user$id@x.de',
+      displayName: 'User$id',
+      isAdmin: false,
+      createdAt: DateTime.utc(2026, 1, 2),
+      spotCount: 4,
+      reportsReceived: 2,
+      avatarUrl: 'http://test/a$id.jpg',
+    );
+
+    testWidgets('rows show avatars; a set picture can be removed', (
+      tester,
+    ) async {
+      final repo = _Fake()..userItems = [_user(1), withAvatar(2)];
+      await _pump(tester, repo, _sizes['phone']!);
+      await _tab(tester, 'Users');
+      expect(find.byKey(const Key('authorAvatar-1')), findsOneWidget);
+      expect(find.byKey(const Key('authorAvatar-2')), findsOneWidget);
+      // only for users who have one
+      expect(find.byKey(const Key('user-avatar-remove-1')), findsNothing);
+
+      await _tap(tester, 'user-avatar-remove-2');
+      expect(
+        find.text('The profile picture of User2 will be deleted.'),
+        findsOneWidget,
+      );
+      await _tap(tester, 'user-avatar-remove-confirm');
+      expect(repo.removedAvatars, [2]);
+      expect(find.text('Profile picture removed'), findsOneWidget);
+      expect(find.byKey(const Key('user-avatar-remove-2')), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('authorAvatar-2')),
+          matching: find.text('U'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('cancelling removes nothing; a failure says so', (
+      tester,
+    ) async {
+      final repo = _Fake()..userItems = [withAvatar(2)];
+      await _pump(tester, repo, _sizes['phone']!);
+      await _tab(tester, 'Users');
+      await _tap(tester, 'user-avatar-remove-2');
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(repo.removedAvatars, isEmpty);
+
+      repo.avatarError = ApiException(500, 'internal', 'boom');
+      await _tap(tester, 'user-avatar-remove-2');
+      await _tap(tester, 'user-avatar-remove-confirm');
+      expect(repo.removedAvatars, [2]);
+      expect(find.text('Something went wrong'), findsOneWidget);
+      expect(find.byKey(const Key('user-avatar-remove-2')), findsOneWidget);
+    });
+  });
 }

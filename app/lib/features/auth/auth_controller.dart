@@ -77,6 +77,13 @@ class AuthController extends AsyncNotifier<User?> {
     state = const AsyncData(null);
   }
 
+  /// Shows the logged-in user with a new profile picture (null: none),
+  /// after it was changed on the server.
+  void setAvatarUrl(String? url) {
+    final user = state.value;
+    if (user != null) state = AsyncData(user.withAvatarUrl(url));
+  }
+
   Future<void> logout() async {
     await ref.read(tokenStoreProvider).clear();
     state = const AsyncData(null);

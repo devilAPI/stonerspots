@@ -316,11 +316,13 @@ class _ReviewTile extends StatelessWidget {
                 StarRow(rating: review.rating.toDouble(), size: 16),
                 const SizedBox(height: 2),
                 Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     AuthorLink(
                       author: review.author,
                       label: isMine ? l.reviewYours : null,
                       style: theme.textTheme.bodySmall,
+                      avatarRadius: 10,
                     ),
                     Text(meta.toString(), style: theme.textTheme.bodySmall),
                   ],

@@ -8,6 +8,7 @@ class User {
     required this.email,
     required this.displayName,
     this.isAdmin = false,
+    this.avatarUrl,
   });
 
   final int id;
@@ -15,11 +16,24 @@ class User {
   final String displayName;
   final bool isAdmin;
 
+  /// The profile picture, or null when there is none.
+  final String? avatarUrl;
+
   factory User.fromJson(Map<String, dynamic> j) => User(
     id: j['id'] as int,
     email: (j['email'] ?? '') as String,
     displayName: (j['display_name'] ?? '') as String,
     isAdmin: (j['is_admin'] ?? false) as bool,
+    avatarUrl: parseAvatarUrl(j['avatar_url']),
+  );
+
+  /// This user with another profile picture (null: none).
+  User withAvatarUrl(String? url) => User(
+    id: id,
+    email: email,
+    displayName: displayName,
+    isAdmin: isAdmin,
+    avatarUrl: url,
   );
 
   @override
@@ -28,10 +42,11 @@ class User {
       other.id == id &&
       other.email == email &&
       other.displayName == displayName &&
-      other.isAdmin == isAdmin;
+      other.isAdmin == isAdmin &&
+      other.avatarUrl == avatarUrl;
 
   @override
-  int get hashCode => Object.hash(id, email, displayName, isAdmin);
+  int get hashCode => Object.hash(id, email, displayName, isAdmin, avatarUrl);
 }
 
 /// A feature a spot can have. Admins manage which tags exist (`GET /tags`):
@@ -226,7 +241,7 @@ class Spot {
   final int ratingCount;
   final List<SpotTag> tags;
 
-  /// Only sent by `GET /spots/{id}`.
+  /// Who added the spot; null when their account is gone.
   final Author? author;
 
   /// Locked spots take no new updates or edits from non-admins. Only sent by
@@ -269,14 +284,18 @@ class PhotoRef {
 }
 
 class Author {
-  const Author({required this.id, required this.displayName});
+  const Author({required this.id, required this.displayName, this.avatarUrl});
 
   final int id;
   final String displayName;
 
+  /// The profile picture, or null when there is none.
+  final String? avatarUrl;
+
   factory Author.fromJson(Map<String, dynamic> j) => Author(
     id: j['id'] as int,
     displayName: (j['display_name'] ?? '') as String,
+    avatarUrl: parseAvatarUrl(j['avatar_url']),
   );
 }
 
@@ -344,6 +363,10 @@ class FeedItem {
     commentCount: (j['comment_count'] as num?)?.toInt() ?? 0,
   );
 }
+
+/// The `avatar_url` of a user object: null when it is missing, empty or not
+/// a string (servers from before profile pictures send none).
+String? parseAvatarUrl(Object? v) => v is String ? _nonEmpty(v) : null;
 
 /// The API sends "" where there is no value; that must not look like a URL.
 String? _nonEmpty(String? v) => (v == null || v.trim().isEmpty) ? null : v;

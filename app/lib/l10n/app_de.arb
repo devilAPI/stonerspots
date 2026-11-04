@@ -528,5 +528,18 @@
   "whatsNewSearchBody": "Spots auf der Karte nach Namen finden (Strg+K).",
   "whatsNewWeatherTitle": "Wetter",
   "whatsNewWeatherBody": "Spot-Seiten zeigen das aktuelle Wetter und die nächsten Stunden.",
-  "profileAccountMenu": "Konto"
+  "profileAccountMenu": "Konto",
+  "spotAddedBy": "Hinzugefügt von",
+  "deletedAccount": "Gelöschtes Konto",
+  "avatarChange": "Profilbild ändern",
+  "avatarChoose": "Foto auswählen",
+  "avatarRemove": "Foto entfernen",
+  "adminRemoveAvatar": "Profilbild entfernen",
+  "adminRemoveAvatarBody": "Das Profilbild von {name} wird gelöscht.",
+  "@adminRemoveAvatarBody": {"placeholders": {"name": {"type": "String"}}},
+  "adminAvatarRemoved": "Profilbild entfernt",
+  "liked": "Gefällt dir",
+  "commentsShowAll": "{count, plural, =1{1 Kommentar anzeigen} other{Alle {count} Kommentare anzeigen}}",
+  "@commentsShowAll": {"placeholders": {"count": {"type": "int"}}},
+  "commentsShowLess": "Weniger anzeigen"
 }

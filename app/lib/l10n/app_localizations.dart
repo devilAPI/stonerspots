@@ -2443,6 +2443,72 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Konto'**
   String get profileAccountMenu;
+
+  /// No description provided for @spotAddedBy.
+  ///
+  /// In de, this message translates to:
+  /// **'Hinzugefügt von'**
+  String get spotAddedBy;
+
+  /// No description provided for @deletedAccount.
+  ///
+  /// In de, this message translates to:
+  /// **'Gelöschtes Konto'**
+  String get deletedAccount;
+
+  /// No description provided for @avatarChange.
+  ///
+  /// In de, this message translates to:
+  /// **'Profilbild ändern'**
+  String get avatarChange;
+
+  /// No description provided for @avatarChoose.
+  ///
+  /// In de, this message translates to:
+  /// **'Foto auswählen'**
+  String get avatarChoose;
+
+  /// No description provided for @avatarRemove.
+  ///
+  /// In de, this message translates to:
+  /// **'Foto entfernen'**
+  String get avatarRemove;
+
+  /// No description provided for @adminRemoveAvatar.
+  ///
+  /// In de, this message translates to:
+  /// **'Profilbild entfernen'**
+  String get adminRemoveAvatar;
+
+  /// No description provided for @adminRemoveAvatarBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Das Profilbild von {name} wird gelöscht.'**
+  String adminRemoveAvatarBody(String name);
+
+  /// No description provided for @adminAvatarRemoved.
+  ///
+  /// In de, this message translates to:
+  /// **'Profilbild entfernt'**
+  String get adminAvatarRemoved;
+
+  /// No description provided for @liked.
+  ///
+  /// In de, this message translates to:
+  /// **'Gefällt dir'**
+  String get liked;
+
+  /// No description provided for @commentsShowAll.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =1{1 Kommentar anzeigen} other{Alle {count} Kommentare anzeigen}}'**
+  String commentsShowAll(int count);
+
+  /// No description provided for @commentsShowLess.
+  ///
+  /// In de, this message translates to:
+  /// **'Weniger anzeigen'**
+  String get commentsShowLess;
 }
 
 class _AppLocalizationsDelegate

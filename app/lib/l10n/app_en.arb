@@ -516,5 +516,18 @@
   "whatsNewSearchBody": "Find spots by name on the map (Ctrl+K).",
   "whatsNewWeatherTitle": "Weather",
   "whatsNewWeatherBody": "Spot pages show the current weather and the next hours.",
-  "profileAccountMenu": "Account"
+  "profileAccountMenu": "Account",
+  "spotAddedBy": "Added by",
+  "deletedAccount": "Deleted account",
+  "avatarChange": "Change profile picture",
+  "avatarChoose": "Choose photo",
+  "avatarRemove": "Remove photo",
+  "adminRemoveAvatar": "Remove profile picture",
+  "adminRemoveAvatarBody": "The profile picture of {name} will be deleted.",
+  "@adminRemoveAvatarBody": {"placeholders": {"name": {"type": "String"}}},
+  "adminAvatarRemoved": "Profile picture removed",
+  "liked": "Liked",
+  "commentsShowAll": "{count, plural, =1{Show 1 comment} other{Show all {count} comments}}",
+  "@commentsShowAll": {"placeholders": {"count": {"type": "int"}}},
+  "commentsShowLess": "Show less"
 }

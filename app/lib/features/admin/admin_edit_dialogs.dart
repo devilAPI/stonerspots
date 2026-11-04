@@ -8,6 +8,7 @@ import '../../core/models.dart'
     show Author, FeedItem, PhotoRef, SpotTag, UpdateTag;
 import '../../core/net_photo.dart';
 import '../../core/spot_tag_widgets.dart';
+import '../../core/user_avatar.dart';
 import '../../l10n/app_localizations.dart';
 import '../spots/update_tile.dart' show updateTagLabel;
 import 'admin_models.dart';
@@ -502,6 +503,11 @@ class _UserPickerState extends ConsumerState<_UserPicker> {
                         for (final u in users)
                           ListTile(
                             key: Key('owner-pick-${u.id}'),
+                            leading: UserAvatar(
+                              userId: u.id,
+                              name: u.displayName,
+                              url: u.avatarUrl,
+                            ),
                             title: Text(u.displayName),
                             subtitle: Text(u.email),
                             onTap: () => Navigator.pop(context, u),
