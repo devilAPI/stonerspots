@@ -200,14 +200,18 @@ const (
 )
 
 type query struct {
-	sort     sortMode
-	tags     []string
-	spotID   uint64
-	lat, lon float64
-	hasCur   bool
-	curKey   float64
-	curID    uint64
-	limit    int
+	sort   sortMode
+	tags   []string
+	spotID uint64
+	// authorID lists only this user's updates; followerID only updates of
+	// the people this user follows. Both list every update, not one per spot.
+	authorID   uint64
+	followerID uint64
+	lat, lon   float64
+	hasCur     bool
+	curKey     float64
+	curID      uint64
+	limit      int
 }
 
 // The last selected column is always the sort key (see scanItem).
@@ -274,7 +278,16 @@ func list(ctx context.Context, db *sql.DB, base string, q query) ([]FeedItem, *s
 		// a spot's own timeline lists every update
 		catWhere += " AND s.id = ?"
 		catArgs = append(catArgs, q.spotID)
-	} else {
+	}
+	if q.authorID != 0 {
+		catWhere += " AND u.user_id = ?"
+		catArgs = append(catArgs, q.authorID)
+	}
+	if q.followerID != 0 {
+		catWhere += " AND u.user_id IN (SELECT f.followee_id FROM follows f WHERE f.follower_id = ?)"
+		catArgs = append(catArgs, q.followerID)
+	}
+	if q.spotID == 0 && q.authorID == 0 && q.followerID == 0 {
 		// the feed shows each spot once, with its latest active update
 		catWhere += " AND u.id = (SELECT MAX(ul.id) FROM spot_updates ul WHERE ul.spot_id = u.spot_id AND ul.status = 'active')"
 	}
@@ -316,6 +329,21 @@ func list(ctx context.Context, db *sql.DB, base string, q query) ([]FeedItem, *s
 		return nil, nil, err
 	}
 	return items, next, nil
+}
+
+// ListByAuthor returns a page of userID's active updates on active spots,
+// newest first, plus the next cursor (nil at the end). cursor is "" or a
+// next_cursor from an earlier page (ErrInvalidCursor otherwise).
+func ListByAuthor(ctx context.Context, db *sql.DB, base string, userID uint64, cursor string, limit int) ([]FeedItem, *string, error) {
+	q := query{sort: sortNew, authorID: userID, limit: limit}
+	if cursor != "" {
+		k, id, err := DecodeCursor(cursor)
+		if err != nil {
+			return nil, nil, err
+		}
+		q.hasCur, q.curKey, q.curID = true, k, id
+	}
+	return list(ctx, db, base, q)
 }
 
 // attachSpotTags loads the tags of all items' spots with a single query.

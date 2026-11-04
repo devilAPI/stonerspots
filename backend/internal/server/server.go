@@ -22,6 +22,7 @@ import (
 	"stonerspots/backend/internal/ratelimit"
 	"stonerspots/backend/internal/reviews"
 	"stonerspots/backend/internal/spots"
+	"stonerspots/backend/internal/users"
 )
 
 // HTTPServer wraps h with timeouts, so slow or idle clients cannot hold
@@ -70,6 +71,7 @@ func New(d app.Deps) http.Handler {
 		engagement.Mount(r, d, quotaTracker)
 		reviews.Mount(r, d, quotaTracker)
 		lists.Mount(r, d)
+		users.Mount(r, d)
 		geocode.Mount(r, d)
 		admin.Mount(r, d)
 	})

@@ -99,6 +99,19 @@ func (h *handler) getFeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q.tags = tags
+	switch p.Get("following") {
+	case "", "false", "0":
+	case "true", "1":
+		uid, ok := auth.UserID(r.Context())
+		if !ok {
+			httpx.Error(w, http.StatusUnauthorized, "unauthorized", "following=true requires login")
+			return
+		}
+		q.followerID = uid
+	default:
+		httpx.Error(w, http.StatusBadRequest, "invalid_following", "following must be true or false")
+		return
+	}
 	if sid := p.Get("spot_id"); sid != "" {
 		n, err := strconv.ParseUint(sid, 10, 64)
 		if err != nil || n == 0 {
