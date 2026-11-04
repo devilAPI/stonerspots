@@ -238,7 +238,7 @@ func TestAdminPowersOutsideAdminRoutesNeed2FA(t *testing.T) {
 	s.want(upd, 201, "", "update")
 	updID := s.id(upd)
 	newComment := func() string {
-		c := s.call("POST", "/updates/"+updID+"/comments", owner, nil, map[string]any{"body": "hi"})
+		c := s.call("POST", "/spots/"+spotID+"/comments", owner, nil, map[string]any{"body": "hi"})
 		s.want(c, 201, "", "comment")
 		return s.id(c)
 	}
@@ -268,6 +268,9 @@ func TestAdminPowersOutsideAdminRoutesNeed2FA(t *testing.T) {
 	s.want(s.call("POST", "/spots/"+spotID+"/updates", owner, nil, body), 403, "spot_locked", "owner on locked spot")
 	s.want(s.call("POST", "/spots/"+spotID+"/updates", admin, nil, body), 403, "totp_required", "admin posts without proof")
 	s.want(s.call("POST", "/spots/"+spotID+"/updates", admin, session, body), 201, "", "admin posts with session")
+	s.want(s.call("POST", "/spots/"+spotID+"/comments", owner, nil, body), 403, "spot_locked", "owner comments on locked spot")
+	s.want(s.call("POST", "/spots/"+spotID+"/comments", admin, nil, body), 403, "totp_required", "admin comments without proof")
+	s.want(s.call("POST", "/spots/"+spotID+"/comments", admin, session, body), 201, "", "admin comments with session")
 	s.want(s.call("PATCH", "/updates/"+adminUpdID, admin, nil, map[string]any{"body": "edited"}), 403, "totp_required", "admin edits without proof")
 	s.want(s.call("PATCH", "/updates/"+adminUpdID, admin, session, map[string]any{"body": "edited"}), 200, "", "admin edits with session")
 	s.want(s.call("DELETE", "/updates/"+adminUpdID, admin, nil, nil), 403, "totp_required", "admin deletes without proof")

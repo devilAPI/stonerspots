@@ -35,7 +35,6 @@ class AdminReportTarget {
     this.body = '',
     this.rating = 0,
     this.author,
-    this.updateId,
   });
 
   final bool exists;
@@ -52,9 +51,6 @@ class AdminReportTarget {
   final int rating;
   final Author? author;
 
-  /// For comment reports: the update the comment is under.
-  final int? updateId;
-
   AdminReportTarget copyWith({String? title, String? status}) =>
       AdminReportTarget(
         exists: exists,
@@ -64,7 +60,6 @@ class AdminReportTarget {
         body: body,
         rating: rating,
         author: author,
-        updateId: updateId,
       );
 
   factory AdminReportTarget.fromJson(Map<String, dynamic> j) =>
@@ -78,7 +73,6 @@ class AdminReportTarget {
         author: j['author'] == null
             ? null
             : Author.fromJson(j['author'] as Map<String, dynamic>),
-        updateId: j['update_id'] as int?,
       );
 }
 

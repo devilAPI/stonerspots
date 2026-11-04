@@ -156,7 +156,14 @@ class _ActivityTile extends StatelessWidget {
     final spot = item.spot?.title ?? '';
     return switch (item.kind) {
       ActivityKind.follow => l.activityFollow(name),
-      ActivityKind.comment => l.activityComment(
+      // comments are about the spot; rows from when they hung under
+      // updates still carry the update and went to its author
+      ActivityKind.comment when item.updateId != null => l.activityComment(
+        name,
+        spot,
+        item.commentPreview ?? '',
+      ),
+      ActivityKind.comment => l.activitySpotComment(
         name,
         spot,
         item.commentPreview ?? '',

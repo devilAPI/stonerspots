@@ -2216,12 +2216,6 @@ abstract class AppLocalizations {
   /// **'Du hast heute schon sehr viel kommentiert. Versuch es morgen wieder.'**
   String get commentsQuota;
 
-  /// No description provided for @commentsGone.
-  ///
-  /// In de, this message translates to:
-  /// **'Dieses Update gibt es nicht mehr'**
-  String get commentsGone;
-
   /// No description provided for @commentHint.
   ///
   /// In de, this message translates to:
@@ -2279,7 +2273,7 @@ abstract class AppLocalizations {
   /// No description provided for @adminCommentOn.
   ///
   /// In de, this message translates to:
-  /// **'Kommentar unter einem Update zu {title}'**
+  /// **'Kommentar zu {title}'**
   String adminCommentOn(String title);
 
   /// No description provided for @adminRemoveComment.
@@ -2399,7 +2393,7 @@ abstract class AppLocalizations {
   /// No description provided for @whatsNewCommentsBody.
   ///
   /// In de, this message translates to:
-  /// **'Unter jedem Update mitreden.'**
+  /// **'Bei jedem Spot mitreden, im eigenen Bereich für Kommentare.'**
   String get whatsNewCommentsBody;
 
   /// No description provided for @whatsNewActivityTitle.
@@ -2515,6 +2509,30 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Nach Norden ausrichten'**
   String get mapNorthUp;
+
+  /// No description provided for @activitySpotComment.
+  ///
+  /// In de, this message translates to:
+  /// **'{name} hat deinen Spot {spot} kommentiert: {text}'**
+  String activitySpotComment(String name, String spot, String text);
+
+  /// No description provided for @commentsLocked.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieser Spot ist gesperrt, Kommentare sind geschlossen'**
+  String get commentsLocked;
+
+  /// No description provided for @commentsSpotGone.
+  ///
+  /// In de, this message translates to:
+  /// **'Diesen Spot gibt es nicht mehr'**
+  String get commentsSpotGone;
+
+  /// No description provided for @commentGone.
+  ///
+  /// In de, this message translates to:
+  /// **'Diesen Kommentar gibt es nicht mehr'**
+  String get commentGone;
 }
 
 class _AppLocalizationsDelegate

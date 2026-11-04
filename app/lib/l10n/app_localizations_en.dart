@@ -1277,9 +1277,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'You have commented a lot today. Please try again tomorrow.';
 
   @override
-  String get commentsGone => 'This update no longer exists';
-
-  @override
   String get commentHint => 'Write a comment …';
 
   @override
@@ -1308,7 +1305,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String adminCommentOn(String title) {
-    return 'Comment under an update on $title';
+    return 'Comment on $title';
   }
 
   @override
@@ -1390,7 +1387,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get whatsNewCommentsBody =>
-      'Join the conversation under every update.';
+      'Join the conversation on every spot, in its own comments section.';
 
   @override
   String get whatsNewActivityTitle => 'Activity';
@@ -1460,4 +1457,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapNorthUp => 'Turn north up';
+
+  @override
+  String activitySpotComment(String name, String spot, String text) {
+    return '$name commented on your spot $spot: $text';
+  }
+
+  @override
+  String get commentsLocked => 'This spot is locked, comments are closed';
+
+  @override
+  String get commentsSpotGone => 'This spot no longer exists';
+
+  @override
+  String get commentGone => 'This comment no longer exists';
 }

@@ -41,9 +41,6 @@ type reportTarget struct {
 	Body   string  `json:"body"`
 	Rating int     `json:"rating"`
 	Author *person `json:"author,omitempty"`
-
-	// UpdateID is the update a reported comment is under.
-	UpdateID uint64 `json:"update_id,omitempty"`
 }
 
 type reportItem struct {
@@ -68,13 +65,14 @@ func (r repo) reports(ctx context.Context, limit int, after uint64) ([]reportIte
 		ru.id, ru.display_name, ru.email,
 		s.id, s.title, CASE r.target_type WHEN 'review' THEN rv.status WHEN 'comment' THEN cm.status ELSE s.status END,
 		COALESCE(cm.id, up.id, rv.id),
-		COALESCE(cm.body, up.body, rv.body), COALESCE(rv.rating, 0), au.id, au.display_name, au.avatar_key, cm.update_id
+		COALESCE(cm.body, up.body, rv.body), COALESCE(rv.rating, 0), au.id, au.display_name, au.avatar_key
 	FROM reports r
 	JOIN users ru ON ru.id = r.user_id
 	LEFT JOIN comments cm ON r.target_type = 'comment' AND cm.id = r.target_id
-	LEFT JOIN spot_updates up ON up.id = CASE r.target_type WHEN 'update' THEN r.target_id WHEN 'comment' THEN cm.update_id END
+	LEFT JOIN spot_updates up ON r.target_type = 'update' AND up.id = r.target_id
 	LEFT JOIN spot_reviews rv ON r.target_type = 'review' AND rv.id = r.target_id
-	LEFT JOIN spots s ON s.id = CASE r.target_type WHEN 'spot' THEN r.target_id WHEN 'review' THEN rv.spot_id ELSE up.spot_id END
+	LEFT JOIN spots s ON s.id = CASE r.target_type WHEN 'spot' THEN r.target_id WHEN 'review' THEN rv.spot_id
+		WHEN 'comment' THEN cm.spot_id ELSE up.spot_id END
 	LEFT JOIN users au ON au.id = CASE r.target_type WHEN 'spot' THEN s.user_id WHEN 'update' THEN up.user_id WHEN 'comment' THEN cm.user_id ELSE rv.user_id END
 	WHERE (? = 0 OR r.id < ?)
 	ORDER BY r.id DESC LIMIT ?`
@@ -88,14 +86,13 @@ func (r repo) reports(ctx context.Context, limit int, after uint64) ([]reportIte
 		var it reportItem
 		var (
 			spotID, subID, authorID  sql.NullInt64
-			commentUpdateID          sql.NullInt64
 			title, status, body, aun sql.NullString
 			authorAvatar             sql.NullString
 			rating                   int
 		)
 		if err := rows.Scan(&it.ID, &it.TargetType, &it.TargetID, &it.Reason, &it.CreatedAt, &it.ReportCount,
 			&it.Reporter.ID, &it.Reporter.DisplayName, &it.Reporter.Email,
-			&spotID, &title, &status, &subID, &body, &rating, &authorID, &aun, &authorAvatar, &commentUpdateID); err != nil {
+			&spotID, &title, &status, &subID, &body, &rating, &authorID, &aun, &authorAvatar); err != nil {
 			return nil, err
 		}
 		it.CreatedAt = it.CreatedAt.UTC()
@@ -106,9 +103,6 @@ func (r repo) reports(ctx context.Context, limit int, after uint64) ([]reportIte
 			if authorID.Valid {
 				it.Target.Author = &person{ID: uint64(authorID.Int64), DisplayName: aun.String,
 					AvatarURL: app.AvatarURL(r.base, authorAvatar)}
-			}
-			if commentUpdateID.Valid {
-				it.Target.UpdateID = uint64(commentUpdateID.Int64)
 			}
 		}
 		out = append(out, it)
@@ -283,7 +277,7 @@ func (r repo) deleteSpot(ctx context.Context, id uint64) error {
 	}{
 		{"DELETE FROM photos WHERE update_id IN " + updates, []any{id}},
 		{"DELETE FROM reports WHERE (target_type = 'spot' AND target_id = ?) OR (target_type = 'update' AND target_id IN " + updates + ") OR (target_type = 'review' AND target_id IN (SELECT id FROM spot_reviews WHERE spot_id = ?))", []any{id, id, id}},
-		{"DELETE FROM reports WHERE target_type = 'comment' AND target_id IN (SELECT id FROM comments WHERE update_id IN " + updates + ")", []any{id}},
+		{"DELETE FROM reports WHERE target_type = 'comment' AND target_id IN (SELECT id FROM comments WHERE spot_id = ?)", []any{id}},
 		{"DELETE FROM spots WHERE id = ?", []any{id}},
 	} {
 		if _, err := tx.ExecContext(ctx, s.q, s.args...); err != nil {

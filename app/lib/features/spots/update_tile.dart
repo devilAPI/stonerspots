@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../core/models.dart';
 import '../../core/net_photo.dart';
 import '../../l10n/app_localizations.dart';
-import '../comments/update_comments.dart';
 import '../feed/feed_card.dart' show relativeTime;
 import '../users/author_link.dart';
 
@@ -29,13 +28,9 @@ class UpdateTile extends StatelessWidget {
     this.onAdminEdit,
     this.onAdminHide,
     this.onAdminDelete,
-    this.commentsExpanded = false,
   });
 
   final FeedItem item;
-
-  /// The update's whole comment thread shows from the start.
-  final bool commentsExpanded;
 
   /// Own updates get edit and delete (unless [canChangeOwn] is false, on a
   /// locked spot); others get report, or the admin menu for admins.
@@ -112,8 +107,6 @@ class UpdateTile extends StatelessWidget {
                     ),
                   ),
                 ],
-                const SizedBox(height: 4),
-                UpdateComments(item: item, initiallyExpanded: commentsExpanded),
               ],
             ),
           ),

@@ -1289,9 +1289,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Du hast heute schon sehr viel kommentiert. Versuch es morgen wieder.';
 
   @override
-  String get commentsGone => 'Dieses Update gibt es nicht mehr';
-
-  @override
   String get commentHint => 'Kommentar schreiben …';
 
   @override
@@ -1320,7 +1317,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String adminCommentOn(String title) {
-    return 'Kommentar unter einem Update zu $title';
+    return 'Kommentar zu $title';
   }
 
   @override
@@ -1402,7 +1399,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get whatsNewCommentsTitle => 'Kommentare';
 
   @override
-  String get whatsNewCommentsBody => 'Unter jedem Update mitreden.';
+  String get whatsNewCommentsBody =>
+      'Bei jedem Spot mitreden, im eigenen Bereich für Kommentare.';
 
   @override
   String get whatsNewActivityTitle => 'Aktivität';
@@ -1473,4 +1471,19 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get mapNorthUp => 'Nach Norden ausrichten';
+
+  @override
+  String activitySpotComment(String name, String spot, String text) {
+    return '$name hat deinen Spot $spot kommentiert: $text';
+  }
+
+  @override
+  String get commentsLocked =>
+      'Dieser Spot ist gesperrt, Kommentare sind geschlossen';
+
+  @override
+  String get commentsSpotGone => 'Diesen Spot gibt es nicht mehr';
+
+  @override
+  String get commentGone => 'Diesen Kommentar gibt es nicht mehr';
 }

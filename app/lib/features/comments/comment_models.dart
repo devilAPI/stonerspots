@@ -3,11 +3,11 @@ import '../../core/models.dart' show Author;
 /// The longest comment the API takes, in characters.
 const kCommentMaxLength = 500;
 
-/// A comment under a spot update.
+/// A comment on a spot.
 class Comment {
   const Comment({
     required this.id,
-    required this.updateId,
+    required this.spotId,
     required this.body,
     required this.createdAt,
     required this.author,
@@ -15,7 +15,7 @@ class Comment {
   });
 
   final int id;
-  final int updateId;
+  final int spotId;
   final String body;
   final DateTime createdAt;
   final Author author;
@@ -25,7 +25,7 @@ class Comment {
 
   factory Comment.fromJson(Map<String, dynamic> j) => Comment(
     id: j['id'] as int,
-    updateId: (j['update_id'] ?? 0) as int,
+    spotId: (j['spot_id'] ?? 0) as int,
     body: (j['body'] ?? '') as String,
     createdAt: DateTime.parse(j['created_at'] as String),
     author: Author.fromJson(j['author'] as Map<String, dynamic>),

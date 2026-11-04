@@ -14,21 +14,11 @@ Comment comment(
   String name = 'Bo',
 }) => Comment(
   id: id,
-  updateId: 7,
+  spotId: 5,
   body: body,
   createdAt: DateTime.now().subtract(const Duration(hours: 2)),
   author: Author(id: authorId, displayName: name),
   mine: mine,
-);
-
-FeedItem update({int id = 7, int comments = 0}) => FeedItem(
-  id: id,
-  body: 'hello',
-  photos: const [],
-  createdAt: DateTime(2026, 10, 1),
-  author: const Author(id: 2, displayName: 'Ann'),
-  spot: const Spot(id: 5, title: 'Lake bench', lat: 1, lon: 2),
-  commentCount: comments,
 );
 
 /// Pages by cursor: `null` is the first page.
@@ -42,14 +32,14 @@ class FakeComments implements CommentsRepository {
   int _nextId = 100;
 
   @override
-  Future<CursorPage<Comment>> list(int updateId, {String? cursor}) async {
-    calls.add('list:$updateId:${cursor ?? ''}');
+  Future<CursorPage<Comment>> list(int spotId, {String? cursor}) async {
+    calls.add('list:$spotId:${cursor ?? ''}');
     return pages[cursor] ?? const CursorPage([], null);
   }
 
   @override
-  Future<Comment> create(int updateId, String body) async {
-    calls.add('create:$updateId:$body');
+  Future<Comment> create(int spotId, String body) async {
+    calls.add('create:$spotId:$body');
     if (createError != null) throw createError!;
     return comment(_nextId++, body: body, mine: true, authorId: 1, name: 'Me');
   }

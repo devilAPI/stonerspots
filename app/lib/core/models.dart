@@ -225,6 +225,7 @@ class Spot {
     this.tags = const [],
     this.author,
     this.locked = false,
+    this.commentCount = 0,
   });
 
   final int id;
@@ -248,6 +249,9 @@ class Spot {
   /// `GET /spots/{id}`.
   final bool locked;
 
+  /// How many visible comments the spot has. Only sent by `GET /spots/{id}`.
+  final int commentCount;
+
   /// Works for the full spot shape and for the reduced shape embedded in feed
   /// items (no description / cover / distance).
   factory Spot.fromJson(Map<String, dynamic> j) => Spot(
@@ -266,6 +270,7 @@ class Spot {
         ? null
         : Author.fromJson(j['author'] as Map<String, dynamic>),
     locked: (j['locked'] ?? false) as bool,
+    commentCount: (j['comment_count'] as num?)?.toInt() ?? 0,
   );
 }
 
@@ -328,7 +333,6 @@ class FeedItem {
     this.tag = UpdateTag.note,
     this.editedAt,
     this.updateCount = 1,
-    this.commentCount = 0,
   });
 
   final int id;
@@ -342,9 +346,6 @@ class FeedItem {
 
   /// How many updates the spot has (the feed shows one card per spot).
   final int updateCount;
-
-  /// How many visible comments this update has.
-  final int commentCount;
 
   factory FeedItem.fromJson(Map<String, dynamic> j) => FeedItem(
     id: j['id'] as int,
@@ -360,7 +361,6 @@ class FeedItem {
         ? null
         : DateTime.parse(j['edited_at'] as String),
     updateCount: (j['update_count'] as num?)?.toInt() ?? 1,
-    commentCount: (j['comment_count'] as num?)?.toInt() ?? 0,
   );
 }
 

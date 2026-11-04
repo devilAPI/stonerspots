@@ -25,9 +25,12 @@ type Spot struct {
 	Author *Author `json:"author"`
 	// Locked spots take no new updates or edits from non-admins. Only set on
 	// GET /spots/{id}.
-	Locked    bool      `json:"locked"`
-	DistanceM *float64  `json:"distance_m,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
+	Locked bool `json:"locked"`
+	// CommentCount is how many visible comments the spot has. Only set on
+	// GET /spots/{id}.
+	CommentCount *int      `json:"comment_count,omitempty"`
+	DistanceM    *float64  `json:"distance_m,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 // Author is the user who created a spot.

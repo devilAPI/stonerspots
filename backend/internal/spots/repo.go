@@ -119,10 +119,13 @@ func (r *Repo) Get(ctx context.Context, id uint64) (*Spot, error) {
 	if err := r.attachTags(ctx, list); err != nil {
 		return nil, err
 	}
+	var comments int
 	if err := r.DB.QueryRowContext(ctx,
-		`SELECT locked FROM spots WHERE id = ?`, id).Scan(&list[0].Locked); err != nil {
+		`SELECT locked, (SELECT COUNT(*) FROM comments c WHERE c.spot_id = s.id AND c.status = 'active')
+		FROM spots s WHERE s.id = ?`, id).Scan(&list[0].Locked, &comments); err != nil {
 		return nil, err
 	}
+	list[0].CommentCount = &comments
 	return &list[0], nil
 }
 

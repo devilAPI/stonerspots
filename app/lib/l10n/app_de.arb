@@ -485,7 +485,6 @@
   "commentsEmpty": "Noch keine Kommentare. Schreib den ersten!",
   "commentsLoadMore": "Weitere Kommentare",
   "commentsQuota": "Du hast heute schon sehr viel kommentiert. Versuch es morgen wieder.",
-  "commentsGone": "Dieses Update gibt es nicht mehr",
   "commentHint": "Kommentar schreiben …",
   "commentSend": "Senden",
   "commentLoginToWrite": "Zum Kommentieren anmelden",
@@ -495,7 +494,7 @@
   "commentDeleteConfirm": "Löschen",
   "commentReported": "Danke, wir schauen uns den Kommentar an",
   "adminTargetComment": "Kommentar",
-  "adminCommentOn": "Kommentar unter einem Update zu {title}",
+  "adminCommentOn": "Kommentar zu {title}",
   "@adminCommentOn": {"placeholders": {"title": {"type": "String"}}},
   "adminRemoveComment": "Kommentar entfernen",
   "adminRemoveCommentTitle": "Kommentar entfernen?",
@@ -521,7 +520,7 @@
   "whatsNewFollowingTitle": "Feed „Folge ich“",
   "whatsNewFollowingBody": "Zeigt im Feed nur Updates von Leuten, denen du folgst.",
   "whatsNewCommentsTitle": "Kommentare",
-  "whatsNewCommentsBody": "Unter jedem Update mitreden.",
+  "whatsNewCommentsBody": "Bei jedem Spot mitreden, im eigenen Bereich für Kommentare.",
   "whatsNewActivityTitle": "Aktivität",
   "whatsNewActivityBody": "Die Glocke im Profil zeigt, wer dir folgt, kommentiert, deine Spots mag oder bewertet.",
   "whatsNewSearchTitle": "Spot-Suche",
@@ -542,5 +541,10 @@
   "commentsShowAll": "{count, plural, =1{1 Kommentar anzeigen} other{Alle {count} Kommentare anzeigen}}",
   "@commentsShowAll": {"placeholders": {"count": {"type": "int"}}},
   "commentsShowLess": "Weniger anzeigen",
-  "mapNorthUp": "Nach Norden ausrichten"
+  "mapNorthUp": "Nach Norden ausrichten",
+  "activitySpotComment": "{name} hat deinen Spot {spot} kommentiert: {text}",
+  "@activitySpotComment": {"placeholders": {"name": {"type": "String"}, "spot": {"type": "String"}, "text": {"type": "String"}}},
+  "commentsLocked": "Dieser Spot ist gesperrt, Kommentare sind geschlossen",
+  "commentsSpotGone": "Diesen Spot gibt es nicht mehr",
+  "commentGone": "Diesen Kommentar gibt es nicht mehr"
 }

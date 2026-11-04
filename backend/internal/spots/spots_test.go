@@ -356,3 +356,23 @@ func TestBBoxQueryUsesSpatialIndex(t *testing.T) {
 		t.Fatal("EXPLAIN does not use idx_spots_location")
 	}
 }
+
+// GET /spots/{id} counts the spot's visible comments; lists leave it out.
+func TestSpotCarriesCommentCount(t *testing.T) {
+	e := setup(t)
+	s := e.create(t, "Talked about", 52.52, 13.405)
+	for _, status := range []string{"active", "active", "hidden"} {
+		if _, err := e.db.Exec(`INSERT INTO comments (spot_id, user_id, body, status) VALUES (?, ?, 'c', ?)`,
+			s.ID, e.uid, status); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var m map[string]any
+	json.Unmarshal(e.do("GET", fmt.Sprintf("/spots/%d", s.ID), "", false).Body.Bytes(), &m)
+	if m["comment_count"] != float64(2) {
+		t.Fatalf("comment_count %v", m["comment_count"])
+	}
+	if b := e.do("GET", "/spots?south=52&west=13&north=53&east=14", "", false).Body.String(); strings.Contains(b, "comment_count") {
+		t.Fatalf("bbox list carries comment_count: %s", b)
+	}
+}

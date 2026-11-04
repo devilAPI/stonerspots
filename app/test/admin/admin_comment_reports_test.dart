@@ -26,7 +26,6 @@ AdminReport _r(int id, int commentId) => AdminReport(
     status: 'hidden',
     body: 'rude words',
     author: Author(id: 7, displayName: 'Authy'),
-    updateId: 55,
   ),
 );
 
@@ -89,22 +88,23 @@ Future<void> _tap(WidgetTester t, String key) async {
 }
 
 void main() {
-  test('the report target keeps the update of a comment', () {
+  test('the report target of a comment names its spot', () {
     final t = AdminReportTarget.fromJson({
       'exists': true,
       'spot_id': 1,
+      'title': 'Bench',
       'body': 'x',
-      'update_id': 55,
     });
-    expect(t.updateId, 55);
-    expect(AdminReportTarget.fromJson({'exists': false}).updateId, isNull);
+    expect(t.spotId, 1);
+    expect(t.title, 'Bench');
+    expect(AdminReportTarget.fromJson({'exists': false}).spotId, isNull);
   });
 
   testWidgets('a comment report shows the comment and its author', (t) async {
     await _pump(t, _Fake()..items = [_r(1, 30)], FakeComments({}));
     expect(find.text('Comment'), findsOneWidget);
     expect(find.text('rude words'), findsOneWidget);
-    expect(find.text('Comment under an update on Spot100'), findsOneWidget);
+    expect(find.text('Comment on Spot100'), findsOneWidget);
     expect(find.text('Authy'), findsOneWidget);
     expect(find.text('Remove comment'), findsOneWidget);
     expect(find.byKey(const Key('report-open-1')), findsOneWidget);

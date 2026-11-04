@@ -1,4 +1,4 @@
-import 'package:app/features/weather/spot_weather_card.dart';
+import 'package:app/features/weather/spot_weather_section.dart';
 import 'package:app/features/weather/weather_repository.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +22,7 @@ Future<void> _pump(
       home: Scaffold(
         body: SizedBox(
           width: 360,
-          child: SpotWeatherCard(
+          child: SpotWeatherSection(
             spotId: 3,
             lat: 52.52,
             lon: 13.4,
@@ -59,6 +59,18 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
+  testWidgets('plain section content: no card around it', (t) async {
+    await _pump(t, FakeWeather(), title: 'Weather');
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('spotWeather')), findsOneWidget);
+    expect(find.byType(Card), findsNothing);
+    // it starts at the heading's left edge, like other sections' content
+    expect(
+      t.getTopLeft(find.byKey(const Key('weatherIcon'))).dx,
+      t.getTopLeft(find.byKey(const Key('weatherHeading'))).dx,
+    );
+  });
+
   testWidgets('German labels and units', (t) async {
     await _pump(t, FakeWeather(), lang: 'de');
     await t.pumpAndSettle();
@@ -68,7 +80,7 @@ void main() {
     expect(find.text('15 Uhr'), findsOneWidget);
   });
 
-  testWidgets('a failing weather service hides the card', (t) async {
+  testWidgets('a failing weather service hides it', (t) async {
     await _pump(t, FakeWeather(error: Exception('offline')));
     await t.pumpAndSettle();
     expect(find.byKey(const Key('spotWeather')), findsNothing);
@@ -83,7 +95,7 @@ void main() {
     expect(find.byKey(const Key('spotWeather')), findsOneWidget);
   });
 
-  testWidgets('a section heading and divider show with the card', (t) async {
+  testWidgets('a section heading and divider show with it', (t) async {
     await _pump(t, FakeWeather(), title: 'Weather');
     // loading: neither heading nor divider
     expect(find.byKey(const Key('weatherHeading')), findsNothing);
@@ -92,16 +104,14 @@ void main() {
     expect(find.byKey(const Key('weatherHeading')), findsOneWidget);
     expect(find.text('Weather'), findsOneWidget);
     expect(find.byType(Divider), findsOneWidget);
-    // the heading sits above the card
+    // the heading sits above the weather
     expect(
       t.getTopLeft(find.byKey(const Key('weatherHeading'))).dy,
       lessThan(t.getTopLeft(find.byKey(const Key('spotWeather'))).dy),
     );
   });
 
-  testWidgets('the heading hides with the card when the service fails', (
-    t,
-  ) async {
+  testWidgets('the heading hides with it when the service fails', (t) async {
     await _pump(t, FakeWeather(error: Exception('offline')), title: 'Weather');
     await t.pumpAndSettle();
     expect(find.byKey(const Key('weatherHeading')), findsNothing);
