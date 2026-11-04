@@ -6,6 +6,7 @@ import 'package:app/features/feed/satellite_thumb.dart';
 import 'package:app/features/map/map_tiles.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -23,13 +24,15 @@ void main() {
     'a post without photos shows a zoomed-in satellite view of the spot',
     (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          locale: const Locale('en'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: FeedCard(item: itemWithoutPhoto()),
+        ProviderScope(
+          child: MaterialApp(
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: SingleChildScrollView(
+                child: FeedCard(item: itemWithoutPhoto()),
+              ),
             ),
           ),
         ),
@@ -76,20 +79,22 @@ void main() {
 
   testWidgets('feed card shows the spot rating next to the likes', (t) async {
     Future<void> pumpItem(Spot spot) => t.pumpWidget(
-      MaterialApp(
-        locale: const Locale('en'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: FeedCard(
-              item: FeedItem(
-                id: 1,
-                body: 'x',
-                photos: const [],
-                createdAt: DateTime(2026, 10, 24),
-                author: const Author(id: 1, displayName: 'A'),
-                spot: spot,
+      ProviderScope(
+        child: MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: FeedCard(
+                item: FeedItem(
+                  id: 1,
+                  body: 'x',
+                  photos: const [],
+                  createdAt: DateTime(2026, 10, 24),
+                  author: const Author(id: 1, displayName: 'A'),
+                  spot: spot,
+                ),
               ),
             ),
           ),

@@ -2,6 +2,7 @@ import 'package:app/core/models.dart';
 import 'package:app/features/spots/update_tile.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'update_helpers.dart';
@@ -13,19 +14,21 @@ Future<List<String>> pump(
 }) async {
   final events = <String>[];
   await t.pumpWidget(
-    MaterialApp(
-      locale: const Locale('en'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(
-        body: SingleChildScrollView(
-          child: UpdateTile(
-            item: item,
-            isMine: mine,
-            onEdit: () => events.add('edit'),
-            onDelete: () => events.add('delete'),
-            onReport: () => events.add('report'),
-            onPhotoTap: (i) => events.add('photo$i'),
+    ProviderScope(
+      child: MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: UpdateTile(
+              item: item,
+              isMine: mine,
+              onEdit: () => events.add('edit'),
+              onDelete: () => events.add('delete'),
+              onReport: () => events.add('report'),
+              onPhotoTap: (i) => events.add('photo$i'),
+            ),
           ),
         ),
       ),

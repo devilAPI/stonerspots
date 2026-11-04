@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/models.dart';
 import '../../core/net_photo.dart';
 import '../../l10n/app_localizations.dart';
+import '../comments/comment_button.dart';
 import '../reviews/rating_widgets.dart';
 import 'satellite_thumb.dart';
 
@@ -168,6 +169,8 @@ class _Text extends StatelessWidget {
                 count: item.spot.ratingCount,
                 size: 16,
               ),
+              const Spacer(),
+              CommentButton(item: item),
             ],
           ),
         ],

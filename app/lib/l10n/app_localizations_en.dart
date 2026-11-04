@@ -1107,4 +1107,64 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get commentsTitle => 'Comments';
+
+  @override
+  String get commentsEmpty => 'No comments yet. Be the first!';
+
+  @override
+  String get commentsLoadMore => 'More comments';
+
+  @override
+  String get commentsQuota =>
+      'You have commented a lot today. Please try again tomorrow.';
+
+  @override
+  String get commentsGone => 'This update no longer exists';
+
+  @override
+  String get commentHint => 'Write a comment …';
+
+  @override
+  String get commentSend => 'Send';
+
+  @override
+  String get commentLoginToWrite => 'Log in to comment';
+
+  @override
+  String get commentMore => 'More';
+
+  @override
+  String get commentDelete => 'Delete comment';
+
+  @override
+  String get commentDeleteTitle => 'Delete comment?';
+
+  @override
+  String get commentDeleteConfirm => 'Delete';
+
+  @override
+  String get commentReported => 'Thanks, we will look at this comment';
+
+  @override
+  String get adminTargetComment => 'Comment';
+
+  @override
+  String adminCommentOn(String title) {
+    return 'Comment under an update on $title';
+  }
+
+  @override
+  String get adminRemoveComment => 'Remove comment';
+
+  @override
+  String get adminRemoveCommentTitle => 'Remove comment?';
+
+  @override
+  String get adminRemoveCommentBody => 'This deletes this comment permanently.';
+
+  @override
+  String get adminCommentRemoved => 'Comment removed';
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/models.dart';
 import '../../core/net_photo.dart';
 import '../../l10n/app_localizations.dart';
+import '../comments/comment_button.dart';
 import '../feed/feed_card.dart' show relativeTime;
 
 String updateTagLabel(AppLocalizations l, UpdateTag tag) => switch (tag) {
@@ -98,6 +99,12 @@ class UpdateTile extends StatelessWidget {
                     ),
                   ),
                 ],
+                const SizedBox(height: 4),
+                Transform.translate(
+                  // the bubble's padding lines up with the text above
+                  offset: const Offset(-6, 0),
+                  child: CommentButton(item: item),
+                ),
               ],
             ),
           ),

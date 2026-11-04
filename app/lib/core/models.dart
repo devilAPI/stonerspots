@@ -309,6 +309,7 @@ class FeedItem {
     this.tag = UpdateTag.note,
     this.editedAt,
     this.updateCount = 1,
+    this.commentCount = 0,
   });
 
   final int id;
@@ -322,6 +323,9 @@ class FeedItem {
 
   /// How many updates the spot has (the feed shows one card per spot).
   final int updateCount;
+
+  /// How many visible comments this update has.
+  final int commentCount;
 
   factory FeedItem.fromJson(Map<String, dynamic> j) => FeedItem(
     id: j['id'] as int,
@@ -337,6 +341,7 @@ class FeedItem {
         ? null
         : DateTime.parse(j['edited_at'] as String),
     updateCount: (j['update_count'] as num?)?.toInt() ?? 1,
+    commentCount: (j['comment_count'] as num?)?.toInt() ?? 0,
   );
 }
 
