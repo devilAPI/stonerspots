@@ -427,6 +427,60 @@ For it to reach a backend:
 The database credentials are only ever set on the backend server (its
 `config.yaml`), never in the app or its build.
 
+## Legal pages
+
+The app has an Impressum (legal notice), a privacy policy
+(Datenschutzerklärung) and community rules (Nutzungsregeln): in Settings →
+Legal, under the login and registration forms, and on the web as
+`https://devilapi.github.io/stonerspots/#/legal/imprint` (`…/privacy`,
+`…/rules`; `…/stonerspots/legal/imprint/` forwards there, for links from
+outside). Profile → menu → "Download my data" gives every user a JSON copy of
+what the server stores about them (`GET /api/v1/me/export`, 3 a day).
+
+**Nothing personal is stored in git or compiled into the app.** The operator
+details come from the server, `GET /api/v1/legal`, which reads the `legal:`
+section of `/etc/stonerspots/config.yaml`:
+
+```yaml
+legal:
+  operator_name: "Your Name"
+  address: |
+    c/o <Impressum / address service>
+    <street and number>
+    <postcode> <town>
+  email: "contact@your-domain"
+  phone: ""                    # optional
+  responsible_person: ""       # optional, § 18 Abs. 2 MStV; default operator_name
+  country: "Deutschland"       # optional
+  privacy_contact_email: ""    # optional, default email
+  extra: ""                    # optional free text
+```
+
+§ 5 DDG needs an address where documents can be served: a c/o address of an
+Impressum or address service works, a PO box does not. Until name, address
+and email are set (example.org addresses do not count), the pages say the
+operator has not set this up yet, and the API logs a warning at start. Then
+`sudo systemctl restart stonerspots-backend`.
+
+Before launch:
+
+- **Review the privacy text** in
+  [`app/lib/features/legal/privacy_text.dart`](app/lib/features/legal/privacy_text.dart)
+  (German and English; the rules are in `rules_text.dart`). It is a template
+  written from what the code does, not legal advice. Change the version date
+  at the top of the file with every edit, and keep it in step with the code
+  (new third parties, new data).
+- **Log retention**: the text says the API's log lines (429, 5xx, admin 2FA
+  failures, with IP addresses) live in journald and the reverse proxy may log
+  requests. Limit both, e.g. `MaxRetentionSec=14day` in
+  `/etc/systemd/journald.conf` and `roll_keep_for 336h` in Caddy's `log`
+  block, and then name the period in the text.
+- **Web app and Google**: the Flutter web build loads fonts and its CanvasKit
+  engine from `fonts.gstatic.com` / `www.gstatic.com`; the privacy text says
+  so. To avoid it, build with `--no-web-resources-cdn` and serve the fallback
+  fonts yourself (`fontFallbackBaseUrl` in the Flutter loader config), then
+  remove that sentence.
+
 ## Map tiles
 
 - Light theme: OpenStreetMap standard tiles (fine for development, not for heavy

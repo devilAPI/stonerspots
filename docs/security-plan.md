@@ -29,6 +29,9 @@ checked in the code, not just planned.
 - Signed backend releases (`SHA256SUMS.txt.sig`, enforced once the server has the public key), backend tarballs only from the backend jobs, build provenance
 - CI: actions pinned to commit SHAs, least-privilege job permissions, `govulncheck` + `go vet` (push/PR to main and v2, weekly), Dependabot for Go, pub and Actions
 - Home server guide: Caddy, firewall, DB on localhost, backups, fail2ban, OS updates, monitoring (README)
+- GDPR data export: `GET /me/export` (JSON download of everything stored about the caller, without password hash, 2FA secret or token hashes; 3 a day per user), "Download my data" in the app
+- Operator details for the legal notice only from the server config (`legal:`, `GET /legal`), never in the repository
+- HIBP check sends the 5-character SHA-1 prefix the range API expects (it sent 10 before, which the API refused)
 
 ## In progress on v2
 
@@ -58,7 +61,6 @@ Found in the review; fixes are being made on the `v2` branch right now:
 13. **Alerting** - 429 spikes, 5xx bursts, failed login bursts, new admin users, admin-page updates
 14. **Web app on its own origin** - tokens in `localStorage` are shared with every `devilapi.github.io` page; add a CSP
 15. **Photo moderation** - photos are approved on upload; the admin photo list can review and delete them afterwards, no pre-moderation queue
-16. **GDPR data export** - user downloads all their data (deletion already works)
 
 ## Nice to have (later)
 
