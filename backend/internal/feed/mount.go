@@ -16,5 +16,6 @@ func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
 	authed.Post("/spots/{id}/updates", h.postUpdate)
 	authed.Patch("/updates/{id}", h.patchUpdate)
 	authed.Delete("/updates/{id}", h.deleteUpdate)
-	r.Get("/feed", h.getFeed)
+	// Optional login: following=true needs to know the caller.
+	r.With(auth.Optional(d.Cfg.JWTSecret)).Get("/feed", h.getFeed)
 }

@@ -6,6 +6,7 @@ import '../../core/models.dart';
 import '../../core/responsive.dart';
 import '../../core/spot_tag_widgets.dart';
 import '../../l10n/app_localizations.dart';
+import '../auth/auth_controller.dart';
 import '../spots/update_actions.dart';
 import 'feed_card.dart';
 import 'feed_controller.dart';
@@ -66,6 +67,13 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       }
     });
 
+    // Following needs a login; after a logout the feed shows everyone again.
+    ref.listen(authControllerProvider.select((a) => a.value?.id), (_, id) {
+      if (id == null && ref.read(feedControllerProvider).following) {
+        ref.read(feedControllerProvider.notifier).setFollowing(false);
+      }
+    });
+
     return Scaffold(
       // Gutter from the space the feed actually gets (the nav rail takes
       // part of the window), not from the window width.
@@ -78,6 +86,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   Widget _buildBody(BuildContext context, FeedState state, double width) {
     final l10n = AppLocalizations.of(context);
     final ctrl = ref.read(feedControllerProvider.notifier);
+    final loggedIn = ref.watch(
+      authControllerProvider.select((a) => a.value != null),
+    );
     // The list runs under the status bar, the glass header and the shell's
     // glass navigation; [insets] says what those cover.
     final insets = MediaQuery.paddingOf(context);
@@ -128,7 +139,12 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         padding: page.add(EdgeInsets.symmetric(horizontal: gutter)),
         children: [
           const SizedBox(height: 120),
-          Center(child: Text(l10n.noResults)),
+          Center(
+            child: Text(
+              state.following ? l10n.feedFollowingEmpty : l10n.noResults,
+              textAlign: TextAlign.center,
+            ),
+          ),
         ],
       );
     } else {
@@ -198,6 +214,14 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                 ),
                 _ChipRow(
                   children: [
+                    // first, so narrow phones do not scroll it out of view
+                    if (loggedIn)
+                      FilterChip(
+                        key: const Key('feedFollowing'),
+                        label: Text(l10n.feedFollowing),
+                        selected: state.following,
+                        onSelected: ctrl.setFollowing,
+                      ),
                     for (final s in FeedSort.values)
                       ChoiceChip(
                         label: Text(_sortLabel(l10n, s)),

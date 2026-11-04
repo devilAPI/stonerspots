@@ -460,5 +460,19 @@
   "savedListEmpty": "This list is still empty",
   "savedListGone": "This list no longer exists",
   "savedRemoveSpot": "Remove from list",
-  "savedSpotCount": "{count, plural, =0{No spots} =1{1 spot} other{{count} spots}}"
+  "savedSpotCount": "{count, plural, =0{No spots} =1{1 spot} other{{count} spots}}",
+  "feedFollowing": "Following",
+  "feedFollowingEmpty": "No updates from people you follow yet",
+  "userFollow": "Follow",
+  "userUnfollow": "Unfollow",
+  "userJoined": "Joined {date}",
+  "userStatSpots": "Spots",
+  "userStatUpdates": "Updates",
+  "userStatFollowers": "Followers",
+  "userStatFollowing": "Following",
+  "userTabSpots": "Spots",
+  "userTabUpdates": "Updates",
+  "userNoSpots": "No spots yet",
+  "userNoUpdates": "No updates yet",
+  "userGone": "This profile does not exist"
 }

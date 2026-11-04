@@ -1226,4 +1226,52 @@ class AppLocalizationsDe extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get feedFollowing => 'Folge ich';
+
+  @override
+  String get feedFollowingEmpty =>
+      'Noch keine Updates von Leuten, denen du folgst';
+
+  @override
+  String get userFollow => 'Folgen';
+
+  @override
+  String get userUnfollow => 'Entfolgen';
+
+  @override
+  String userJoined(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMM(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return 'Dabei seit $dateString';
+  }
+
+  @override
+  String get userStatSpots => 'Spots';
+
+  @override
+  String get userStatUpdates => 'Updates';
+
+  @override
+  String get userStatFollowers => 'Follower';
+
+  @override
+  String get userStatFollowing => 'Folgt';
+
+  @override
+  String get userTabSpots => 'Spots';
+
+  @override
+  String get userTabUpdates => 'Updates';
+
+  @override
+  String get userNoSpots => 'Noch keine Spots';
+
+  @override
+  String get userNoUpdates => 'Noch keine Updates';
+
+  @override
+  String get userGone => 'Dieses Profil gibt es nicht';
 }

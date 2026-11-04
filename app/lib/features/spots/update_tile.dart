@@ -4,6 +4,7 @@ import '../../core/models.dart';
 import '../../core/net_photo.dart';
 import '../../l10n/app_localizations.dart';
 import '../feed/feed_card.dart' show relativeTime;
+import '../users/author_link.dart';
 
 String updateTagLabel(AppLocalizations l, UpdateTag tag) => switch (tag) {
   UpdateTag.note => l.updateTagNote,
@@ -49,9 +50,7 @@ class UpdateTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final meta = StringBuffer(item.author.displayName)
-      ..write(' · ')
-      ..write(relativeTime(item.createdAt));
+    final meta = StringBuffer(' · ')..write(relativeTime(item.createdAt));
     if (item.editedAt != null) meta.write(' · ${l.updateEdited}');
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -62,7 +61,15 @@ class UpdateTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(meta.toString(), style: theme.textTheme.bodySmall),
+                Wrap(
+                  children: [
+                    AuthorLink(
+                      author: item.author,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    Text(meta.toString(), style: theme.textTheme.bodySmall),
+                  ],
+                ),
                 if (item.tag != UpdateTag.note) ...[
                   const SizedBox(height: 4),
                   Chip(

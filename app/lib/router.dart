@@ -19,6 +19,7 @@ import 'features/saved/saved_lists_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/spots/add_spot_screen.dart';
 import 'features/spots/spot_detail_screen.dart';
+import 'features/users/user_profile_screen.dart';
 import 'l10n/app_localizations.dart';
 
 /// Routes that need a logged-in user. The map, feed and spot detail are public.
@@ -169,6 +170,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           // anything that is no id shows as a list that does not exist
           child: SavedListScreen(
             listId: int.tryParse(state.pathParameters['id']!) ?? 0,
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/user/:id',
+        builder: (_, state) => BackToHomeScope(
+          // anything that is no id shows as a user that does not exist
+          child: UserProfileScreen(
+            userId: int.tryParse(state.pathParameters['id']!) ?? 0,
           ),
         ),
       ),

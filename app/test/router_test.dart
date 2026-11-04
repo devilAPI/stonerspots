@@ -11,6 +11,7 @@ void main() {
     expect(authRedirect(loggedIn: false, location: '/'), isNull);
     expect(authRedirect(loggedIn: false, location: '/feed'), isNull);
     expect(authRedirect(loggedIn: false, location: '/spot/5'), isNull);
+    expect(authRedirect(loggedIn: false, location: '/user/5'), isNull);
   });
 
   test('saved pages require login', () {

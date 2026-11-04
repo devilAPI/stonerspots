@@ -12,6 +12,7 @@ class FeedState {
     this.sort = FeedSort.newest,
     this.tags = const [],
     this.locationDenied = false,
+    this.following = false,
   });
 
   final Paged<FeedItem> page;
@@ -20,6 +21,9 @@ class FeedState {
   /// Selected tag filters (all must match), canonical order.
   final List<SpotTag> tags;
   final bool locationDenied;
+
+  /// Only updates of people the user follows (needs a login).
+  final bool following;
 
   List<FeedItem> get items => page.items;
   bool get loading => page.loading;
@@ -34,11 +38,13 @@ class FeedState {
     FeedSort? sort,
     List<SpotTag>? tags,
     bool? locationDenied,
+    bool? following,
   }) => FeedState(
     page: page ?? this.page,
     sort: sort ?? this.sort,
     tags: tags ?? this.tags,
     locationDenied: locationDenied ?? this.locationDenied,
+    following: following ?? this.following,
   );
 }
 
@@ -83,6 +89,13 @@ class FeedController extends Notifier<FeedState>
     await loadFirst();
   }
 
+  /// Shows only updates of people the user follows, or everyone again.
+  Future<void> setFollowing(bool following) async {
+    if (state.following == following) return;
+    state = state.copyWith(following: following);
+    await loadFirst();
+  }
+
   Future<void> clearTags() async {
     state = state.copyWith(tags: const []);
     await loadFirst();
@@ -101,6 +114,7 @@ class FeedController extends Notifier<FeedState>
   Future<FeedPage> fetchPage(String? cursor) => _repo.fetch(
     sort: state.sort,
     tags: state.tags,
+    following: state.following,
     lat: state.sort == FeedSort.nearby ? _pos?.latitude : null,
     lon: state.sort == FeedSort.nearby ? _pos?.longitude : null,
     cursor: cursor,
