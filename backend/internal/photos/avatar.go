@@ -93,6 +93,16 @@ func (h *handler) putAvatar(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusUnauthorized, "unauthorized", "authentication required")
 		return
 	}
+	ServeAvatarUpload(w, r, h.d.DB, h.storage, uid, func(w http.ResponseWriter) {
+		httpx.Error(w, http.StatusUnauthorized, "unauthorized", "unknown user")
+	})
+}
+
+// ServeAvatarUpload reads the multipart field "photo" of r, makes it the
+// avatar of userID (replacing and deleting the old one) and answers 200
+// {"avatar_url": "..."}, or the same errors as POST /photos. noUser answers
+// when userID does not exist. Used by PUT /me/avatar and by admins.
+func ServeAvatarUpload(w http.ResponseWriter, r *http.Request, db *sql.DB, storage Storage, userID uint64, noUser func(http.ResponseWriter)) {
 	f, ok := formFile(w, r, "photo")
 	if !ok {
 		return
@@ -111,16 +121,16 @@ func (h *handler) putAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 	key = avatarPrefix + key
 	ctx := r.Context()
-	if err := h.storage.Put(ctx, key, bytes.NewReader(img)); err != nil {
+	if err := storage.Put(ctx, key, bytes.NewReader(img)); err != nil {
 		log.Printf("photos: put avatar: %v", err)
 		httpx.Error(w, http.StatusInternalServerError, "internal", "could not store photo")
 		return
 	}
-	old, err := SetAvatar(ctx, h.d.DB, uid, key)
+	old, err := SetAvatar(ctx, db, userID, key)
 	if err != nil {
-		_ = h.storage.Delete(ctx, key)
+		_ = storage.Delete(ctx, key)
 		if errors.Is(err, ErrNoUser) {
-			httpx.Error(w, http.StatusUnauthorized, "unauthorized", "unknown user")
+			noUser(w)
 			return
 		}
 		log.Printf("photos: set avatar: %v", err)
@@ -128,11 +138,11 @@ func (h *handler) putAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if old != "" {
-		deleteAvatarFile(ctx, h.storage, old)
+		deleteAvatarFile(ctx, storage, old)
 	}
 	httpx.JSON(w, http.StatusOK, struct {
 		AvatarURL string `json:"avatar_url"`
-	}{h.storage.URL(key)})
+	}{storage.URL(key)})
 }
 
 // deleteAvatar answers DELETE /me/avatar: 204, also when there is none.

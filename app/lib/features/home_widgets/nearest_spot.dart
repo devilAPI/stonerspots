@@ -73,9 +73,10 @@ class SpotPayload extends NearestSpotPayload {
         if (nearest.spot.ratingCount > 0)
           '★ ${formatRating(nearest.spot.ratingAvg)}',
       ].join(' · '),
-      tags = SpotTag.sorted(
-        nearest.spot.tags,
-      ).take(kWidgetTags).map((t) => t.label(languageCode)).join(' · ');
+      tags = SpotTag.sorted(nearest.spot.tags)
+          .take(kWidgetTags)
+          .map((t) => t.label(languageCode))
+          .join(' · ');
 
   final int id;
   final String name;

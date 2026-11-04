@@ -9,6 +9,7 @@ import '../../l10n/app_localizations.dart';
 import '../../core/models.dart' show Author, FeedItem;
 import '../auth/auth_controller.dart';
 import '../users/author_link.dart';
+import '../users/avatar_editor.dart';
 import '../spots/update_actions.dart';
 import '../spots/updates_repository.dart';
 import 'admin_bulk.dart';
@@ -857,13 +858,21 @@ class _UsersTabState extends ConsumerState<_UsersTab>
                 body: [
                   Row(
                     children: [
-                      AuthorAvatar(
-                        author: Author(
-                          id: u.id,
-                          displayName: u.displayName,
-                          avatarUrl: u.avatarUrl,
-                        ),
+                      // tapping it changes or removes the picture
+                      OwnAvatarEditor(
+                        key: Key('user-avatar-${u.id}'),
+                        moderating: true,
+                        userId: u.id,
+                        name: u.displayName,
+                        url: u.avatarUrl,
                         radius: 16,
+                        onChanged: (url) => ref
+                            .read(adminUsersProvider.notifier)
+                            .replace(
+                              url == null
+                                  ? u.withoutAvatar()
+                                  : u.withAvatarUrl(url),
+                            ),
                       ),
                       const SizedBox(width: 10),
                       Flexible(

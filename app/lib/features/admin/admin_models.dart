@@ -170,6 +170,19 @@ class AdminUser {
     avatarUrl: parseAvatarUrl(j['avatar_url']),
   );
 
+  /// This user with a new profile picture set by an admin.
+  AdminUser withAvatarUrl(String url) => AdminUser(
+    id: id,
+    email: email,
+    displayName: displayName,
+    isAdmin: isAdmin,
+    createdAt: createdAt,
+    spotCount: spotCount,
+    reportsReceived: reportsReceived,
+    banned: banned,
+    avatarUrl: url,
+  );
+
   /// This user after an admin removed their profile picture.
   AdminUser withoutAvatar() => AdminUser(
     id: id,

@@ -9,15 +9,23 @@ import '../spots/image_compressor.dart';
 /// The multipart field `PUT /me/avatar` reads the photo from.
 const kAvatarField = 'photo';
 
-/// The logged-in user's profile picture.
+/// Profile pictures: the logged-in user's own, or with [userId] someone
+/// else's (admins only).
 abstract class AvatarRepository {
   /// Compresses [file] like update photos and uploads it as the new
   /// picture; resolves to its URL. [onProgress] gets 0.0 to 1.0.
-  Future<String> upload(XFile file, {void Function(double)? onProgress});
+  Future<String> upload(
+    XFile file, {
+    int? userId,
+    void Function(double)? onProgress,
+  });
 
   /// Removes the picture.
-  Future<void> remove();
+  Future<void> remove({int? userId});
 }
+
+String _avatarPath(int? userId) =>
+    userId == null ? '/me/avatar' : '/admin/users/$userId/avatar';
 
 class ApiAvatarRepository implements AvatarRepository {
   ApiAvatarRepository(this._api);
@@ -25,7 +33,11 @@ class ApiAvatarRepository implements AvatarRepository {
   final ApiClient _api;
 
   @override
-  Future<String> upload(XFile file, {void Function(double)? onProgress}) async {
+  Future<String> upload(
+    XFile file, {
+    int? userId,
+    void Function(double)? onProgress,
+  }) async {
     final photo = await prepareForUpload(await file.readAsBytes());
     final form = FormData.fromMap({
       kAvatarField: MultipartFile.fromBytes(
@@ -36,7 +48,7 @@ class ApiAvatarRepository implements AvatarRepository {
       ),
     });
     final json = await _api.put<Map<String, dynamic>>(
-      '/me/avatar',
+      _avatarPath(userId),
       data: form,
       onSendProgress: (sent, total) {
         if (total > 0) onProgress?.call(sent / total);
@@ -48,8 +60,8 @@ class ApiAvatarRepository implements AvatarRepository {
   }
 
   @override
-  Future<void> remove() async {
-    await _api.delete<dynamic>('/me/avatar');
+  Future<void> remove({int? userId}) async {
+    await _api.delete<dynamic>(_avatarPath(userId));
   }
 }
 

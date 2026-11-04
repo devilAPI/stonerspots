@@ -152,6 +152,9 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       );
     }
     final myId = ref.watch(authControllerProvider.select((a) => a.value?.id));
+    final iAmAdmin = ref.watch(
+      authControllerProvider.select((a) => a.value?.isAdmin ?? false),
+    );
     // Both lists stay loaded, so switching between them is instant.
     final spots = ref.watch(userSpotsProvider(widget.userId));
     final updates = ref.watch(userUpdatesProvider(widget.userId));
@@ -179,7 +182,8 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             profile: p,
             busy: _busy,
             onFollow: () => _toggleFollow(p),
-            editable: p.isMe && myId == p.id,
+            editable: (p.isMe && myId == p.id) || iAmAdmin,
+            moderating: !(p.isMe && myId == p.id),
             extra: widget.headerExtra,
           ),
           Padding(
@@ -284,6 +288,7 @@ class _Header extends StatelessWidget {
     required this.busy,
     required this.onFollow,
     required this.editable,
+    this.moderating = false,
     this.extra,
   });
 
@@ -292,8 +297,11 @@ class _Header extends StatelessWidget {
   final VoidCallback onFollow;
   final Widget? extra;
 
-  /// Your own profile: tapping the picture changes it.
+  /// Your own profile, or an admin looking: tapping the picture changes it.
   final bool editable;
+
+  /// An admin changing someone else's picture.
+  final bool moderating;
 
   @override
   Widget build(BuildContext context) {
@@ -309,6 +317,7 @@ class _Header extends StatelessWidget {
             children: [
               if (editable)
                 OwnAvatarEditor(
+                  moderating: moderating,
                   userId: p.id,
                   name: p.displayName,
                   url: p.avatarUrl,

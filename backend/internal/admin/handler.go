@@ -448,6 +448,20 @@ func (h handler) deletePhoto(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// putAvatar sets a user's avatar (moderation, e.g. replacing an offensive
+// one): multipart field "photo", the same answers as PUT /me/avatar; 404 for
+// an unknown user.
+func (h handler) putAvatar(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(r)
+	if !ok {
+		notFound(w, "user")
+		return
+	}
+	photos.ServeAvatarUpload(w, r, h.repo.db, h.photos, id, func(w http.ResponseWriter) {
+		notFound(w, "user")
+	})
+}
+
 // deleteAvatar removes a user's avatar with its file (moderation): 204,
 // also when the user has none; 404 for an unknown user.
 func (h handler) deleteAvatar(w http.ResponseWriter, r *http.Request) {

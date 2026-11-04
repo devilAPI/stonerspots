@@ -77,26 +77,34 @@ func jpegFile(w, h int) []byte {
 	return b.Bytes()
 }
 
-func (c *e2e) putAvatar(data []byte) string {
+// uploadAvatar PUTs data as multipart "photo" to path and returns the
+// status and the avatar_url of the answer.
+func (c *e2e) uploadAvatar(path string, data []byte) (int, string) {
 	c.t.Helper()
 	var mp bytes.Buffer
 	w := multipart.NewWriter(&mp)
 	fw, _ := w.CreateFormFile("photo", "me.jpg")
 	_, _ = fw.Write(data)
 	_ = w.Close()
-	req := httptest.NewRequest("PUT", "/api/v1/me/avatar", &mp)
+	req := httptest.NewRequest("PUT", path, &mp)
 	req.Header.Set("Content-Type", w.FormDataContentType())
 	req.Header.Set("Authorization", "Bearer "+c.token)
 	rec := httptest.NewRecorder()
 	c.h.ServeHTTP(rec, req)
-	if rec.Code != 200 {
-		c.t.Fatalf("PUT /me/avatar: %d %s", rec.Code, rec.Body)
-	}
 	var out map[string]any
 	_ = json.Unmarshal(rec.Body.Bytes(), &out)
 	u, _ := out["avatar_url"].(string)
+	return rec.Code, u
+}
+
+func (c *e2e) putAvatar(data []byte) string {
+	c.t.Helper()
+	code, u := c.uploadAvatar("/api/v1/me/avatar", data)
+	if code != 200 {
+		c.t.Fatalf("PUT /me/avatar: %d", code)
+	}
 	if !strings.HasPrefix(u, avatarMedia+"avatars/") {
-		c.t.Fatalf("avatar_url = %v", out["avatar_url"])
+		c.t.Fatalf("avatar_url = %v", u)
 	}
 	return u
 }
@@ -294,6 +302,25 @@ func TestAvatarURLEverywhere(t *testing.T) {
 	wantUser(t, "GET /me after moderation", me, aliceID, nil)
 	_, got, _ = bob.do("GET", "/api/v1/spots/"+aliceSpot, nil)
 	wantUser(t, "spot author after moderation", got["author"], aliceID, nil)
+
+	// an admin can set someone else's avatar; the old file goes
+	own := alice.putAvatar(jpegFile(120, 80))
+	ownFile := filepath.Join(uploads, filepath.FromSlash(strings.TrimPrefix(own, avatarMedia)))
+	if code, _ := alice.uploadAvatar("/api/v1/admin/users/"+itoa(int(bobID))+"/avatar", jpegFile(50, 50)); code != 403 {
+		t.Fatalf("non-admin sets avatar: %d", code)
+	}
+	if code, _ := bob.uploadAvatar("/api/v1/admin/users/999999/avatar", jpegFile(50, 50)); code != 404 {
+		t.Fatalf("admin sets avatar of unknown user: %d", code)
+	}
+	code, set := bob.uploadAvatar("/api/v1/admin/users/"+itoa(int(aliceID))+"/avatar", jpegFile(90, 160))
+	if code != 200 || !strings.HasPrefix(set, avatarMedia+"avatars/") || set == own {
+		t.Fatalf("admin sets avatar: %d %q", code, set)
+	}
+	if _, err := os.Stat(ownFile); !os.IsNotExist(err) {
+		t.Fatalf("old avatar file after admin replace: %v", err)
+	}
+	_, me, _ = alice.do("GET", "/api/v1/me", nil)
+	wantUser(t, "GET /me after admin replace", me, aliceID, &set)
 
 	// deleting the account removes the avatar file
 	url = alice.putAvatar(jpegFile(200, 200))

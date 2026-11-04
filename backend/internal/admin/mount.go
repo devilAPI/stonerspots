@@ -33,6 +33,7 @@ func Mount(r chi.Router, d app.Deps) {
 	g.Patch("/admin/tags/{tag}", h.patchTag)
 	g.Delete("/admin/tags/{tag}", h.deleteTag)
 	g.Patch("/admin/users/{id}", h.patchUser)
+	g.Put("/admin/users/{id}/avatar", h.putAvatar)
 	g.Delete("/admin/users/{id}/avatar", h.deleteAvatar)
 	g.Post("/admin/users/bulk", h.bulkUsers)
 	g.Post("/admin/spots/bulk", h.bulkSpots)

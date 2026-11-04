@@ -669,8 +669,8 @@ void main() {
       final repo = _Fake()..userItems = [_user(1), withAvatar(2)];
       await _pump(tester, repo, _sizes['phone']!);
       await _tab(tester, 'Users');
-      expect(find.byKey(const Key('authorAvatar-1')), findsOneWidget);
-      expect(find.byKey(const Key('authorAvatar-2')), findsOneWidget);
+      expect(find.byKey(const Key('user-avatar-1')), findsOneWidget);
+      expect(find.byKey(const Key('user-avatar-2')), findsOneWidget);
       // only for users who have one
       expect(find.byKey(const Key('user-avatar-remove-1')), findsNothing);
 
@@ -685,7 +685,7 @@ void main() {
       expect(find.byKey(const Key('user-avatar-remove-2')), findsNothing);
       expect(
         find.descendant(
-          of: find.byKey(const Key('authorAvatar-2')),
+          of: find.byKey(const Key('user-avatar-2')),
           matching: find.text('U'),
         ),
         findsOneWidget,

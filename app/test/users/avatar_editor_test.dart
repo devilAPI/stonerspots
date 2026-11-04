@@ -25,8 +25,12 @@ class _Avatars implements AvatarRepository {
   Completer<void>? gate;
 
   @override
-  Future<String> upload(XFile file, {void Function(double)? onProgress}) async {
-    calls.add('upload');
+  Future<String> upload(
+    XFile file, {
+    int? userId,
+    void Function(double)? onProgress,
+  }) async {
+    calls.add(userId == null ? 'upload' : 'upload:$userId');
     onProgress?.call(0.5);
     await gate?.future;
     if (error != null) throw error!;
@@ -34,8 +38,8 @@ class _Avatars implements AvatarRepository {
   }
 
   @override
-  Future<void> remove() async {
-    calls.add('remove');
+  Future<void> remove({int? userId}) async {
+    calls.add(userId == null ? 'remove' : 'remove:$userId');
     if (error != null) throw error!;
   }
 }
@@ -203,5 +207,33 @@ void main() {
           .imageUrl,
       _url,
     );
+  });
+
+  testWidgets('an admin changes someone else\'s picture, not their own', (
+    t,
+  ) async {
+    final avatars = _Avatars();
+    final c = await _pump(
+      t,
+      avatars,
+      FakeUsers(profiles: {7: _profile(7, isMe: false)}),
+      userId: 7,
+      user: const User(
+        id: 1,
+        email: 'me@x.de',
+        displayName: 'Me',
+        isAdmin: true,
+      ),
+      picked: XFile.fromData(Uint8List(4), name: 'x.jpg'),
+    );
+    expect(find.byKey(const Key('avatarCameraBadge')), findsOneWidget);
+    await t.tap(find.byKey(const Key('ownAvatar')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('avatarChoose')));
+    await t.pumpAndSettle();
+    expect(avatars.calls, ['upload:7']);
+    expect(c.read(avatarOverridesProvider)[7], _url);
+    // the admin's own picture stays as it was
+    expect(c.read(authControllerProvider).value?.avatarUrl, isNull);
   });
 }

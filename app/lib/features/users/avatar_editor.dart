@@ -13,7 +13,8 @@ import 'users_controller.dart';
 enum _AvatarAction { choose, remove }
 
 /// Your own profile picture with a camera badge: tapping it offers to choose
-/// a new one or remove it. While it uploads, a spinner sits on it.
+/// a new one or remove it. While it uploads, a spinner sits on it. With
+/// [moderating], an admin changes someone else's picture.
 class OwnAvatarEditor extends ConsumerStatefulWidget {
   const OwnAvatarEditor({
     super.key,
@@ -21,9 +22,17 @@ class OwnAvatarEditor extends ConsumerStatefulWidget {
     required this.name,
     required this.url,
     this.radius = 28,
+    this.moderating = false,
+    this.onChanged,
   });
 
+  /// After a successful change, with the new picture (null: removed).
+  final ValueChanged<String?>? onChanged;
+
   final int userId;
+
+  /// An admin editing someone else's picture, through the admin routes.
+  final bool moderating;
   final String name;
 
   /// The picture as loaded with the profile.
@@ -87,7 +96,9 @@ class _OwnAvatarEditorState extends ConsumerState<OwnAvatarEditor> {
         await _choose();
       case _AvatarAction.remove:
         await _run(() async {
-          await ref.read(avatarRepositoryProvider).remove();
+          await ref
+              .read(avatarRepositoryProvider)
+              .remove(userId: widget.moderating ? widget.userId : null);
           return null;
         });
     }
@@ -101,6 +112,7 @@ class _OwnAvatarEditorState extends ConsumerState<OwnAvatarEditor> {
           .read(avatarRepositoryProvider)
           .upload(
             file,
+            userId: widget.moderating ? widget.userId : null,
             onProgress: (p) {
               if (mounted) setState(() => _progress = p);
             },
@@ -120,9 +132,12 @@ class _OwnAvatarEditorState extends ConsumerState<OwnAvatarEditor> {
     try {
       final url = await change();
       if (!mounted) return;
-      ref.read(authControllerProvider.notifier).setAvatarUrl(url);
+      if (!widget.moderating) {
+        ref.read(authControllerProvider.notifier).setAvatarUrl(url);
+      }
       ref.read(avatarOverridesProvider.notifier).set(widget.userId, url);
       ref.invalidate(userProfileProvider(widget.userId));
+      widget.onChanged?.call(url);
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(addSpotErrorText(l, e))));
     } finally {
@@ -140,7 +155,7 @@ class _OwnAvatarEditorState extends ConsumerState<OwnAvatarEditor> {
       ),
     );
     final r = widget.radius;
-    final badge = (r * 0.5).clamp(18.0, 26.0);
+    final badge = (r * 0.65).clamp(12.0, 26.0);
     return Tooltip(
       message: l.avatarChange,
       child: SizedBox.square(
