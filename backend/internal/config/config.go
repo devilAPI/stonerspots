@@ -93,7 +93,21 @@ type Config struct {
 	// the privacy policy, served at GET /legal. They come only from the
 	// server's config, never from the repository.
 	Legal LegalConfig
+
+	// Zones configures the no-consumption zone layer (internal/zones).
+	Zones ZonesConfig
 }
+
+// ZonesConfig configures GET /zones, which proxies Overpass (OpenStreetMap).
+type ZonesConfig struct {
+	// Enabled turns the endpoint on (default true).
+	Enabled bool
+	// OverpassURL is the Overpass API interpreter endpoint.
+	OverpassURL string
+}
+
+// DefaultOverpassURL is the public Overpass instance.
+const DefaultOverpassURL = "https://overpass-api.de/api/interpreter"
 
 // LegalConfig is the operator of this server as the app's legal notice
 // (§ 5 DDG, § 18 MStV) and privacy policy name them.
@@ -193,6 +207,7 @@ type Limits struct {
 	FollowsPerDay       int            // new follows per user per day
 	LikesPerDay         int            // likes per user per day
 	Exports             ratelimit.Rule // GET /me/export (data download), per user
+	Zones               ratelimit.Rule // GET /zones, per IP
 }
 
 // DefaultLimits are generous for people and tight for scripts. The feed and
@@ -218,6 +233,7 @@ func DefaultLimits() Limits {
 		FollowsPerDay:       200,
 		LikesPerDay:         300,
 		Exports:             ratelimit.Rule{N: 3, Per: 24 * time.Hour},
+		Zones:               ratelimit.Rule{N: 120, Per: time.Minute},
 	}
 }
 
@@ -242,6 +258,12 @@ type file struct {
 	RequireAdminTOTP bool   `yaml:"require_admin_totp"`
 
 	Legal fileLegal `yaml:"legal"`
+	Zones fileZones `yaml:"zones"`
+}
+
+type fileZones struct {
+	Enabled     *bool  `yaml:"enabled"`
+	OverpassURL string `yaml:"overpass_url"`
 }
 
 type fileLegal struct {
@@ -283,6 +305,7 @@ type fileLimits struct {
 	FollowsPerDay       int      `yaml:"follows_per_day"`
 	LikesPerDay         int      `yaml:"likes_per_day"`
 	Exports             fileRule `yaml:"exports"`
+	Zones               fileRule `yaml:"zones"`
 }
 
 type fileRule struct {
@@ -502,6 +525,10 @@ func Read() (Config, error) {
 		AppBaseURL:       strings.TrimRight(getenv("APP_BASE_URL", f.AppBaseURL), "/"),
 		PowDifficulty:    getenvInt("POW_DIFFICULTY", f.PowDifficulty, DefaultPowDifficulty),
 		RequireAdminTOTP: getenvBool("REQUIRE_ADMIN_TOTP", f.RequireAdminTOTP),
+		Zones: ZonesConfig{
+			Enabled:     getenvBool("ZONES_ENABLED", f.Zones.Enabled == nil || *f.Zones.Enabled),
+			OverpassURL: getenv("ZONES_OVERPASS_URL", or(f.Zones.OverpassURL, DefaultOverpassURL)),
+		},
 		Legal: LegalConfig{
 			OperatorName:        strings.TrimSpace(getenv("LEGAL_OPERATOR_NAME", f.Legal.OperatorName)),
 			Address:             strings.TrimSpace(getenvLines("LEGAL_ADDRESS", f.Legal.Address)),
@@ -577,6 +604,7 @@ func parseLimits(f fileLimits) Limits {
 		FollowsPerDay:       intOrDefault(f.FollowsPerDay, def.FollowsPerDay),
 		LikesPerDay:         intOrDefault(f.LikesPerDay, def.LikesPerDay),
 		Exports:             ruleOrDefault(f.Exports, def.Exports),
+		Zones:               ruleOrDefault(f.Zones, def.Zones),
 	}
 }
 

@@ -256,3 +256,25 @@ func TestListenWarnings(t *testing.T) {
 		})
 	}
 }
+
+func TestZonesConfig(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("ZONES_ENABLED", "")
+	t.Setenv("ZONES_OVERPASS_URL", "")
+	t.Chdir(t.TempDir())
+	c, err := Read()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.Zones.Enabled || c.Zones.OverpassURL != DefaultOverpassURL || c.Limits.Zones.N != 120 {
+		t.Fatalf("defaults: %+v %+v", c.Zones, c.Limits.Zones)
+	}
+	t.Setenv("CONFIG_FILE", writeFile(t, "zones:\n  enabled: false\n  overpass_url: \"https://overpass.example.net/api/interpreter\"\nlimits:\n  zones: { n: 5, per: \"1m\" }\n"))
+	if c, _ = Read(); c.Zones.Enabled || c.Zones.OverpassURL != "https://overpass.example.net/api/interpreter" || c.Limits.Zones.N != 5 {
+		t.Fatalf("file: %+v %+v", c.Zones, c.Limits.Zones)
+	}
+	t.Setenv("ZONES_ENABLED", "true")
+	if c, _ = Read(); !c.Zones.Enabled {
+		t.Fatal("env must override the file")
+	}
+}

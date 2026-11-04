@@ -11,6 +11,7 @@ import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import '../legal/zone_notice.dart';
 import '../users/author_link.dart' show userPath;
+import '../zones/zone_layer.dart';
 import 'map_compass.dart';
 import 'map_filter_bar.dart';
 import 'map_flight.dart';
@@ -208,6 +209,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
               initialCenter: kRegionCentre,
               initialZoom: kRegionZoom,
               onMapReady: _notifyBounds,
+              onTap: (_, p) =>
+                  showZonesAt(context, ref, p, _mapController.camera.zoom),
               onPositionChanged: (camera, hasGesture) {
                 if (hasGesture) {
                   _userMoved = true;
@@ -220,11 +223,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
             ),
             children: [
               buildBaseLayer(context, base: _base, transitKey: transitKey),
+              const ZoneLayer(),
               SpotClusterLayer(markers: _markers),
               SafeArea(
                 top: false,
                 child: buildBaseAttribution(context, base: _base),
               ),
+              const ZoneOverlay(),
             ],
           ),
           if (!_searchOpen)
@@ -252,6 +257,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
                       transitKey: transitKey,
                       onChanged: (b) => setState(() => _base = b),
                     ),
+                    const ZoneToggleButton(),
+                    const ZoneInfoButton(),
                     IconButton(
                       key: const Key('mapLocateMe'),
                       tooltip: l10n.mapMyLocation,

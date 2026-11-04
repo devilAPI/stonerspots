@@ -19,6 +19,7 @@ import '../reviews/reviews_section.dart';
 import '../saved/save_spot_button.dart';
 import '../users/author_link.dart';
 import '../weather/spot_weather_section.dart';
+import '../zones/zone_status.dart';
 import 'edit_tags_dialog.dart';
 import 'maps_link.dart';
 import 'photo_viewer.dart';
@@ -373,6 +374,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                       avg: spot.ratingAvg,
                       count: spot.ratingCount,
                     ),
+                    ZoneStatusChip(lat: spot.lat, lon: spot.lon),
                   ],
                 ),
                 if (spot.tags.isNotEmpty) ...[

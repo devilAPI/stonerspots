@@ -1767,4 +1767,146 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exportRateLimited =>
       'You can download your data at most three times a day. Please try again later.';
+
+  @override
+  String get zonesTitle => 'No-consumption zones';
+
+  @override
+  String get zonesShow => 'Show no-consumption zones';
+
+  @override
+  String get zonesHide => 'Hide no-consumption zones';
+
+  @override
+  String get zonesInfo => 'About the zones';
+
+  @override
+  String get zonesZoomHint => 'Zoom in to see zones';
+
+  @override
+  String get zonesLoadFailed => 'Zones could not be loaded';
+
+  @override
+  String get zonesAttribution => 'Zones: © OpenStreetMap contributors';
+
+  @override
+  String get zonesDisclaimerData =>
+      'Zones are computed from OpenStreetMap data, which can be incomplete or wrong, e.g. missing kindergartens or youth facilities, or facilities mapped only as a point.';
+
+  @override
+  String get zonesDisclaimerDistance =>
+      'They are drawn 100 m around the whole site. The law measures from the entrance area and only where the facility is in sight, so the real zone can be smaller, or larger where data is missing.';
+
+  @override
+  String get zonesDisclaimerMissing =>
+      'Not shown: cannabis clubs (Anbauvereinigungen), presence of minors, state or municipal bans (e.g. Bavaria: festivals, beer gardens, parks), and the rules of Austria, Switzerland and Liechtenstein. Only the German rule (§ 5 KCanG) is shown.';
+
+  @override
+  String get zonesDisclaimerLaw =>
+      'No legal advice: you are responsible for following the law.';
+
+  @override
+  String get zonesDisclaimerOk => 'Got it';
+
+  @override
+  String get zonesSource =>
+      'Data: © OpenStreetMap contributors (ODbL), via Overpass.';
+
+  @override
+  String get zonesStaleNote =>
+      'The data could not be refreshed just now and may be out of date.';
+
+  @override
+  String get zoneKindSchool => 'School';
+
+  @override
+  String get zoneKindKindergarten => 'Kindergarten';
+
+  @override
+  String get zoneKindChildcare => 'Childcare';
+
+  @override
+  String get zoneKindYouth => 'Children\'s or youth facility';
+
+  @override
+  String get zoneKindPlayground => 'Playground';
+
+  @override
+  String get zoneKindSports => 'Sports facility';
+
+  @override
+  String get zoneKindExplicit => 'Explicit ban';
+
+  @override
+  String get zoneKindPedestrian => 'Pedestrian zone';
+
+  @override
+  String zoneTitleNamed(String name, String kind) {
+    return '$name ($kind)';
+  }
+
+  @override
+  String zoneTapRadius(String title) {
+    return '$title — 100 m no-consumption zone';
+  }
+
+  @override
+  String zoneTapExplicit(String title) {
+    return '$title — marked in OSM as a place where cannabis is banned';
+  }
+
+  @override
+  String zoneTapPedestrianNow(String title) {
+    return '$title — no consumption 7 am–8 pm, banned right now';
+  }
+
+  @override
+  String zoneTapPedestrianLater(String title) {
+    return '$title — no consumption 7 am–8 pm, allowed right now';
+  }
+
+  @override
+  String zoneStatusForbiddenAt(String kind, String metres) {
+    return 'In a no-consumption zone ($kind, $metres m)';
+  }
+
+  @override
+  String zoneStatusForbiddenIn(String kind) {
+    return 'In a no-consumption zone ($kind)';
+  }
+
+  @override
+  String get zoneStatusPedestrian =>
+      'Pedestrian zone: no consumption 7 am–8 pm';
+
+  @override
+  String get zoneStatusClear => 'No zone found in OSM data';
+
+  @override
+  String get zoneStatusUnknown => 'Zones could not be checked';
+
+  @override
+  String get zoneStatusChecking => 'Checking zones …';
+
+  @override
+  String get addSpotZoneTitle => 'No-consumption zone';
+
+  @override
+  String addSpotZoneWarning(String reason) {
+    return 'This place is in a no-consumption zone ($reason). Smoking weed there is banned by § 5 KCanG. Add it anyway?';
+  }
+
+  @override
+  String addSpotZonePedestrian(String reason) {
+    return 'This place is in a pedestrian zone ($reason). Smoking weed there is banned from 7 am to 8 pm. Add it anyway?';
+  }
+
+  @override
+  String addSpotZoneExplicit(String reason) {
+    return 'This place is marked in OpenStreetMap as a place where cannabis is banned ($reason). Add it anyway?';
+  }
+
+  @override
+  String get addSpotZoneNote =>
+      'The zones come from OpenStreetMap and can be wrong.';
 }
