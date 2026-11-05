@@ -13,6 +13,7 @@ import '../legal/zone_notice.dart';
 import '../users/author_link.dart' show userPath;
 import '../zones/zone_layer.dart';
 import 'map_compass.dart';
+import 'map_controls_theme.dart';
 import 'map_filter_bar.dart';
 import 'map_flight.dart';
 import 'map_tiles.dart';
@@ -247,31 +248,35 @@ class _MapScreenState extends ConsumerState<MapScreen>
               width: 52,
               child: GlassSurface(
                 radius: 26,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    MapSearchButton(onPressed: _openSearch),
-                    MapLayerButton(
-                      key: const Key('mapLayer'),
-                      base: _base,
-                      transitKey: transitKey,
-                      onChanged: (b) => setState(() => _base = b),
-                    ),
-                    const ZoneToggleButton(),
-                    const ZoneInfoButton(),
-                    IconButton(
-                      key: const Key('mapLocateMe'),
-                      tooltip: l10n.mapMyLocation,
-                      onPressed: _locating ? null : _locateMe,
-                      icon: _locating
-                          ? const SizedBox.square(
-                              dimension: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.my_location),
-                    ),
-                    MapCompass(controller: _mapController),
-                  ],
+                child: MapControlsTheme(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      MapSearchButton(onPressed: _openSearch),
+                      MapLayerButton(
+                        key: const Key('mapLayer'),
+                        base: _base,
+                        transitKey: transitKey,
+                        onChanged: (b) => setState(() => _base = b),
+                      ),
+                      const ZoneToggleButton(),
+                      const ZoneInfoButton(),
+                      IconButton(
+                        key: const Key('mapLocateMe'),
+                        tooltip: l10n.mapMyLocation,
+                        onPressed: _locating ? null : _locateMe,
+                        icon: _locating
+                            ? const SizedBox.square(
+                                dimension: kMapControlIconSize - 2,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.near_me_outlined),
+                      ),
+                      MapCompass(controller: _mapController),
+                    ],
+                  ),
                 ),
               ),
             ),

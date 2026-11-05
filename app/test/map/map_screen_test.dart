@@ -111,12 +111,12 @@ void main() {
 
     await next();
     expect(url(), contains('World_Imagery'));
-    expect(find.byIcon(Icons.satellite_alt), findsOneWidget);
+    expect(find.byIcon(Icons.satellite_alt_outlined), findsOneWidget);
 
     await next();
     expect(url(), contains('tile.thunderforest.com/'));
     expect(find.byTooltip('Public transport'), findsOneWidget);
-    expect(find.byIcon(Icons.directions_transit), findsOneWidget);
+    expect(find.byIcon(Icons.directions_transit_outlined), findsOneWidget);
 
     await next();
     expect(url(), isNot(contains('thunderforest')));

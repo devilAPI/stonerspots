@@ -69,27 +69,34 @@ class _MapCompassState extends State<MapCompass>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
     return IconButton(
       key: const Key('mapCompass'),
       tooltip: l10n.mapNorthUp,
       onPressed: _northUp,
-      icon: Transform.rotate(
-        angle: _rotation * math.pi / 180,
-        child: CustomPaint(
-          key: const Key('mapCompassNeedle'),
-          size: const Size.square(24),
-          painter: _NeedlePainter(
-            north: scheme.error,
-            south: scheme.onSurfaceVariant,
-          ),
-        ),
+      // drawn like the other icons: their size and colour, an outline for
+      // the south half, only the north tip filled in red
+      icon: Builder(
+        builder: (context) {
+          final icon = IconTheme.of(context);
+          return Transform.rotate(
+            angle: _rotation * math.pi / 180,
+            child: CustomPaint(
+              key: const Key('mapCompassNeedle'),
+              size: Size.square(icon.size ?? 24),
+              painter: _NeedlePainter(
+                north: const Color(0xFFE53935),
+                south: icon.color ?? Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-/// A compass needle pointing up: the north half coloured.
+/// A compass needle pointing up: the north half filled red, the south half
+/// an outline in the icon colour.
 class _NeedlePainter extends CustomPainter {
   const _NeedlePainter({required this.north, required this.south});
 
@@ -99,23 +106,34 @@ class _NeedlePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final c = size.center(Offset.zero);
-    final h = size.height * 0.46;
+    final h = size.height * 0.42;
     final w = size.width * 0.2;
-    canvas.drawPath(
-      Path()
-        ..moveTo(c.dx, c.dy - h)
-        ..lineTo(c.dx + w, c.dy)
-        ..lineTo(c.dx - w, c.dy)
-        ..close(),
-      Paint()..color = north,
-    );
+    final stroke = size.width / 14;
     canvas.drawPath(
       Path()
         ..moveTo(c.dx, c.dy + h)
         ..lineTo(c.dx + w, c.dy)
         ..lineTo(c.dx - w, c.dy)
         ..close(),
-      Paint()..color = south,
+      Paint()
+        ..color = south
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeJoin = StrokeJoin.round,
+    );
+    final tip = Path()
+      ..moveTo(c.dx, c.dy - h)
+      ..lineTo(c.dx + w, c.dy)
+      ..lineTo(c.dx - w, c.dy)
+      ..close();
+    canvas.drawPath(tip, Paint()..color = north);
+    canvas.drawPath(
+      tip,
+      Paint()
+        ..color = north
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeJoin = StrokeJoin.round,
     );
   }
 

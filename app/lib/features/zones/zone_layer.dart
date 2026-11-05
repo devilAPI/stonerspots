@@ -497,8 +497,14 @@ class ZoneToggleButton extends ConsumerWidget {
         enabled.set(true);
         ensureZoneConsent(context, ref);
       },
+      // the same outline either way; on, it turns red on a red tint
+      style: on
+          ? IconButton.styleFrom(
+              foregroundColor: kZoneRed,
+              backgroundColor: kZoneRed.withValues(alpha: 0.16),
+            )
+          : null,
       icon: const Icon(Icons.do_not_disturb_on_outlined),
-      selectedIcon: const Icon(Icons.do_not_disturb_on, color: kZoneRed),
     );
   }
 }
@@ -513,8 +519,6 @@ class ZoneInfoButton extends ConsumerWidget {
     return IconButton(
       key: const Key('mapZonesInfo'),
       tooltip: AppLocalizations.of(context).zonesInfo,
-      visualDensity: VisualDensity.compact,
-      iconSize: 18,
       onPressed: () => showZoneDisclaimer(context),
       icon: const Icon(Icons.info_outline),
     );
