@@ -274,7 +274,11 @@ if command -v systemd-analyze >/dev/null && [ -d /run/systemd/system ]; then
       (cd "$units" && systemd-analyze security --offline=true --no-pager "./$u" 2>&1 | tail -n 1)
     done
   fi
-  out=$(printf '%s\n' "$raw" | grep -vE "/opt/stonerspots/(api|update-backend\.sh)|stonerspots-(backend|update)\.service: Command .* is not executable" || true)
+  # complaints about the machine's own units (e.g. on a CI image:
+  # "CPUAccounting= has been removed" in xfs_scrub_all.service) are not ours
+  out=$(printf '%s\n' "$raw" \
+    | grep -vE "^/(usr/lib|lib|etc|run)/systemd/" \
+    | grep -vE "/opt/stonerspots/(api|update-backend\.sh)|stonerspots-(backend|update)\.service: Command .* is not executable" || true)
   check "units: systemd-analyze verify is clean${out:+ (got: $out)}" test -z "$out"
 else
   echo "skip  units: systemd-analyze verify (no systemd here)"
