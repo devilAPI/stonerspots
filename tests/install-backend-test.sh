@@ -291,6 +291,40 @@ check "hint: addr 127.0.0.1 is fine" not conf 'addr: "127.0.0.1:8080"'
 check "hint: addr [::1] is fine" not conf 'addr: "[::1]:8080"  # local'
 check "hint: unquoted 127.0.0.1 is fine" not conf 'addr: 127.0.0.1:8080'
 
+# --- a second backend (--instance) ----------------------------------------
+
+check "instance: the default runner is the text as written" \
+  eval 'diff <(update_runner) <(update_runner_text) >/dev/null'
+inst() { (set_instance release && "$@"); } # in a subshell: globals stay
+check "instance: own folders, units and user" inst eval '
+  [ "$INSTALL_DIR" = /opt/stonerspots-release ] &&
+  [ "$CONFIG_DIR" = /etc/stonerspots-release ] &&
+  [ "$DATA_DIR" = /var/lib/stonerspots-release ] &&
+  [ "$UPDATE_DIR" = /var/lib/stonerspots-release-update ] &&
+  [ "$SERVICE" = stonerspots-release-backend ] &&
+  [ "$UPDATER" = stonerspots-release-update ] &&
+  [ "$SERVICE_USER" = stonerspots-release ] &&
+  [ "$UNIT_FILE" = /etc/systemd/system/stonerspots-release-backend.service ] &&
+  [ "$SIGNING_KEY" = /etc/stonerspots-release/release-signing.pub ]'
+check "instance: runner uses its paths and user" inst eval '
+  r=$(update_runner) &&
+  grep -qx "req=/var/lib/stonerspots-release-update/request/channel" <<<"$r" &&
+  grep -qx "api_user=stonerspots-release" <<<"$r" &&
+  ! grep -qE "/opt/stonerspots/|stonerspots-update/" <<<"$r"'
+check "instance: runner updates the same instance" inst eval '
+  update_runner | grep -qF "exec /opt/stonerspots-release/install-backend.sh \"--\$channel\" --instance release)"'
+check "instance: unit runs its own binary, config and user" inst eval '
+  u=$(api_unit) &&
+  grep -qx "ExecStart=/opt/stonerspots-release/api" <<<"$u" &&
+  grep -qx "User=stonerspots-release" <<<"$u" &&
+  grep -qx "Environment=CONFIG_FILE=/etc/stonerspots-release/config.yaml" <<<"$u" &&
+  grep -qx "StateDirectory=stonerspots-release" <<<"$u"'
+check "instance: path unit watches its own request" inst eval '
+  updater_path_unit | grep -qx "PathExists=/var/lib/stonerspots-release-update/request/channel"'
+for bad in "" "Release" "re-lease" "9lives" "../etc" "a b" "averyveryverylongname"; do
+  check "instance: name '$bad' is refused" not eval "(set_instance '$bad') 2>/dev/null"
+done
+
 if [ "$failures" -gt 0 ]; then
   printf '\n%d failed\n' "$failures"
   exit 1

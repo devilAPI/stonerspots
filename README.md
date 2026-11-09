@@ -120,6 +120,28 @@ Installs from before this feature get the units by running `install-backend.sh`
 once more. Prefer "newest" (releases) on a real server: the dev channel is a
 new build for every push to main.
 
+### Two backends on one server
+
+Dev builds and releases need separate backends: a dev build can be several
+migrations ahead of the newest release, and a backend refuses to go back to
+older migrations. `--instance NAME` installs a second backend next to the
+default one, sharing nothing with it (folders, service user, units and
+admin-page updates all named `stonerspots-NAME`):
+
+```sh
+sudo ./install-backend.sh --dev                        # default: /opt/stonerspots
+sudo ./install-backend.sh --release --instance release # /opt/stonerspots-release
+```
+
+Each has its own database (create a second one and a user for it on the
+MariaDB server), its own `addr` (e.g. `127.0.0.1:8081` and
+`127.0.0.1:8082`) and `public_base_url` in its config.yaml, and its own
+public URL in the reverse proxy. The app builds find theirs through the CI
+secrets `API_URL_DEV` and `API_URL_RELEASE` (see "Web app on GitHub Pages").
+A signing key for the second backend goes to
+`/etc/stonerspots-release/release-signing.pub`. Updates from its admin page
+stay in that instance.
+
 ### Signed releases
 
 The installer runs as root and runs what it downloads, so it should only
@@ -569,8 +591,12 @@ newest dev build to `/dev/`; before the first release the root shows the dev
 build too. `dev-release.yml` runs it after every dev build and every release.
 For it to reach a backend:
 
-- repository secret `API_URL`: public **HTTPS** URL of the API, e.g.
-  `https://api.example.com/api/v1` (compiled into every build, so it is public)
+- repository secrets `API_URL_DEV` and `API_URL_RELEASE`: public **HTTPS**
+  URL of the API for dev builds and for releases, e.g.
+  `https://api.example.com/api/v1` (compiled into every build, so they are
+  public). Dev and release builds need separate backends, since a dev build
+  can be several migrations ahead; both can run on one server (see
+  "Two backends on one server"). `API_URL` is the fallback for both.
 - backend `allowed_origins: [https://devilapi.github.io]` (CORS) and
   `public_base_url` set to the backend's HTTPS origin so photo URLs work, in its
   `config.yaml` (or the env vars `ALLOWED_ORIGINS` / `PUBLIC_BASE_URL`)

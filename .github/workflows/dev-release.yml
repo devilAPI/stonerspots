@@ -35,9 +35,12 @@ name: Dev build & release
 # needs.
 #
 # Optional repository settings (Settings -> Secrets and variables -> Actions):
-#   secret   API_URL   public HTTPS URL of the backend the builds talk to, e.g.
-#                      https://api.example.com/api/v1 (a variable API_URL works too;
-#                      default: http://localhost:8080/api/v1). The web build on GitHub
+#   secret   API_URL_DEV      public HTTPS URL of the backend dev builds talk to
+#   secret   API_URL_RELEASE  the same for release builds (vX.Y.Z); the two
+#                      channels need separate backends (different schemas)
+#   secret   API_URL   fallback for both, e.g. https://api.example.com/api/v1 (a
+#                      variable API_URL works too; default:
+#                      http://localhost:8080/api/v1). The web build on GitHub
 #                      Pages needs HTTPS here and the backend must have
 #                      ALLOWED_ORIGINS=https://devilapi.github.io set (CORS).
 #                      Database credentials never go here: only the backend uses them.
@@ -97,7 +100,10 @@ env:
   CHECKOUT_REF: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.sha }}
   # Android versionCode / iOS CFBundleVersion of every build, dev or release
   BUILD_NUMBER: ${{ github.run_number }}
-  API_URL: ${{ secrets.API_URL || vars.API_URL || 'http://localhost:8080/api/v1' }}
+  # dev and release builds talk to different backends (different schemas):
+  # API_URL_RELEASE for a release, API_URL_DEV otherwise; API_URL is the
+  # fallback for both, never the other channel's URL
+  API_URL: ${{ ((github.ref_type == 'tag' || inputs.tag) && (secrets.API_URL_RELEASE || secrets.API_URL || vars.API_URL)) || (!(github.ref_type == 'tag' || inputs.tag) && (secrets.API_URL_DEV || secrets.API_URL || vars.API_URL)) || 'http://localhost:8080/api/v1' }}
 
 jobs:
   # For a release: the tag is exactly vX.Y.Z and equals version: in

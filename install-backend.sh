@@ -5,6 +5,8 @@
 #   sudo ./install-backend.sh            # install, or update an existing install
 #   sudo ./install-backend.sh --dev      # newest dev build (dev-<n>)
 #   sudo ./install-backend.sh --release  # switch a dev install to releases
+#   sudo ./install-backend.sh --release --instance release
+#                                        # a second backend next to the first
 #
 # An existing install is detected and updated in place: it stays on its
 # channel (release or dev), is skipped when already up to date, keeps
@@ -61,10 +63,13 @@ SIGNING_KEY_OWNER=0
 # Raised whenever the units below change, so that an install that is
 # otherwise up to date still gets them on the next run.
 UNITS_VERSION=2
+# Empty for the default backend; set by --instance (see set_instance).
+INSTANCE=""
+INSTANCE_ARGS=""
 
 usage() {
   cat <<EOF
-Usage: $0 [--dev | --release] [--force]
+Usage: $0 [--dev | --release] [--force] [--instance NAME]
 
 Downloads the newest Stonerspots backend from github.com/${REPO} and installs
 it as the systemd service ${SERVICE}. Run it again to update: an existing
@@ -73,6 +78,14 @@ install keeps its channel and its config.yaml.
   --dev       use the newest dev build (default for installs that have one)
   --release   use the newest release (default for new installs)
   --force     reinstall even when that version is already installed
+  --instance NAME
+              a separate backend next to the default one (e.g. releases next
+              to dev builds; they need separate databases): its own folders,
+              service user and units, all named stonerspots-NAME
+              (/opt/stonerspots-NAME, /etc/stonerspots-NAME/config.yaml,
+              service stonerspots-NAME-backend). NAME: lower-case letters and
+              digits. Give it on every run for that backend; its admin-page
+              updates keep it.
   -h, --help  show this help
 EOF
 }
@@ -125,9 +138,36 @@ verify_signature() {
   log "Release signature checked against ${SIGNING_KEY}"
 }
 
-# The update runner (installed as $INSTALL_DIR/update-backend.sh). Its paths
-# are the constants at the top of this script.
+# set_instance <name>: a second backend on the same machine. Every path,
+# unit and the service user get "-<name>", so it shares nothing with the
+# default backend (the database is set in its own config.yaml).
+set_instance() {
+  [[ "$1" =~ ^[a-z][a-z0-9]{0,15}$ ]] \
+    || die "instance name must be lower-case letters and digits (at most 16), starting with a letter"
+  INSTANCE=$1
+  INSTANCE_ARGS=" --instance $1"
+  INSTALL_DIR=/opt/stonerspots-$1
+  CONFIG_DIR=/etc/stonerspots-$1
+  DATA_DIR=/var/lib/stonerspots-$1
+  UPDATE_DIR=/var/lib/stonerspots-$1-update
+  SERVICE=stonerspots-$1-backend
+  UPDATER=stonerspots-$1-update
+  SERVICE_USER=stonerspots-$1
+  UNIT_FILE="/etc/systemd/system/${SERVICE}.service"
+  SIGNING_KEY="$CONFIG_DIR/release-signing.pub"
+}
+
+# The update runner (installed as $INSTALL_DIR/update-backend.sh), with this
+# backend's paths filled in (the text below has the default backend's).
 update_runner() {
+  update_runner_text | sed \
+    -e "s|/var/lib/stonerspots-update|${UPDATE_DIR}|g" \
+    -e "s|/opt/stonerspots|${INSTALL_DIR}|g" \
+    -e "s|^api_user=stonerspots\$|api_user=${SERVICE_USER}|" \
+    -e "s|\"--\$channel\")|\"--\$channel\"${INSTANCE_ARGS})|"
+}
+
+update_runner_text() {
   cat <<'RUNNER'
 #!/usr/bin/env bash
 # Runs a backend update the admin page asked for. Started as root by
@@ -363,6 +403,12 @@ while [ $# -gt 0 ]; do
     --dev) channel=dev ;;
     --release) channel=release ;;
     --force) force=true ;;
+    --instance)
+      [ $# -gt 1 ] || die "--instance needs a name"
+      shift
+      set_instance "$1"
+      ;;
+    --instance=*) set_instance "${1#--instance=}" ;;
     -h | --help) usage; exit 0 ;;
     *) usage >&2; die "unknown option: $1" ;;
   esac
@@ -459,6 +505,7 @@ if [ "${BASH_SOURCE[0]:-}" = "$INSTALL_DIR/install-backend.sh" ] && [ -z "${STON
   log "Continuing with the installer of ${tag}"
   next_args=("--${channel}")
   if $force; then next_args+=(--force); fi
+  if [ -n "$INSTANCE" ]; then next_args+=(--instance "$INSTANCE"); fi
   STONERSPOTS_HANDED_OVER=1 bash "$src/install-backend.sh" "${next_args[@]}"
   exit 0
 fi
