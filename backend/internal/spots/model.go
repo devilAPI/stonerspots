@@ -60,4 +60,8 @@ const (
 	duplicateMeters        = 25.0
 	maxNearbyRadius        = 50000
 	defaultLimit, maxLimit = 20, 200
+	// The map asks for every spot of its area (it clusters them itself).
+	maxBBoxLimit = 1000
+	// At most this many spots of one box are looked at for spreading.
+	maxPins = 50000
 )

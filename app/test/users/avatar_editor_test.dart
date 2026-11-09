@@ -5,6 +5,7 @@ import 'package:app/core/api_client.dart';
 import 'package:app/core/models.dart';
 import 'package:app/features/auth/auth_controller.dart';
 import 'package:app/features/users/author_link.dart';
+import 'package:app/features/users/avatar_crop.dart';
 import 'package:app/features/users/avatar_repository.dart';
 import 'package:app/features/users/user_profile_screen.dart';
 import 'package:app/features/users/users_repository.dart';
@@ -68,6 +69,8 @@ Future<ProviderContainer> _pump(
         authControllerProvider.overrideWith(() => FakeAuth(user)),
         avatarRepositoryProvider.overrideWithValue(avatars),
         avatarPickerProvider.overrideWithValue(() async => picked),
+        // the cropper itself: avatar_crop_test.dart
+        avatarCropperProvider.overrideWithValue((_, f) async => f),
       ],
       child: MaterialApp(
         locale: const Locale('en'),

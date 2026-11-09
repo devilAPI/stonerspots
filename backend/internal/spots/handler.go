@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/auth"
@@ -33,7 +34,9 @@ func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
 	r.With(ratelimit.ByIP(ratelimit.New(d.Cfg.Limits.Search))).Get("/spots/search", h.search)
 	r.With(auth.Middleware(d.Cfg.JWTSecret)).Put("/spots/{id}/tags", h.putTags)
 	r.Get("/spots/{id}", h.get)
-	r.Get("/spots", h.list)
+	// the map's list can hold a thousand spots: gzip it (public data only,
+	// nothing secret in it, so compression gives nothing away)
+	r.With(middleware.Compress(5, "application/json")).Get("/spots", h.list)
 	r.Get("/tags", h.tags)
 }
 
@@ -261,6 +264,7 @@ func floatParam(r *http.Request, name string) (float64, bool) {
 	return v, true
 }
 
+// limitParam reads ?limit=; the caller clamps it.
 func limitParam(r *http.Request) (int, bool) {
 	s := r.URL.Query().Get("limit")
 	if s == "" {
@@ -270,7 +274,7 @@ func limitParam(r *http.Request) (int, bool) {
 	if err != nil {
 		return 0, false
 	}
-	return clampLimit(n), true
+	return n, true
 }
 
 func (h *handler) list(w http.ResponseWriter, r *http.Request) {

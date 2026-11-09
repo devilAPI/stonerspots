@@ -327,7 +327,7 @@ func TestBBoxQueryUsesSpatialIndex(t *testing.T) {
 		e.db.Exec(`INSERT INTO spots (user_id,title,description,location) VALUES (?, 'spot', '', POINT(?,?))`, e.uid, lon, lat)
 	}
 	e.db.Exec(`ANALYZE TABLE spots`)
-	q, args := bboxQuery(BBox{50, 10, 51, 11}, Filter{Limit: 20})
+	q, args := bboxQuery(BBox{South: 50, West: 10, North: 51, East: 11}, Filter{Limit: 20})
 	rows, err := e.db.QueryContext(context.Background(), "EXPLAIN "+q, args...)
 	if err != nil {
 		t.Fatal(err)
@@ -370,5 +370,51 @@ func TestSpotCarriesCommentCount(t *testing.T) {
 	}
 	if b := e.do("GET", "/spots?south=52&west=13&north=53&east=14", "", false).Body.String(); strings.Contains(b, "comment_count") {
 		t.Fatalf("bbox list carries comment_count: %s", b)
+	}
+}
+
+func TestSpreadCoversTheBox(t *testing.T) {
+	// 30 popular spots in one corner, then one each in four other places
+	var pins []pin
+	for i := 0; i < 30; i++ {
+		pins = append(pins, pin{id: uint64(i + 1), lon: 10.01 + float64(i)*0.0001, lat: 50.01})
+	}
+	far := []pin{{id: 101, lon: 10.9, lat: 50.9}, {id: 102, lon: 10.1, lat: 50.9}, {id: 103, lon: 10.9, lat: 50.1}, {id: 104, lon: 10.5, lat: 50.5}}
+	pins = append(pins, far...)
+	ids := spread(pins, BBox{South: 50, West: 10, North: 51, East: 11}, 10)
+	if len(ids) != 10 {
+		t.Fatalf("len %d", len(ids))
+	}
+	got := map[uint64]bool{}
+	for _, id := range ids {
+		got[id] = true
+	}
+	for _, p := range far {
+		if !got[p.id] {
+			t.Errorf("spot %d of another area left out: %v", p.id, ids)
+		}
+	}
+	// best first is kept
+	for i := 1; i < len(ids); i++ {
+		if ids[i] < ids[i-1] {
+			t.Fatalf("order changed: %v", ids)
+		}
+	}
+	if all := spread(pins[:5], BBox{South: 50, West: 10, North: 51, East: 11}, 10); len(all) != 5 {
+		t.Fatalf("under the limit: %v", all)
+	}
+}
+
+func TestMapListReturnsUpToAThousand(t *testing.T) {
+	e := setup(t)
+	for i := 0; i < 250; i++ {
+		e.db.Exec(`INSERT INTO spots (user_id,title,description,location) VALUES (?, 'spot', '', POINT(?,?))`,
+			e.uid, 10+float64(i%25)*0.01, 50+float64(i/25)*0.01)
+	}
+	var out []Spot
+	rec := e.do("GET", "/spots?south=49&west=9&north=52&east=12&limit=1000", "", false)
+	json.Unmarshal(rec.Body.Bytes(), &out)
+	if rec.Code != 200 || len(out) != 250 {
+		t.Fatalf("%d len=%d", rec.Code, len(out))
 	}
 }

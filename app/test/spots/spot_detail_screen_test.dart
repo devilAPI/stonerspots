@@ -117,6 +117,9 @@ class _Admin implements AdminRepository {
 
   @override
   Future<void> deleteUpdate(int id) async => calls.add('delete:$id');
+
+  @override
+  Future<void> deleteSpot(int id) async => calls.add('delete-spot:$id');
 }
 
 late FakeUpdates updates;
@@ -163,6 +166,10 @@ Future<_Api> _pump(
   final router = GoRouter(
     initialLocation: location,
     routes: [
+      GoRoute(
+        path: '/',
+        builder: (_, _) => const Scaffold(body: Text('home')),
+      ),
       GoRoute(
         path: '/spot/:id',
         builder: (_, _) => const SpotDetailScreen(spotId: 5),
@@ -784,13 +791,47 @@ void main() {
     expect(find.byKey(const Key('spotLockedNotice')), findsNothing);
   });
 
+  testWidgets('admins delete the spot from the menu, after asking', (
+    tester,
+  ) async {
+    final api = _Api();
+    final admin = _Admin(api);
+    await _pump(tester, adminUser, withApi: api, admin: admin);
+    await tester.tap(find.byKey(const Key('menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('adminDeleteSpot')));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete 1 spot?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(admin.calls, isEmpty);
+
+    await tester.tap(find.byKey(const Key('menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('adminDeleteSpot')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('confirm-bulk-delete')));
+    await tester.pumpAndSettle();
+    expect(admin.calls.single, 'delete-spot:5');
+    expect(find.text('Spot deleted'), findsOneWidget);
+    expect(find.text('home'), findsOneWidget); // the page is gone
+  });
+
   testWidgets('the admin menu is only there for admins', (tester) async {
     await _pump(tester, const User(id: 1, email: 'a@b.de', displayName: 'A'));
     await tester.tap(find.byKey(const Key('menu')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('adminEditSpot')), findsNothing);
     expect(find.byKey(const Key('adminLockSpot')), findsNothing);
+    expect(find.byKey(const Key('adminDeleteSpot')), findsNothing);
     expect(find.text('Report'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('reportSpot')),
+        matching: find.byIcon(Icons.flag_outlined),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('admins open the full spot editor from the spot page', (

@@ -111,7 +111,8 @@ class AdminSelectionBar extends StatelessWidget {
   }
 }
 
-Future<bool> _confirmDelete(
+/// Asks before an admin deletes something for good (red delete button).
+Future<bool> confirmAdminDelete(
   BuildContext context, {
   required String title,
   required String body,
@@ -197,7 +198,7 @@ Future<bool> runUserBulk(
 }) async {
   final l10n = AppLocalizations.of(context);
   if (action == 'delete' &&
-      !await _confirmDelete(
+      !await confirmAdminDelete(
         context,
         title: l10n.adminDeleteUsersTitle(ids.length),
         body: l10n.adminDeleteUsersBody,
@@ -243,7 +244,7 @@ Future<bool> runSpotBulk(
     tag = await _pickTag(context, ref);
     if (tag == null) return false;
   } else if (action == 'delete' &&
-      !await _confirmDelete(
+      !await confirmAdminDelete(
         context,
         title: l10n.adminDeleteSpotsTitle(ids.length),
         body: l10n.adminDeleteSpotsBody,

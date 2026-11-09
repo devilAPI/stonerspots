@@ -3,6 +3,22 @@
 Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 "Releasing 1.0". Development builds (`dev-<n>`) are not listed here.
 
+## 1.0.6
+
+- Map: every spot shows up again when zoomed out. The map loaded at most
+  200 spots of the area, the most liked first, so the older, liked spots
+  of one region pushed out every newer one (e.g. all spots of some
+  accounts). It now loads up to 1000; beyond that, the server spreads the
+  spots it sends over the whole area. The list is sent compressed.
+  (Needs the 1.0.6 backend.)
+- Spot page: admins can delete the spot from the ⋮ menu (after asking);
+  "Report" has a flag icon.
+- Share button: the iPhone/iPad/Mac share icon on Apple devices, also in
+  Safari.
+- Profile picture: choosing one opens a cropper (drag, pinch, scroll or the
+  slider to zoom; the circle shows what is kept). The cut is uploaded as a
+  640 px JPEG without the photo's metadata.
+
 ## 1.0.5
 
 - Zones: the note that says why a tapped place is a zone goes away again:

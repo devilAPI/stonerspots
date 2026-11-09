@@ -1,10 +1,12 @@
 package spots
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -164,44 +166,123 @@ func (r *Repo) ByIDs(ctx context.Context, ids []uint64) ([]Spot, error) {
 	return out, nil
 }
 
-// bboxQuery builds the bounding-box query. MBRContains lets MariaDB use the spatial index.
+// bboxQuery builds the query for the spots inside a box: only id, position
+// and likes, at most maxPins, unsorted (InBBox sorts). MariaDB estimates a
+// spatial range as the whole table and then prefers a full scan for any
+// large LIMIT, hence FORCE INDEX on the spatial index.
 func bboxQuery(b BBox, fl Filter) (string, []any) {
-	q := `SELECT ` + selectCols + fromSpots + ` WHERE s.status = 'active' AND MBRContains(ST_GeomFromText(?), s.location)`
-	args := []any{"", polygon(b)}
+	q := `SELECT s.id, ST_X(s.location), ST_Y(s.location), s.like_count
+	 FROM spots s FORCE INDEX (idx_spots_location)
+	 WHERE s.status = 'active' AND MBRContains(ST_GeomFromText(?), s.location)`
+	args := []any{polygon(b)}
 	tq, targs := tagset.FilterSQL("s", fl.Tags)
 	q += tq
 	args = append(args, targs...)
-	q += ` ORDER BY s.like_count DESC, s.id ASC LIMIT ?`
-	args = append(args, clampLimit(fl.Limit))
+	q += ` LIMIT ?`
+	args = append(args, maxPins)
 	return q, args
 }
 
-func clampLimit(n int) int {
+func clampLimit(n int) int { return clampTo(n, maxLimit) }
+
+func clampTo(n, max int) int {
 	if n <= 0 {
 		return defaultLimit
 	}
-	if n > maxLimit {
-		return maxLimit
-	}
-	return n
+	return min(n, max)
+}
+
+// pin is a spot's id and position, for choosing which spots of a box to send.
+type pin struct {
+	id       uint64
+	lon, lat float64
+	likes    int
 }
 
 // InBBox returns active spots inside b, best first. Always non-nil.
+//
+// When the box holds more spots than the limit (a zoomed-out map), they are
+// spread over it: the box is cut into a grid and every cell gets its best
+// spots in turn. Otherwise the best-liked spots of a dense area would push
+// out every other area (a city's popular spots hid whole regions of newer
+// ones).
 func (r *Repo) InBBox(ctx context.Context, b BBox, fl Filter) ([]Spot, error) {
 	if b.South == b.North || b.West == b.East {
 		return []Spot{}, nil // zero-area box cannot contain a polygon
 	}
 	q, args := bboxQuery(b, fl)
-	args[0] = r.PublicBaseURL
 	rows, err := r.DB.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}
-	list, err := r.scan(rows, false)
-	if err != nil {
+	var pins []pin
+	for rows.Next() {
+		var p pin
+		if err := rows.Scan(&p.id, &p.lon, &p.lat, &p.likes); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		pins = append(pins, p)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return list, r.attachTags(ctx, list)
+	// best first: most liked, then oldest
+	slices.SortFunc(pins, func(a, b pin) int {
+		if a.likes != b.likes {
+			return b.likes - a.likes
+		}
+		return cmp.Compare(a.id, b.id)
+	})
+	return r.ByIDs(ctx, spread(pins, b, clampTo(fl.Limit, maxBBoxLimit)))
+}
+
+// spread picks limit of pins (best first) so that they cover the box b:
+// round by round, each grid cell that still has spots gives its next best.
+// The result keeps the order of pins.
+func spread(pins []pin, b BBox, limit int) []uint64 {
+	if len(pins) <= limit {
+		ids := make([]uint64, len(pins))
+		for i, p := range pins {
+			ids[i] = p.id
+		}
+		return ids
+	}
+	g := int(math.Ceil(math.Sqrt(float64(limit))))
+	cell := func(v, lo, hi float64) int {
+		c := int((v - lo) / (hi - lo) * float64(g))
+		return max(0, min(g-1, c))
+	}
+	// cells in the order of their best spot, each with its spots best first
+	var cells [][]int
+	index := map[int]int{}
+	for i, p := range pins {
+		k := cell(p.lat, b.South, b.North)*g + cell(p.lon, b.West, b.East)
+		n, ok := index[k]
+		if !ok {
+			n = len(cells)
+			index[k] = n
+			cells = append(cells, nil)
+		}
+		cells[n] = append(cells[n], i)
+	}
+	take := make([]bool, len(pins))
+	for round, n := 0, 0; n < limit; round++ {
+		for _, c := range cells {
+			if round < len(c) && n < limit {
+				take[c[round]] = true
+				n++
+			}
+		}
+	}
+	ids := make([]uint64, 0, limit)
+	for i, p := range pins {
+		if take[i] {
+			ids = append(ids, p.id)
+		}
+	}
+	return ids
 }
 
 // Nearby returns active spots within radiusM metres, nearest first. Always non-nil.

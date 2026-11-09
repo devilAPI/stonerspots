@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
 import '../spots/add_spot_errors.dart';
 import 'author_link.dart';
+import 'avatar_crop.dart';
 import 'avatar_repository.dart';
 import 'users_controller.dart';
 
@@ -105,7 +106,9 @@ class _OwnAvatarEditorState extends ConsumerState<OwnAvatarEditor> {
   }
 
   Future<void> _choose() async {
-    final file = await ref.read(avatarPickerProvider)();
+    final picked = await ref.read(avatarPickerProvider)();
+    if (picked == null || !mounted) return;
+    final file = await ref.read(avatarCropperProvider)(context, picked);
     if (file == null || !mounted) return;
     await _run(
       () => ref

@@ -5,9 +5,10 @@ import '../../core/api_client.dart';
 import '../../core/models.dart';
 import '../../core/providers.dart';
 
-/// How many spots one map request asks for (the API caps it at the same value).
+/// How many spots one map request asks for (the API caps it at the same value;
+/// beyond it, the API spreads the spots it sends over the whole area).
 /// A result of exactly this size may have been cut off.
-const kMapSpotLimit = 200;
+const kMapSpotLimit = 1000;
 
 abstract class SpotsRepository {
   Future<List<Spot>> inBounds(

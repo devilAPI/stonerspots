@@ -703,6 +703,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get adminUnlock => 'Spot entsperren';
 
   @override
+  String get adminDeleteSpot => 'Spot löschen';
+
+  @override
+  String get adminSpotDeleted => 'Spot gelöscht';
+
+  @override
   String get adminSpotLocked => 'Spot gesperrt';
 
   @override
@@ -1447,6 +1453,15 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get avatarChange => 'Profilbild ändern';
+
+  @override
+  String get avatarCropTitle => 'Bild zuschneiden';
+
+  @override
+  String get avatarCropUse => 'Übernehmen';
+
+  @override
+  String get avatarCropZoom => 'Zoom';
 
   @override
   String get avatarChoose => 'Foto auswählen';

@@ -696,6 +696,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminUnlock => 'Unlock spot';
 
   @override
+  String get adminDeleteSpot => 'Delete spot';
+
+  @override
+  String get adminSpotDeleted => 'Spot deleted';
+
+  @override
   String get adminSpotLocked => 'Spot locked';
 
   @override
@@ -1434,6 +1440,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get avatarChange => 'Change profile picture';
+
+  @override
+  String get avatarCropTitle => 'Crop picture';
+
+  @override
+  String get avatarCropUse => 'Use';
+
+  @override
+  String get avatarCropZoom => 'Zoom';
 
   @override
   String get avatarChoose => 'Choose photo';

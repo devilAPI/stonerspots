@@ -9,11 +9,13 @@ import '../../core/models.dart';
 import '../../core/responsive.dart';
 import '../../core/spot_tag_widgets.dart';
 import '../../l10n/app_localizations.dart';
+import '../admin/admin_bulk.dart';
 import '../admin/admin_edit_dialogs.dart';
 import '../admin/admin_models.dart';
 import '../admin/admin_repository.dart';
 import '../auth/auth_controller.dart';
 import '../comments/spot_comments.dart';
+import '../map/spots_controller.dart';
 import '../reviews/rating_widgets.dart';
 import '../reviews/reviews_section.dart';
 import '../saved/save_spot_button.dart';
@@ -201,6 +203,33 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
     }
   }
 
+  Future<void> _adminDeleteSpot(Spot spot) async {
+    final l = AppLocalizations.of(context);
+    if (!await confirmAdminDelete(
+      context,
+      title: l.adminDeleteSpotsTitle(1),
+      body: l.adminDeleteSpotsBody,
+    )) {
+      return;
+    }
+    try {
+      await ref.read(adminRepositoryProvider).deleteSpot(spot.id);
+    } catch (_) {
+      _snack(l.errorGeneric);
+      return;
+    }
+    if (!mounted) return;
+    _snack(l.adminSpotDeleted);
+    ref.read(spotsControllerProvider.notifier).retry(); // off the map
+    if (GoRouter.maybeOf(context) == null) {
+      Navigator.maybePop(context);
+    } else if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/');
+    }
+  }
+
   Future<void> _adminEditUpdate(FeedItem item) =>
       _reloadUpdatesIf(adminEditUpdate(context, item));
 
@@ -237,7 +266,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
             builder: (button) => IconButton(
               key: const Key('shareSpot'),
               tooltip: l.spotShare,
-              icon: const Icon(Icons.share),
+              icon: Icon(Icons.adaptive.share),
               onPressed: () => _share(button, spotAsync.value?.title),
             ),
           ),
@@ -253,6 +282,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   if (loaded != null) _adminToggleLock(loaded);
                 case 'admin-updates':
                   _adminEditUpdates();
+                case 'admin-delete':
+                  if (loaded != null) _adminDeleteSpot(loaded);
               }
             },
             itemBuilder: (_) => [
@@ -284,9 +315,32 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                       title: Text(l.adminEditUpdates),
                     ),
                   ),
+                PopupMenuItem(
+                  key: const Key('adminDeleteSpot'),
+                  value: 'admin-delete',
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.delete_forever_outlined,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    title: Text(
+                      l.adminDeleteSpot,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ),
                 const PopupMenuDivider(),
               ],
-              PopupMenuItem(value: 'report', child: Text(l.report)),
+              PopupMenuItem(
+                key: const Key('reportSpot'),
+                value: 'report',
+                child: ListTile(
+                  leading: const Icon(Icons.flag_outlined),
+                  title: Text(l.report),
+                ),
+              ),
             ],
           ),
         ],

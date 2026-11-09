@@ -1268,6 +1268,18 @@ abstract class AppLocalizations {
   /// **'Spot entsperren'**
   String get adminUnlock;
 
+  /// No description provided for @adminDeleteSpot.
+  ///
+  /// In de, this message translates to:
+  /// **'Spot löschen'**
+  String get adminDeleteSpot;
+
+  /// No description provided for @adminSpotDeleted.
+  ///
+  /// In de, this message translates to:
+  /// **'Spot gelöscht'**
+  String get adminSpotDeleted;
+
   /// No description provided for @adminSpotLocked.
   ///
   /// In de, this message translates to:
@@ -2479,6 +2491,24 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Profilbild ändern'**
   String get avatarChange;
+
+  /// No description provided for @avatarCropTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Bild zuschneiden'**
+  String get avatarCropTitle;
+
+  /// No description provided for @avatarCropUse.
+  ///
+  /// In de, this message translates to:
+  /// **'Übernehmen'**
+  String get avatarCropUse;
+
+  /// No description provided for @avatarCropZoom.
+  ///
+  /// In de, this message translates to:
+  /// **'Zoom'**
+  String get avatarCropZoom;
 
   /// No description provided for @avatarChoose.
   ///
