@@ -712,10 +712,16 @@ included, because it is not a separate 3D engine:
   a laptop: 5.5 ms average build time, no missed frame (before: 26 ms,
   75 of 182 frames missed).
 - Gestures (`map_gestures.dart`): a mouse wheel zooms towards the cursor; a
-  two-finger touchpad swipe moves the map, a pinch zooms. In 3D two fingers
-  dragged up or down on a touchscreen change the tilt (20°-60°), and on a
-  touchpad Shift + an up/down swipe does (three-finger touchpad gestures
-  never reach apps: the operating systems keep them).
+  two-finger touchpad swipe moves the map, a pinch zooms. Two fingers
+  dragged up or down on a touchscreen (on a touchpad: Shift + an up/down
+  swipe; three-finger touchpad gestures never reach apps, the operating
+  systems keep them) change the tilt continuously from flat 2D (0°) to 60°:
+  up from 2D leans the map back into 3D, down flattens it back into 2D, and
+  let go below 10° it settles there. Buildings fade in and out below 15°,
+  so nothing pops. Meanwhile pinch zoom and twist pause (two still fingers
+  seem to pinch and turn on the tilting ground). Moving with two fingers on
+  a touchscreen is off (that drag tilts), as in the big map apps. The 3D
+  button animates the same tilt between 0° and 45°.
 - Credit while it is on: "OpenFreeMap © OpenMapTiles" next to the map's own.
 
 ## Verbotszonen

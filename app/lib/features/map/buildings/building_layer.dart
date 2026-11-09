@@ -257,9 +257,14 @@ class BuildingPainter extends CustomPainter {
     // light from the south-west, high
     const lightX = -0.6, lightY = 0.8;
 
+    // flattening towards 2D, the buildings fade out instead of popping
+    final fade = (tilt.pitch * 180 / math.pi / kBuildingsFadePitch).clamp(
+      0.0,
+      1.0,
+    );
     canvas.saveLayer(
       Rect.fromLTRB(gx0, gy0, gx1, gy1).intersect(Offset.zero & size),
-      Paint()..color = Color.fromRGBO(0, 0, 0, kBuildingOpacity),
+      Paint()..color = Color.fromRGBO(0, 0, 0, kBuildingOpacity * fade),
     );
     void flush() {
       if (ind.length == 0) return;

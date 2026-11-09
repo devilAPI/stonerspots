@@ -8,7 +8,6 @@ import '../../core/glass.dart';
 import '../../core/location_service.dart';
 import '../../core/models.dart';
 import '../../core/responsive.dart';
-import '../../core/settings.dart';
 import '../../l10n/app_localizations.dart';
 import '../users/author_link.dart' show userPath;
 import '../zones/zone_layer.dart';
@@ -35,9 +34,22 @@ class MapScreen extends ConsumerStatefulWidget {
 }
 
 class _MapScreenState extends ConsumerState<MapScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final _mapController = MapController();
   late final _flight = MapFlight(_mapController, this);
+
+  /// Keeps the map's state when it moves into the tilt (2D <-> 3D).
+  final _mapKey = GlobalKey(debugLabel: 'map');
+
+  /// Animates the tilt (the 3D button, settling after a two-finger tilt).
+  late final _tiltAnimation = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 350),
+  );
+  Animation<double>? _tiltTween;
+
+  /// A two-finger tilt is going on (no pinch zoom or twist meanwhile).
+  bool _tiltGesture = false;
   final _searchFocus = FocusNode();
   bool _searchOpen = false;
   bool _deniedShown = false;
@@ -62,9 +74,33 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   @override
   void dispose() {
+    _tiltAnimation.dispose();
     _flight.dispose();
     _searchFocus.dispose();
     super.dispose();
+  }
+
+  /// Tilts the map to [target] degrees (0: flat 2D), animated, and
+  /// remembers whether the map is left in 3D.
+  void _tiltTo(double target) {
+    final from = ref.read(mapPitchProvider);
+    ref.read(map3dProvider.notifier).set(target > 0);
+    if (from == target) return;
+    _tiltTween?.removeListener(_applyTilt);
+    _tiltTween = Tween<double>(begin: from, end: target).animate(
+      CurvedAnimation(parent: _tiltAnimation, curve: Curves.easeInOut),
+    )..addListener(_applyTilt);
+    _tiltAnimation.forward(from: 0);
+  }
+
+  void _applyTilt() =>
+      ref.read(mapPitchProvider.notifier).set(_tiltTween!.value);
+
+  /// After a two-finger tilt: nearly flat settles to 2D, else it stays.
+  void _settleTilt() {
+    setState(() => _tiltGesture = false);
+    final pitch = ref.read(mapPitchProvider);
+    _tiltTo(pitch < kExitPitch ? 0 : pitch);
   }
 
   void _openSearch() {
@@ -187,7 +223,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
     // does not rebuild the map itself.
     final spots = ref.watch(spotsControllerProvider.select((s) => s.spots));
     final transitKey = ref.watch(thunderforestKeyProvider);
-    final map3d = ref.watch(map3dProvider);
+    final pitch = ref.watch(mapPitchProvider);
+    final map3d = pitch > 0;
     if (!identical(_markerSource, spots)) {
       _markerSource = spots;
       final top = spots.take(kTopSpots).map((s) => s.id).toSet();
@@ -211,15 +248,16 @@ class _MapScreenState extends ConsumerState<MapScreen>
           if (map3d) const Positioned.fill(child: _Sky()),
           MapGestures(
             controller: _mapController,
-            tilted: map3d,
+            onTiltStart: () => setState(() => _tiltGesture = true),
+            onTiltEnd: _settleTilt,
             child: TiltedMap(
-              on: map3d,
-              pitch: ref.watch(mapPitchProvider),
+              pitch: pitch,
               child: FlutterMap(
+                key: _mapKey,
                 mapController: _mapController,
                 options: MapOptions(
                   interactionOptions: InteractionOptions(
-                    flags: mapInteractionFlags(tilted: map3d),
+                    flags: mapInteractionFlags(tilting: _tiltGesture),
                   ),
                   maxZoom: kMapMaxZoom,
                   initialCenter: kRegionCentre,
@@ -292,8 +330,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                         key: const Key('map3d'),
                         tooltip: l10n.map3d,
                         isSelected: map3d,
-                        onPressed: () =>
-                            ref.read(map3dProvider.notifier).set(!map3d),
+                        onPressed: () => _tiltTo(map3d ? 0 : kMapPitch),
                         icon: const Icon(Icons.view_in_ar_outlined),
                       ),
                       const ZoneToggleButton(),
@@ -411,11 +448,6 @@ class _ErrorBanner extends ConsumerWidget {
     );
   }
 }
-
-/// 3D view on the main map (tilted, with buildings); off by default.
-final map3dProvider = NotifierProvider<BoolSetting, bool>(
-  () => BoolSetting('map_3d'),
-);
 
 /// The sky above the far edge of the tilted map.
 class _Sky extends StatelessWidget {

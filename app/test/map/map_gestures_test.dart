@@ -61,16 +61,17 @@ void main() {
       MapController.of(t.element(find.byType(SpotClusterLayer))).camera;
   Offset middle(WidgetTester t) => t.getCenter(find.byType(FlutterMap));
 
-  test('flutter_map keeps its gestures, minus wheel (and two-finger move '
-      'in 3D)', () {
-    final flat = mapInteractionFlags(tilted: false);
-    expect(InteractiveFlag.hasScrollWheelZoom(flat), isFalse);
-    expect(InteractiveFlag.hasPinchMove(flat), isTrue);
-    expect(InteractiveFlag.hasPinchZoom(flat), isTrue);
-    final tilted = mapInteractionFlags(tilted: true);
-    expect(InteractiveFlag.hasPinchMove(tilted), isFalse);
-    expect(InteractiveFlag.hasPinchZoom(tilted), isTrue);
-    expect(InteractiveFlag.hasDrag(tilted), isTrue);
+  test('flutter_map keeps its gestures but wheel and two-finger move', () {
+    final flags = mapInteractionFlags();
+    expect(InteractiveFlag.hasScrollWheelZoom(flags), isFalse);
+    expect(InteractiveFlag.hasPinchMove(flags), isFalse);
+    expect(InteractiveFlag.hasPinchZoom(flags), isTrue);
+    expect(InteractiveFlag.hasRotate(flags), isTrue);
+    expect(InteractiveFlag.hasDrag(flags), isTrue);
+    final tilting = mapInteractionFlags(tilting: true);
+    expect(InteractiveFlag.hasPinchZoom(tilting), isFalse);
+    expect(InteractiveFlag.hasRotate(tilting), isFalse);
+    expect(InteractiveFlag.hasDrag(tilting), isTrue);
   });
 
   testWidgets('a mouse wheel zooms', (t) async {
@@ -157,19 +158,81 @@ void main() {
     expect(container.read(mapPitchProvider), tilted);
   });
 
-  testWidgets('flat: two touch fingers never tilt', (t) async {
-    await pump(t);
+  MapTilt? tiltNow(WidgetTester t) =>
+      MapTiltScope.of(t.element(find.byType(SpotClusterLayer)));
+
+  Future<(TestGesture, TestGesture)> twoFingers(WidgetTester t) async {
     final at = middle(t);
-    final a = await t.startGesture(at - const Offset(60, 0));
-    final b = await t.startGesture(at + const Offset(60, 0));
-    for (var i = 0; i < 5; i++) {
-      await a.moveBy(const Offset(0, -10));
-      await b.moveBy(const Offset(0, -10));
+    return (
+      await t.startGesture(at - const Offset(60, 0), pointer: 7),
+      await t.startGesture(at + const Offset(60, 0), pointer: 8),
+    );
+  }
+
+  Future<void> drag(
+    WidgetTester t,
+    (TestGesture, TestGesture) f,
+    double dy,
+    int steps,
+  ) async {
+    for (var i = 0; i < steps; i++) {
+      await f.$1.moveBy(Offset(0, dy));
+      await f.$2.moveBy(Offset(0, dy));
       await t.pump();
     }
-    await a.up();
-    await b.up();
+  }
+
+  testWidgets('2D: two fingers up go into 3D, down back to flat 2D', (t) async {
+    await pump(t);
+    expect(tiltNow(t), isNull);
+    final store = container.read(settingsStoreProvider);
+
+    var f = await twoFingers(t);
+    await drag(t, f, -10, 8); // 80 px up: 20 degrees
+    expect(tiltNow(t), isNotNull);
+    await f.$1.up();
+    await f.$2.up();
     await t.pumpAndSettle();
-    expect(container.read(mapPitchProvider), kMapPitch);
+    expect(container.read(mapPitchProvider), closeTo(20, 1e-6));
+    expect(store.getBool('map_3d'), isTrue);
+
+    // down again: flat while the fingers are still on the screen
+    f = await twoFingers(t);
+    await drag(t, f, 10, 10);
+    expect(container.read(mapPitchProvider), 0);
+    expect(tiltNow(t), isNull);
+    await f.$1.up();
+    await f.$2.up();
+    await t.pumpAndSettle();
+    expect(tiltNow(t), isNull);
+    expect(store.getBool('map_3d'), isFalse);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('let go nearly flat: it settles to 2D', (t) async {
+    await pump(t);
+    final f = await twoFingers(t);
+    await drag(t, f, -4, 6); // 24 px: 6 degrees
+    expect(container.read(mapPitchProvider), closeTo(6, 1e-6));
+    await f.$1.up();
+    await f.$2.up();
+    await t.pumpAndSettle();
+    expect(container.read(mapPitchProvider), 0);
+    expect(tiltNow(t), isNull);
+  });
+
+  testWidgets('the map keeps its place going into 3D and back', (t) async {
+    await pump(t);
+    final before = camera(t);
+    final f = await twoFingers(t);
+    await drag(t, f, -10, 8);
+    expect(camera(t).center, before.center);
+    expect(camera(t).zoom, before.zoom);
+    await drag(t, f, 10, 8);
+    await f.$1.up();
+    await f.$2.up();
+    await t.pumpAndSettle();
+    expect(camera(t).center, before.center);
+    expect(camera(t).zoom, before.zoom);
   });
 }

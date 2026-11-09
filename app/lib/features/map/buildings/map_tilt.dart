@@ -8,11 +8,15 @@ import 'package:vector_math/vector_math_64.dart' show Matrix3, Matrix4, Vector3;
 /// far side still fills it; the point in the middle of the screen stays the
 /// map's centre, so "fly to", "locate me" and the spot list work unchanged.
 
-/// How far the map leans back in 3D, in degrees: at first, and the range
-/// a two-finger drag can change it in.
+/// How far the map leans back in 3D, in degrees: what the 3D button goes
+/// to, and the steepest a two-finger drag can make it. A drag goes down to
+/// 0, the flat map; let go below [kExitPitch], it settles there.
 const double kMapPitch = 45;
-const double kMinPitch = 20;
 const double kMaxPitch = 60;
+const double kExitPitch = 10;
+
+/// Below this tilt the buildings fade out (so they never pop at 0).
+const double kBuildingsFadePitch = 15;
 
 /// Perspective strength: the eye is about this many screen heights away.
 const double _eyeDistance = 1.1;
@@ -172,50 +176,33 @@ class MapTiltScope extends InheritedWidget {
   bool updateShouldNotify(MapTiltScope old) => old.tilt != tilt;
 }
 
-/// The map, tilted back by [pitch] degrees while [on] (switching animates;
-/// a changed [pitch] applies at once). Off and flat, the map is laid out
-/// exactly as before.
+/// The map, tilted back by [pitch] degrees; 0 is the flat map, laid out
+/// exactly as without this widget. Give the map a [GlobalKey]: going from
+/// flat to tilted moves it into the transform, and the key keeps its state.
 class TiltedMap extends StatelessWidget {
-  const TiltedMap({
-    super.key,
-    required this.on,
-    this.pitch = kMapPitch,
-    required this.child,
-  });
+  const TiltedMap({super.key, required this.pitch, required this.child});
 
-  final bool on;
   final double pitch;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(end: on ? 1 : 0),
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeInOut,
-      child: child,
-      builder: (context, t, child) {
-        final pitch = t * this.pitch;
-        if (pitch == 0 && !on) {
-          return MapTiltScope(tilt: null, child: child!);
-        }
-        return LayoutBuilder(
-          builder: (context, box) {
-            final tilt = MapTilt(screen: box.biggest, pitchDegrees: pitch);
-            return ClipRect(
-              child: Transform(
-                transform: tilt.matrix,
-                child: OverflowBox(
-                  alignment: Alignment.center,
-                  minWidth: tilt.mapSize.width,
-                  maxWidth: tilt.mapSize.width,
-                  minHeight: tilt.mapSize.height,
-                  maxHeight: tilt.mapSize.height,
-                  child: MapTiltScope(tilt: tilt, child: child!),
-                ),
-              ),
-            );
-          },
+    if (pitch <= 0) return MapTiltScope(tilt: null, child: child);
+    return LayoutBuilder(
+      builder: (context, box) {
+        final tilt = MapTilt(screen: box.biggest, pitchDegrees: pitch);
+        return ClipRect(
+          child: Transform(
+            transform: tilt.matrix,
+            child: OverflowBox(
+              alignment: Alignment.center,
+              minWidth: tilt.mapSize.width,
+              maxWidth: tilt.mapSize.width,
+              minHeight: tilt.mapSize.height,
+              maxHeight: tilt.mapSize.height,
+              child: MapTiltScope(tilt: tilt, child: child),
+            ),
+          ),
         );
       },
     );
