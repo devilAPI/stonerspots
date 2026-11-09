@@ -3,6 +3,14 @@
 Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 "Releasing 1.0". Development builds (`dev-<n>`) are not listed here.
 
+## 1.0.4
+
+- 3D: zoom stops at 18.5. Further in, buildings near the viewer reached the
+  eye and were drawn torn apart (like a box around the map); such buildings
+  are now left out, and switching to 3D closer in zooms out to 18.5.
+- Adding a spot: a zone check that fails can no longer keep "Save"
+  spinning; the check only ever warns, so the spot is saved.
+
 ## 1.0.3
 
 - Profile and saved lists: the small satellite thumbnails no longer carry a

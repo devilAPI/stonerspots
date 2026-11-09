@@ -15,6 +15,10 @@ const double kMapPitch = 45;
 const double kMaxPitch = 60;
 const double kExitPitch = 10;
 
+/// The closest zoom in 3D: further in, the buildings near the viewer would
+/// reach the eye, and 3D shows nothing more than the flat map there.
+const double kMap3dMaxZoom = 18.5;
+
 /// Below this tilt the buildings fade out (so they never pop at 0).
 const double kBuildingsFadePitch = 15;
 

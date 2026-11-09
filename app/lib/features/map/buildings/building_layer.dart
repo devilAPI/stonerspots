@@ -18,6 +18,11 @@ const double kBuildingsMinZoom = 16;
 /// a roof never shine through and overlaps do not get darker.
 const double kBuildingOpacity = 0.65;
 
+/// Points closer to the eye than this (the perspective divisor, 1 at the
+/// middle of the screen) cannot be drawn sensibly: a building reaching
+/// there is left out instead of being drawn torn apart.
+const double kNearestW = 0.3;
+
 /// At most this many building tiles are used for one view.
 const int _maxTiles = 12;
 
@@ -230,7 +235,7 @@ class BuildingPainter extends CustomPainter {
       if (y + rad < gy0 + top || y - rad > gy1) continue;
       // then on the screen: foot and roof of the centre, and the size
       final w0 = q[8] * x + q[9] * y + q[11];
-      if (w0 <= 0) continue;
+      if (w0 < kNearestW) continue;
       final sx0 = (q[0] * x + q[1] * y + q[3]) / w0;
       final sy0 = (q[4] * x + q[5] * y + q[7]) / w0;
       final w1 = q[8] * x + q[9] * y + q[10] * top + q[11];
@@ -297,11 +302,17 @@ class BuildingPainter extends CustomPainter {
         ty = Float64List(count * 2);
       }
       // each corner projected once: where its foot and its top are drawn
+      var tooClose = false;
       for (var k = 0; k < count; k++) {
         final wx = b.points[2 * k] * scale - c.dx;
         final wy = b.points[2 * k + 1] * scale - c.dy;
         final x = wx * cosR - wy * sinR + half.dx;
         final y = wx * sinR + wy * cosR + half.dy;
+        // a roof reaching the eye (zoomed far in) would be drawn torn apart
+        if (q[8] * x + q[9] * y + q[10] * top + q[11] < kNearestW) {
+          tooClose = true;
+          break;
+        }
         final xr = r[0] * x + r[1] * y + r[3];
         final yr = r[4] * x + r[5] * y + r[7];
         final wr = r[8] * x + r[9] * y + r[11];
@@ -311,6 +322,7 @@ class BuildingPainter extends CustomPainter {
         tx[k] = (xr + r[2] * top) / wt;
         ty[k] = (yr + r[6] * top) / wt;
       }
+      if (tooClose) continue;
       // walls that face the viewer, far to near
       walls.clear();
       wallKeys.clear();

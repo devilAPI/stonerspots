@@ -93,6 +93,15 @@ class _MapScreenState extends ConsumerState<MapScreen>
     _tiltAnimation.forward(from: 0);
   }
 
+  /// Going into 3D closer than [kMap3dMaxZoom]: back out to it.
+  void _limitZoomFor3d(double pitch) {
+    if (pitch <= 0) return;
+    final camera = _mapController.camera;
+    if (camera.zoom > kMap3dMaxZoom) {
+      _mapController.move(camera.center, kMap3dMaxZoom);
+    }
+  }
+
   void _applyTilt() =>
       ref.read(mapPitchProvider.notifier).set(_tiltTween!.value);
 
@@ -224,6 +233,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final spots = ref.watch(spotsControllerProvider.select((s) => s.spots));
     final transitKey = ref.watch(thunderforestKeyProvider);
     final pitch = ref.watch(mapPitchProvider);
+    ref.listen(mapPitchProvider, (before, now) {
+      if ((before ?? 0) <= 0 && now > 0) {
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _limitZoomFor3d(now),
+        );
+      }
+    });
     final map3d = pitch > 0;
     if (!identical(_markerSource, spots)) {
       _markerSource = spots;
@@ -259,7 +275,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                   interactionOptions: InteractionOptions(
                     flags: mapInteractionFlags(tilting: _tiltGesture),
                   ),
-                  maxZoom: kMapMaxZoom,
+                  maxZoom: map3d ? kMap3dMaxZoom : kMapMaxZoom,
                   initialCenter: kRegionCentre,
                   initialZoom: kRegionZoom,
                   onMapReady: _notifyBounds,

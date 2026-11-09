@@ -171,6 +171,34 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
+  testWidgets('3D never zooms closer than 18.5', (t) async {
+    await t.pumpWidget(
+      ProviderScope(
+        overrides: [
+          settingsStoreProvider.overrideWithValue(SettingsStore.memory()),
+          mapSpotsRepositoryProvider.overrideWithValue(_Repo()),
+          locationServiceProvider.overrideWithValue(_Location()),
+          mapDebounceProvider.overrideWithValue(Duration.zero),
+        ],
+        child: const MaterialApp(
+          locale: Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MapScreen(),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    final ctl = MapController.of(t.element(find.byType(SpotClusterLayer)));
+    ctl.move(const LatLng(48.1372, 11.5755), 20);
+    await t.pumpAndSettle();
+    expect(ctl.camera.zoom, 20);
+    await t.tap(find.byKey(const Key('map3d')));
+    await t.pumpAndSettle();
+    expect(ctl.camera.zoom, kMap3dMaxZoom);
+    expect(t.takeException(), isNull);
+  });
+
   group('location', () {
     Future<void> pumpWith(WidgetTester t, LocationService loc) async {
       await t.pumpWidget(

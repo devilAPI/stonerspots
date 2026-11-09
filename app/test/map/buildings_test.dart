@@ -154,4 +154,51 @@ void main() {
     expect(p.debugWallFeet, hasLength(1));
     expect(p.debugWallFeet.single, greaterThan(middle));
   });
+
+  test('a building reaching the eye is left out, not drawn torn apart', () {
+    const screen = Size(900, 500);
+    final tilt = MapTilt(screen: screen, pitchDegrees: kMapPitch);
+    const centre = LatLng(48.1372, 11.5755);
+    double mx(double lon) => (lon + 180) / 360;
+    double my(double lat) {
+      final s = math.sin(lat * math.pi / 180);
+      return 0.5 - math.log((1 + s) / (1 - s)) / (4 * math.pi);
+    }
+
+    Building house(double height) {
+      final x = mx(centre.longitude), y = my(centre.latitude);
+      const d = 0.00000015;
+      return Building(
+        points: Float64List.fromList([
+          x - d, y - d, x + d, y - d, x + d, y + d, x - d, y + d, //
+        ]),
+        ringEnds: Int32List.fromList([4]),
+        roof: Int32List.fromList([0, 1, 2, 0, 2, 3]),
+        height: height,
+        minHeight: 0,
+      );
+    }
+
+    int drawn(double zoom, double height) {
+      final p = BuildingPainter(
+        camera: MapCamera(
+          crs: const Epsg3857(),
+          center: centre,
+          zoom: zoom,
+          rotation: 0,
+          nonRotatedSize: tilt.mapSize,
+        ),
+        tilt: tilt,
+        buildings: [house(height)],
+        palette: BuildingPalette.light,
+      );
+      final rec = ui.PictureRecorder();
+      p.paint(Canvas(rec), tilt.mapSize);
+      rec.endRecording().dispose();
+      return p.lastTriangles;
+    }
+
+    expect(drawn(18, 30), greaterThan(0)); // a normal house
+    expect(drawn(20, 400), 0); // a tower right in front of the eye
+  });
 }
