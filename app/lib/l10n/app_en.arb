@@ -670,5 +670,6 @@
   "updateChannelRelease": "Stable",
   "updateChannelDev": "Dev",
   "settingsUpdateChannelHint": "Dev builds have the newest changes and can be broken.",
-  "updateChannelAndroidDowngrade": "Android only installs the stable version once it is newer than this dev build. To switch right away, uninstall the app first."
+  "updateChannelAndroidDowngrade": "Android only installs the stable version once it is newer than this dev build. To switch right away, uninstall the app first.",
+  "map3d": "3D view"
 }

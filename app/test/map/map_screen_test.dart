@@ -1,3 +1,6 @@
+import 'package:app/features/map/spot_cluster_layer.dart';
+import 'package:app/features/map/buildings/map_tilt.dart';
+import 'package:app/core/settings.dart';
 import 'package:app/core/location_service.dart';
 import 'package:app/core/models.dart';
 import 'package:app/features/map/map_screen.dart';
@@ -127,6 +130,45 @@ void main() {
     expect(url(), isNot(contains('thunderforest')));
     expect(url(), isNot(contains('World_Imagery')));
     expect(find.byTooltip('Map'), findsOneWidget);
+  });
+
+  testWidgets('the 3D button tilts the map and stays on', (t) async {
+    final store = SettingsStore.memory();
+    await t.pumpWidget(
+      ProviderScope(
+        overrides: [
+          settingsStoreProvider.overrideWithValue(store),
+          mapSpotsRepositoryProvider.overrideWithValue(_Repo()),
+          locationServiceProvider.overrideWithValue(_Location()),
+          mapDebounceProvider.overrideWithValue(Duration.zero),
+        ],
+        child: const MaterialApp(
+          locale: Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MapScreen(),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    MapTilt? tilt() => MapTiltScope.of(
+      t.element(find.byType(SpotClusterLayer, skipOffstage: false)),
+    );
+    expect(tilt(), isNull);
+    expect(find.byTooltip('3D view'), findsOneWidget);
+
+    await t.tap(find.byKey(const Key('map3d')));
+    await t.pumpAndSettle();
+    expect(tilt()?.pitch, closeTo(kMapPitch * 3.14159265 / 180, 1e-6));
+    expect(store.getBool('map_3d'), isTrue);
+    // the map is bigger than the screen, the middle stays the middle
+    final screen = t.getSize(find.byType(MapScreen));
+    expect(tilt()!.mapSize.height, greaterThan(screen.height));
+
+    await t.tap(find.byKey(const Key('map3d')));
+    await t.pumpAndSettle();
+    expect(tilt(), isNull);
+    expect(t.takeException(), isNull);
   });
 
   group('location', () {

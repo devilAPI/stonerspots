@@ -1949,4 +1949,7 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get updateChannelAndroidDowngrade =>
       'Android installiert die stabile Version erst, wenn sie neuer ist als diese Dev-Version. Um sofort zu wechseln, deinstalliere die App vorher.';
+
+  @override
+  String get map3d => '3D-Ansicht';
 }

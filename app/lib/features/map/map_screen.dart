@@ -8,9 +8,12 @@ import '../../core/glass.dart';
 import '../../core/location_service.dart';
 import '../../core/models.dart';
 import '../../core/responsive.dart';
+import '../../core/settings.dart';
 import '../../l10n/app_localizations.dart';
 import '../users/author_link.dart' show userPath;
 import '../zones/zone_layer.dart';
+import 'buildings/building_layer.dart';
+import 'buildings/map_tilt.dart';
 import 'map_compass.dart';
 import 'map_controls_theme.dart';
 import 'map_filter_bar.dart';
@@ -183,6 +186,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     // does not rebuild the map itself.
     final spots = ref.watch(spotsControllerProvider.select((s) => s.spots));
     final transitKey = ref.watch(thunderforestKeyProvider);
+    final map3d = ref.watch(map3dProvider);
     if (!identical(_markerSource, spots)) {
       _markerSource = spots;
       final top = spots.take(kTopSpots).map((s) => s.id).toSet();
@@ -202,39 +206,48 @@ class _MapScreenState extends ConsumerState<MapScreen>
     return Scaffold(
       body: Stack(
         children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              maxZoom: kMapMaxZoom,
-              initialCenter: kRegionCentre,
-              initialZoom: kRegionZoom,
-              onMapReady: _notifyBounds,
-              onTap: (_, p) =>
-                  showZonesAt(context, ref, p, _mapController.camera.zoom),
-              onPositionChanged: (camera, hasGesture) {
-                if (hasGesture) {
-                  _userMoved = true;
-                  _flight.stop();
-                }
-                ref
-                    .read(spotsControllerProvider.notifier)
-                    .onCameraMoved(camera.visibleBounds);
-              },
-            ),
-            children: [
-              buildBaseLayer(context, base: _base, transitKey: transitKey),
-              const ZoneLayer(),
-              SpotClusterLayer(markers: _markers),
-              SafeArea(
-                top: false,
-                child: buildBaseAttribution(
-                  context,
-                  base: _base,
-                  transitKey: transitKey,
-                ),
+          // above the far edge of the tilted 3D map
+          if (map3d) const Positioned.fill(child: _Sky()),
+          TiltedMap(
+            on: map3d,
+            child: FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                maxZoom: kMapMaxZoom,
+                initialCenter: kRegionCentre,
+                initialZoom: kRegionZoom,
+                onMapReady: _notifyBounds,
+                onTap: (_, p) =>
+                    showZonesAt(context, ref, p, _mapController.camera.zoom),
+                onPositionChanged: (camera, hasGesture) {
+                  if (hasGesture) {
+                    _userMoved = true;
+                    _flight.stop();
+                  }
+                  ref
+                      .read(spotsControllerProvider.notifier)
+                      .onCameraMoved(camera.visibleBounds);
+                },
               ),
-              const ZoneOverlay(),
-            ],
+              children: [
+                buildBaseLayer(context, base: _base, transitKey: transitKey),
+                const ZoneLayer(),
+                BuildingLayer(darkBase: isDarkBaseMap(context, _base)),
+                SpotClusterLayer(markers: _markers),
+                UntiltedMapChild(
+                  child: SafeArea(
+                    top: false,
+                    child: buildBaseAttribution(
+                      context,
+                      base: _base,
+                      transitKey: transitKey,
+                      buildings: map3d,
+                    ),
+                  ),
+                ),
+                const UntiltedMapChild(child: ZoneOverlay()),
+              ],
+            ),
           ),
           if (!_searchOpen)
             Positioned(
@@ -260,6 +273,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
                         key: const Key('mapLayer'),
                         base: _base,
                         onChanged: (b) => setState(() => _base = b),
+                      ),
+                      IconButton(
+                        key: const Key('map3d'),
+                        tooltip: l10n.map3d,
+                        isSelected: map3d,
+                        onPressed: () =>
+                            ref.read(map3dProvider.notifier).set(!map3d),
+                        icon: const Icon(Icons.view_in_ar_outlined),
                       ),
                       const ZoneToggleButton(),
                       const ZoneInfoButton(),
@@ -371,6 +392,33 @@ class _ErrorBanner extends ConsumerWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 3D view on the main map (tilted, with buildings); off by default.
+final map3dProvider = NotifierProvider<BoolSetting, bool>(
+  () => BoolSetting('map_3d'),
+);
+
+/// The sky above the far edge of the tilted map.
+class _Sky extends StatelessWidget {
+  const _Sky();
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: dark
+              ? const [Color(0xFF0E1420), Color(0xFF1C2433)]
+              : const [Color(0xFFBFD8EE), Color(0xFFE6F0F8)],
+          stops: const [0, 0.25],
         ),
       ),
     );

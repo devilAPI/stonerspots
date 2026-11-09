@@ -652,6 +652,31 @@ Before launch:
 
 Map data © OpenStreetMap contributors.
 
+### 3D view
+
+The cube button on the map tilts it back 45° with perspective and, from zoom
+15 on, draws every building as a block with its height from OpenStreetMap
+(`render_height` / `render_min_height` of the OpenMapTiles schema), over any
+of the three base maps. It runs on every platform, Linux and Windows
+included, because it is not a separate 3D engine:
+
+- The flutter_map widget itself is tilted (`TiltedMap`,
+  `app/lib/features/map/buildings/map_tilt.dart`) and made larger than the
+  screen so the far side fills it; the middle of the screen stays the
+  map's centre, so flying to a spot and "locate me" work unchanged. Taps
+  and drags go through the tilt to the right place on the ground. Hints and
+  credits are drawn flat again (`UntiltedMapChild`).
+- Buildings come as vector tiles (zoom 14) from
+  [OpenFreeMap](https://openfreemap.org) (free, no key, worldwide; its
+  TileJSON names the current tile URL). `buildings/mvt.dart` reads only the
+  `building` layer; roofs are triangulated once per tile (earcut).
+- `BuildingLayer` sits between the base map and the spot markers and draws
+  all walls and roofs far to near in one batch of triangles, solid into a
+  layer that is then faded to 65 %, so the map stays readable and walls
+  behind a roof never shine through. Dark buildings on the dark street map,
+  light ones on satellite and the transport map.
+- Credit while it is on: "OpenFreeMap © OpenMapTiles" next to the map's own.
+
 ## Verbotszonen
 
 The map can show where § 5 KCanG (Germany) forbids consuming cannabis, and

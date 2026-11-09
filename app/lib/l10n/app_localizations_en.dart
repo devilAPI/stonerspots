@@ -1934,4 +1934,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get updateChannelAndroidDowngrade =>
       'Android only installs the stable version once it is newer than this dev build. To switch right away, uninstall the app first.';
+
+  @override
+  String get map3d => '3D view';
 }

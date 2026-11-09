@@ -3313,6 +3313,12 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Android installiert die stabile Version erst, wenn sie neuer ist als diese Dev-Version. Um sofort zu wechseln, deinstalliere die App vorher.'**
   String get updateChannelAndroidDowngrade;
+
+  /// No description provided for @map3d.
+  ///
+  /// In de, this message translates to:
+  /// **'3D-Ansicht'**
+  String get map3d;
 }
 
 class _AppLocalizationsDelegate

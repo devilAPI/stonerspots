@@ -1,0 +1,105 @@
+import 'dart:io';
+import 'dart:math' as math;
+
+import 'dart:ui' as ui;
+
+import 'package:app/features/map/buildings/building_layer.dart';
+import 'package:app/features/map/buildings/buildings.dart';
+import 'package:app/features/map/buildings/map_tilt.dart';
+import 'package:app/features/map/buildings/mvt.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
+
+void main() {
+  // OpenFreeMap tile 14/8718/5685: central Munich around Marienplatz
+  final bytes = File('test/map/fixtures/munich_14_8718_5685.pbf')
+      .readAsBytesSync();
+
+  test('reads the building layer of a real tile', () {
+    final layer = readMvtLayer(bytes, 'building')!;
+    expect(layer.extent, 4096);
+    expect(layer.features.length, greaterThan(100));
+    final heights = layer.features
+        .map((f) => f.properties['render_height'])
+        .whereType<num>();
+    expect(heights, isNotEmpty);
+    expect(readMvtLayer(bytes, 'no_such_layer'), isNull);
+  });
+
+  test('buildings: inside the tile, with heights', () {
+    final list = parseBuildingTile(bytes, 8718, 5685);
+    expect(list.length, greaterThan(100));
+    final n = math.pow(2, 14);
+    for (final b in list) {
+      expect(b.height, greaterThan(b.minHeight));
+      final cx = b.centerX * n, cy = b.centerY * n;
+      expect(cx, inInclusiveRange(8718, 8719));
+      expect(cy, inInclusiveRange(5685, 5686));
+    }
+    // every roof is triangulated, with valid point indices
+    for (final b in list) {
+      expect(b.roof.length % 3, 0);
+      expect(b.roof, isNotEmpty);
+      final points = b.points.length ~/ 2;
+      expect(b.roof.every((i) => i >= 0 && i < points), isTrue);
+      expect(b.ringEnds.last, points);
+    }
+    // the Frauenkirche towers (99 m) are in this tile
+    final tallest = list.map((b) => b.height).reduce(math.max);
+    expect(tallest, greaterThan(80));
+  });
+
+  test('the Neues Rathaus at Marienplatz is there and tall', () {
+    // Neues Rathaus: 48.1375, 11.5757 (tower 85 m)
+    double mx(double lon) => (lon + 180) / 360;
+    double my(double lat) {
+      final s = math.sin(lat * math.pi / 180);
+      return 0.5 - math.log((1 + s) / (1 - s)) / (4 * math.pi);
+    }
+
+    final x = mx(11.5757), y = my(48.1375);
+    final list = parseBuildingTile(bytes, 8718, 5685);
+    final here = list.where(
+      (b) => b.west <= x && x <= b.east && b.north <= y && y <= b.south,
+    );
+    expect(here, isNotEmpty);
+    expect(here.map((b) => b.height).reduce(math.max), greaterThan(30));
+  });
+
+  test('the painter draws the buildings of Marienplatz in 3D', () {
+    const screen = Size(900, 500);
+    final tilt = MapTilt(screen: screen, pitchDegrees: kMapPitch);
+    final camera = MapCamera(
+      crs: const Epsg3857(),
+      center: const LatLng(48.1372, 11.5755),
+      zoom: 17,
+      rotation: 20,
+      nonRotatedSize: tilt.mapSize,
+    );
+    final painter = BuildingPainter(
+      camera: camera,
+      tilt: tilt,
+      buildings: parseBuildingTile(bytes, 8718, 5685),
+      palette: BuildingPalette.dark,
+    );
+    final recorder = ui.PictureRecorder();
+    painter.paint(Canvas(recorder), tilt.mapSize);
+    recorder.endRecording().dispose();
+    // walls and roofs of many buildings
+    expect(painter.lastTriangles, greaterThan(1000));
+
+    // nothing in view: nothing drawn, no error
+    final empty = BuildingPainter(
+      camera: camera,
+      tilt: tilt,
+      buildings: const [],
+      palette: BuildingPalette.light,
+    );
+    final r2 = ui.PictureRecorder();
+    empty.paint(Canvas(r2), tilt.mapSize);
+    r2.endRecording().dispose();
+    expect(empty.lastTriangles, 0);
+  });
+}

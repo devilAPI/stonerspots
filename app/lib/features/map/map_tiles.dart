@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
+import 'buildings/buildings.dart' show kBuildingsAttribution;
 
 /// Overrides both tile styles (e.g. a self-hosted or paid provider):
 /// `--dart-define=TILE_URL=https://.../{z}/{x}/{y}.png`
@@ -58,6 +59,7 @@ TileLayer buildTileLayer(BuildContext context, {String cartoKey = kCartoKey}) {
 Widget buildMapAttribution(
   BuildContext context, {
   String cartoKey = kCartoKey,
+  bool buildings = false,
 }) {
   return RichAttributionWidget(
     alignment: AttributionAlignment.bottomLeft,
@@ -65,6 +67,7 @@ Widget buildMapAttribution(
       const TextSourceAttribution('OpenStreetMap contributors'),
       if (_usesCartoDark(context, cartoKey))
         const TextSourceAttribution('CARTO'),
+      if (buildings) const TextSourceAttribution(kBuildingsAttribution),
     ],
   );
 }
@@ -135,6 +138,11 @@ TileLayer buildSatelliteTileLayer() => TileLayer(
   maxNativeZoom: kSatelliteMaxNativeZoom,
 );
 
+/// Whether [base] is drawn dark (then light things on it need dark colours
+/// to match): only the street map in dark mode with the CARTO key.
+bool isDarkBaseMap(BuildContext context, MapBase base) =>
+    base == MapBase.streets && _usesCartoDark(context, kCartoKey);
+
 /// The kinds of base map the map-type button cycles through.
 enum MapBase { streets, satellite, transit }
 
@@ -163,15 +171,18 @@ Widget buildBaseAttribution(
   BuildContext context, {
   required MapBase base,
   String transitKey = kThunderforestKey,
+  bool buildings = false,
 }) => switch (base) {
-  MapBase.streets => buildMapAttribution(context),
-  MapBase.satellite => const Align(
+  MapBase.streets => buildMapAttribution(context, buildings: buildings),
+  MapBase.satellite => Align(
     alignment: Alignment.bottomRight,
     child: Padding(
-      padding: EdgeInsets.fromLTRB(0, 0, 6, 4),
+      padding: const EdgeInsets.fromLTRB(0, 0, 6, 4),
       child: Text(
-        'Esri World Imagery',
-        style: TextStyle(
+        buildings
+            ? 'Esri World Imagery · $kBuildingsAttribution'
+            : 'Esri World Imagery',
+        style: const TextStyle(
           color: Colors.white70,
           fontSize: 10,
           shadows: [Shadow(blurRadius: 3, color: Colors.black)],
@@ -188,6 +199,7 @@ Widget buildBaseAttribution(
             : 'Thunderforest',
       ),
       const TextSourceAttribution('OpenStreetMap contributors'),
+      if (buildings) const TextSourceAttribution(kBuildingsAttribution),
     ],
   ),
 };
