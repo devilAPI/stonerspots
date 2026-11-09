@@ -693,5 +693,6 @@
   "updateChannelDev": "Dev",
   "settingsUpdateChannelHint": "Dev-Versionen haben die neuesten Änderungen und können kaputt sein.",
   "updateChannelAndroidDowngrade": "Android installiert die stabile Version erst, wenn sie neuer ist als diese Dev-Version. Um sofort zu wechseln, deinstalliere die App vorher.",
-  "map3d": "3D-Ansicht"
+  "map3d": "3D-Ansicht",
+  "satelliteCredit": "Satellitenbilder: Esri World Imagery"
 }

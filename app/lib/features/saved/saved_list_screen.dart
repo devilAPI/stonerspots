@@ -122,6 +122,7 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _scroll.hasClients) _onScroll();
     });
+    final satellite = page.items.any((s) => s.coverUrl == null);
     return LayoutBuilder(
       builder: (context, c) => RefreshIndicator(
         edgeOffset: GlassAppBar.contentTop(context),
@@ -130,13 +131,20 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen> {
           controller: _scroll,
           physics: const AlwaysScrollableScrollPhysics(),
           padding: savedPagePadding(context, c.maxWidth),
-          itemCount: page.items.length + (page.loadingMore ? 1 : 0),
+          itemCount:
+              page.items.length +
+              (page.loadingMore ? 1 : 0) +
+              (satellite ? 1 : 0),
           itemBuilder: (_, i) {
             if (i >= page.items.length) {
-              return const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
-              );
+              if (page.loadingMore && i == page.items.length) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              // the thumbnails are too small to carry it themselves
+              return const SatelliteCredit(key: Key('satelliteCredit'));
             }
             final spot = page.items[i];
             return _SpotRow(

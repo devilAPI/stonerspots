@@ -208,15 +208,20 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             ),
           ),
           ...switch (_tab) {
-            _Tab.spots => _list(
-              l,
-              spots,
-              empty: l.userNoSpots,
-              retry: () => ref
-                  .read(userSpotsProvider(widget.userId).notifier)
-                  .loadFirst(),
-              item: (s) => _SpotRow(key: ValueKey('s${s.id}'), spot: s),
-            ),
+            _Tab.spots => [
+              ..._list(
+                l,
+                spots,
+                empty: l.userNoSpots,
+                retry: () => ref
+                    .read(userSpotsProvider(widget.userId).notifier)
+                    .loadFirst(),
+                item: (s) => _SpotRow(key: ValueKey('s${s.id}'), spot: s),
+              ),
+              // the thumbnails are too small to carry it themselves
+              if (spots.items.any((s) => s.coverUrl == null))
+                const SatelliteCredit(key: Key('satelliteCredit')),
+            ],
             _Tab.updates => _list(
               l,
               updates,

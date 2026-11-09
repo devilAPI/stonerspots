@@ -3,6 +3,16 @@
 Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 "Releasing 1.0". Development builds (`dev-<n>`) are not listed here.
 
+## 1.0.3
+
+- Profile and saved lists: the small satellite thumbnails no longer carry a
+  cut-off "…ld Imagery" over the picture; the lists credit Esri once below
+  instead.
+- Web: a release now really replaces the web app. GitHub Pages kept the
+  previous files when a release was tagged on the commit whose dev build had
+  just been deployed (1.0.2 stayed on 1.0.1); each deployment now has its
+  own version.
+
 ## 1.0.2
 
 - Web: the map no longer shows a grey overlay and the 3D view loads. The

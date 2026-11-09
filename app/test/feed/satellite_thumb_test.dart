@@ -32,4 +32,14 @@ void main() {
     await _pump(t, 56);
     expect(_dot, findsNothing);
   });
+
+  testWidgets('a large thumbnail carries the Esri credit', (t) async {
+    await _pump(t, 400);
+    expect(find.text('Esri World Imagery'), findsOneWidget);
+  });
+
+  testWidgets('a small list-row thumbnail has no credit in it', (t) async {
+    await _pump(t, 56);
+    expect(find.textContaining('Imagery'), findsNothing);
+  });
 }

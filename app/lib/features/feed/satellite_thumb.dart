@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 import '../../core/theme.dart';
 import '../map/map_tiles.dart';
 
@@ -58,6 +60,11 @@ List<ThumbTile> satelliteThumbTiles({
 
 /// Thumbnails narrower than this show no dot on the spot.
 const double kThumbMarkerMinWidth = 120;
+
+/// Below this width a thumbnail draws no "Esri World Imagery" inside: it
+/// does not fit and covers the picture. Lists of such small thumbnails show
+/// the credit once instead ([SatelliteCredit]).
+const double kThumbCreditMinWidth = 140;
 
 /// Non-interactive top-down satellite picture of a spot, used where a post
 /// has no photo of its own. Drawn from a few disk-cached tile images rather
@@ -121,18 +128,19 @@ class SatelliteThumb extends StatelessWidget {
                       ),
                     ),
                   ),
-                const Positioned(
-                  right: 6,
-                  bottom: 4,
-                  child: Text(
-                    'Esri World Imagery',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 10,
-                      shadows: [Shadow(blurRadius: 3, color: Colors.black)],
+                if (c.maxWidth >= kThumbCreditMinWidth)
+                  const Positioned(
+                    right: 6,
+                    bottom: 4,
+                    child: Text(
+                      'Esri World Imagery',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                        shadows: [Shadow(blurRadius: 3, color: Colors.black)],
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -140,4 +148,21 @@ class SatelliteThumb extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The satellite credit, once, under a list of small thumbnails that are
+/// too small to carry it themselves.
+class SatelliteCredit extends StatelessWidget {
+  const SatelliteCredit({super.key});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+    child: Text(
+      AppLocalizations.of(context).satelliteCredit,
+      textAlign: TextAlign.center,
+      style: Theme.of(context).textTheme.bodySmall
+          ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+    ),
+  );
 }

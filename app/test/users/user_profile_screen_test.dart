@@ -143,6 +143,19 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
+  testWidgets('spot rows: no credit in the thumbnails, once below them', (
+    t,
+  ) async {
+    portrait(t);
+    await pumpProfile(t, FakeUsers(spotIds: [1, 2, 3]));
+    expect(find.byKey(const Key('userSpot-1')), findsOneWidget);
+    // "Esri World Imagery" cut to "…ld Imagery" in every 56 px thumbnail
+    expect(find.text('Esri World Imagery'), findsNothing);
+    expect(find.byKey(const Key('satelliteCredit')), findsOneWidget);
+    expect(find.text('Satellite images: Esri World Imagery'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets('landscape phones: update cards put the picture beside', (
     t,
   ) async {

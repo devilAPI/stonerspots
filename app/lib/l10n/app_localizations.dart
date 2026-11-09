@@ -3313,6 +3313,12 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'3D-Ansicht'**
   String get map3d;
+
+  /// No description provided for @satelliteCredit.
+  ///
+  /// In de, this message translates to:
+  /// **'Satellitenbilder: Esri World Imagery'**
+  String get satelliteCredit;
 }
 
 class _AppLocalizationsDelegate

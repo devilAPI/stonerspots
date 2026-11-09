@@ -1949,4 +1949,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get map3d => '3D-Ansicht';
+
+  @override
+  String get satelliteCredit => 'Satellitenbilder: Esri World Imagery';
 }
