@@ -507,17 +507,26 @@ For 1.0:
    git push origin main
    ```
 
-2. **Version**: `app/pubspec.yaml` already says `version: 1.0.0+1`, and
-   `CHANGELOG.md` has the 1.0.0 entry. For later releases: raise `X.Y.Z`
-   there (leave `+1`: CI sets the build number), add a CHANGELOG entry,
-   commit and push to main. The tag must equal that version, or the release
-   stops at its first job.
-3. **Tag** the commit on main and push the tag:
+2. **Version**: raise `X.Y.Z` in `app/pubspec.yaml` (leave `+1`: CI sets
+   the build number), add a CHANGELOG entry and commit. The tag must equal
+   that version, or the release stops at its first job.
+3. **Tag that commit and push the tag first, main after** (once the
+   release run has started):
 
    ```sh
-   git tag -a v1.0.0 -m "Stonerspots 1.0.0"
-   git push origin v1.0.0
+   git tag -a vX.Y.Z -m "Stonerspots X.Y.Z"
+   git push origin vX.Y.Z
+   git push origin main
    ```
+
+   The order matters for the web app: GitHub Pages keeps the files of the
+   *first* deployment of a commit. If the dev build of the release commit
+   deployed first (with the previous release as the stable app), the
+   release's deployment would "succeed" and change nothing. A dev build
+   skips its web deploy when its commit already carries a `v*` tag, so with
+   the tag pushed first the release deploys the site. (A release tagged on
+   a commit whose dev build was already deployed leaves the site on the
+   previous release until the next push to main.)
 
    If no run starts (or one must be repeated), start it by hand from main:
    Actions → "Dev build & release" → Run workflow, tag `v1.0.0`, or

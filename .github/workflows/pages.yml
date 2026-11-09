@@ -35,8 +35,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    outputs:
-      artifact_id: ${{ steps.upload.outputs.artifact_id }}
     concurrency:
       group: pages-build
       cancel-in-progress: true
@@ -97,8 +95,7 @@ jobs:
           unpack "${stable:-$dev}" site "${BASE_PATH}/"
           [ -n "$dev" ] && unpack "$dev" site/dev "${BASE_PATH}/dev/"
           ls site
-      - id: upload
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
           path: site
 
@@ -116,40 +113,5 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      # Not actions/deploy-pages: it always names the deployment after the
-      # commit, and Pages keeps the files of a version it already has. A
-      # release is tagged on the very commit whose dev build was deployed a
-      # few minutes before, so its deployment "succeeded" without changing
-      # the site (1.0.2 stayed on 1.0.1). The same API calls, with a version
-      # that is unique per run.
       - id: deployment
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ARTIFACT_ID: ${{ needs.build.outputs.artifact_id }}
-          BUILD_VERSION: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-        run: |
-          set -euo pipefail
-          [ -n "$ARTIFACT_ID" ] || { echo "::error::no Pages artifact id"; exit 1; }
-          oidc=$(curl -fsS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}" | jq -r '.value')
-          created=$(jq -n --arg a "$ARTIFACT_ID" --arg v "$BUILD_VERSION" --arg t "$oidc" \
-              '{artifact_id: ($a | tonumber), pages_build_version: $v, oidc_token: $t}' \
-            | gh api -X POST "repos/${GITHUB_REPOSITORY}/pages/deployments" --input -)
-          status_url=$(jq -r '.status_url' <<<"$created")
-          page_url=$(jq -r '.page_url' <<<"$created")
-          echo "deployment ${BUILD_VERSION}: ${status_url}"
-          for _ in $(seq 1 120); do
-            status=$(gh api "$status_url" --jq '.status')
-            echo "status: ${status}"
-            case "$status" in
-              succeed)
-                echo "page_url=${page_url}" >> "$GITHUB_OUTPUT"
-                exit 0 ;;
-              deployment_failed | deployment_content_failed | deployment_cancelled | deployment_lost | deployment_attempt_error)
-                echo "::error::Pages deployment ended with ${status}"
-                exit 1 ;;
-            esac
-            sleep 5
-          done
-          echo "::error::Pages deployment did not finish within 10 minutes"
-          exit 1
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5

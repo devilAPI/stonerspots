@@ -120,6 +120,7 @@ jobs:
     outputs:
       channel: ${{ steps.check.outputs.channel }}
       version: ${{ steps.check.outputs.version }}
+      release_tagged: ${{ steps.check.outputs.release_tagged }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -138,6 +139,15 @@ jobs:
           echo "channel=${BUILD_CHANNEL}" >> "$GITHUB_OUTPUT"
           if [ "$BUILD_CHANNEL" = dev ]; then
             echo "dev build ${TAG}"
+            # GitHub Pages keeps the files of the first deployment of a
+            # commit. When this commit is (also) a release, the release's
+            # deployment must be that first one, or the site keeps the old
+            # stable app: skip the web deploy here.
+            if git ls-remote --tags "https://github.com/${GITHUB_REPOSITORY}.git" 'refs/tags/v*' \
+              | grep -q "^${GITHUB_SHA}"; then
+              echo "release_tagged=true" >> "$GITHUB_OUTPUT"
+              echo "this commit is a release: the release deploys the web app"
+            fi
             exit 0
           fi
           if ! [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
@@ -714,8 +724,8 @@ jobs:
   # dev builds: /dev/ on GitHub Pages, before the release is done
   deploy-web:
     name: Deploy web to /dev/
-    needs: [test-app, build-web]
-    if: github.ref_type != 'tag' && !inputs.tag
+    needs: [version, test-app, build-web]
+    if: github.ref_type != 'tag' && !inputs.tag && needs.version.outputs.release_tagged != 'true'
     permissions:
       contents: read
       pages: write

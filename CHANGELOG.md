@@ -8,10 +8,11 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 - Profile and saved lists: the small satellite thumbnails no longer carry a
   cut-off "…ld Imagery" over the picture; the lists credit Esri once below
   instead.
-- Web: a release now really replaces the web app. GitHub Pages kept the
-  previous files when a release was tagged on the commit whose dev build had
-  just been deployed (1.0.2 stayed on 1.0.1); each deployment now has its
-  own version.
+- Web: a release now really replaces the web app. GitHub Pages keeps the
+  files of the first deployment of a commit, and 1.0.2 was tagged on the
+  commit its dev build had deployed minutes before (the site stayed on
+  1.0.1). A release commit's tag is now pushed before main, and a dev build
+  of a commit that is already a release leaves the web deploy to it.
 
 ## 1.0.2
 
