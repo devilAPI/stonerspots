@@ -3,7 +3,8 @@
 library;
 
 /// Which releases a build follows. Set at build time with
-/// `--dart-define=UPDATE_CHANNEL=dev|release`.
+/// `--dart-define=UPDATE_CHANNEL=dev|release`; the user can pick the other
+/// one in the settings.
 enum UpdateChannel {
   /// Prereleases `dev-<run number>`, compared by run number with the
   /// installed build number.
@@ -230,14 +231,19 @@ bool isNewerThanInstalled(
 }
 
 /// The update to offer, or null when [releases] has nothing newer on
-/// [channel] (or only the version the user chose to skip).
+/// [channel] (or only the version the user chose to skip). [switching]: the
+/// installed build belongs to the other channel (the user switched in the
+/// settings), so the newest of [channel] is offered even when it is not
+/// newer by number; once it is installed, the numbers count again.
 ReleaseInfo? pickUpdate({
   required List<ReleaseInfo> releases,
   required UpdateChannel channel,
   required InstalledVersion installed,
   String? skippedTag,
+  bool switching = false,
 }) {
   final newest = newestRelease(releases, channel);
   if (newest == null || newest.tag == skippedTag) return null;
+  if (switching) return newest;
   return isNewerThanInstalled(newest, channel, installed) ? newest : null;
 }

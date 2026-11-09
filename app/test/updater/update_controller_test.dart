@@ -32,6 +32,35 @@ void main() {
     expect(h.installer.cleanUps, 1);
   });
 
+  test('the channel follows the build until the user picks another', () {
+    final h = UpdaterHarness();
+    final c = start(h);
+    expect(c.read(updateChannelProvider), UpdateChannel.dev);
+    c.read(updateChannelProvider.notifier).set(UpdateChannel.release);
+    expect(c.read(updateChannelProvider), UpdateChannel.release);
+    expect(h.store.getString('update_channel'), 'release');
+  });
+
+  test('a local build has no channel to pick', () {
+    final h = UpdaterHarness()..channel = null;
+    final c = start(h);
+    h.store.setString('update_channel', 'dev');
+    expect(c.read(updateChannelProvider), isNull);
+  });
+
+  test('dev build switched to stable: offered the stable release', () async {
+    // dev build 63 of 1.0.1: nothing newer on dev, and v1.0.1 is not newer
+    // by version, but it is the stable build the user asked for
+    final h = UpdaterHarness(build: '63', version: '1.0.1');
+    final c = start(h);
+    c.read(updateChannelProvider.notifier).set(UpdateChannel.release);
+    await ctl(c).checkNow();
+    final s = c.read(updateControllerProvider);
+    expect(s.release?.tag, 'v1.0.1');
+    expect(h.requested, contains(latestReleaseApiUrl));
+    expect(h.requested, isNot(contains(releasesApiUrl)));
+  });
+
   test('nothing newer: no banner', () async {
     final h = UpdaterHarness(build: '7');
     final c = start(h);

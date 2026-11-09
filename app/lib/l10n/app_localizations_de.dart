@@ -1932,4 +1932,21 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get devBuildSnooze => '30 Tage nicht mehr anzeigen';
+
+  @override
+  String get settingsUpdateChannel => 'Update-Kanal';
+
+  @override
+  String get updateChannelRelease => 'Stabil';
+
+  @override
+  String get updateChannelDev => 'Dev';
+
+  @override
+  String get settingsUpdateChannelHint =>
+      'Dev-Versionen haben die neuesten Änderungen und können kaputt sein.';
+
+  @override
+  String get updateChannelAndroidDowngrade =>
+      'Android installiert die stabile Version erst, wenn sie neuer ist als diese Dev-Version. Um sofort zu wechseln, deinstalliere die App vorher.';
 }

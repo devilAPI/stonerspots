@@ -665,5 +665,10 @@
   "devBuildBody": "This version is built from the newest, untested changes. Things can break, look different every day or lose data. For everyday use, take the stable version.",
   "devBuildOpenStableWeb": "Open stable version",
   "devBuildLatestRelease": "Latest stable release",
-  "devBuildSnooze": "Don't show again for 30 days"
+  "devBuildSnooze": "Don't show again for 30 days",
+  "settingsUpdateChannel": "Update channel",
+  "updateChannelRelease": "Stable",
+  "updateChannelDev": "Dev",
+  "settingsUpdateChannelHint": "Dev builds have the newest changes and can be broken.",
+  "updateChannelAndroidDowngrade": "Android only installs the stable version once it is newer than this dev build. To switch right away, uninstall the app first."
 }

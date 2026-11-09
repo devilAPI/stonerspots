@@ -188,12 +188,37 @@ final installedVersionLoaderProvider =
 /// A plain client: no API auth headers ever go to GitHub.
 final updaterDioProvider = Provider<Dio>((ref) => Dio());
 
+/// The channel the updater follows: the user's pick in the settings, else
+/// the one this build was made for. Null for a local build (no updates).
+final updateChannelProvider =
+    NotifierProvider<UpdateChannelSetting, UpdateChannel?>(
+      UpdateChannelSetting.new,
+    );
+
+class UpdateChannelSetting extends Notifier<UpdateChannel?> {
+  static const storeKey = 'update_channel';
+
+  @override
+  UpdateChannel? build() {
+    final built = ref.watch(updaterConfigProvider).channel;
+    if (built == null) return null;
+    final picked = ref.watch(settingsStoreProvider).getString(storeKey);
+    return UpdateChannel.parse(picked ?? '') ?? built;
+  }
+
+  void set(UpdateChannel channel) {
+    if (state == null || channel == state) return;
+    state = channel;
+    ref.read(settingsStoreProvider).setString(storeKey, channel.name);
+  }
+}
+
 final releaseSourceProvider = Provider<ReleaseSource>(
   (ref) => ReleaseSource(
     dio: ref.watch(updaterDioProvider),
     store: ref.watch(settingsStoreProvider),
     url: releasesApiUrlFor(
-      ref.watch(updaterConfigProvider).channel ?? UpdateChannel.dev,
+      ref.watch(updateChannelProvider) ?? UpdateChannel.dev,
     ),
   ),
 );
@@ -274,7 +299,7 @@ class UpdateController extends Notifier<UpdateState> {
   Future<void> _check({required bool manual}) async {
     if (!supported || state.busy) return;
     state = state.copyWith(stage: UpdateStage.checking, clearProblem: true);
-    final channel = _config.channel!;
+    final channel = ref.read(updateChannelProvider)!;
     InstalledVersion installed;
     try {
       installed = await ref.read(installedVersionLoaderProvider)();
@@ -302,6 +327,7 @@ class UpdateController extends Notifier<UpdateState> {
       channel: channel,
       installed: installed,
       skippedTag: manual ? null : store.getString(_skippedKey),
+      switching: channel != _config.channel,
     );
     if (pick == null) {
       state = UpdateState(

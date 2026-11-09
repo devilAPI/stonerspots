@@ -110,6 +110,30 @@ void main() {
     expect(pick('weird'), isNull);
   });
 
+  test('switching channels offers the newest of the new one', () {
+    // a dev build (version 2.10.0, build 63) that switched to stable: the
+    // stable v2.10.0 is offered although it is not "newer"
+    ReleaseInfo? pick({String? skipped}) => pickUpdate(
+      releases: releases,
+      channel: UpdateChannel.release,
+      installed: const InstalledVersion(version: '2.10.0', buildNumber: '63'),
+      switching: true,
+      skippedTag: skipped,
+    );
+    expect(pick()?.tag, 'v2.10.0');
+    expect(pick(skipped: 'v2.10.0'), isNull);
+    // and the other way round: a stable build that switched to dev
+    expect(
+      pickUpdate(
+        releases: releases,
+        channel: UpdateChannel.dev,
+        installed: const InstalledVersion(version: '2.10.0', buildNumber: '99'),
+        switching: true,
+      )?.tag,
+      'dev-10',
+    );
+  });
+
   test('release tags are exactly vX.Y.Z', () {
     expect(releaseTagVersion('v1.0.0').toString(), '1.0.0');
     expect(releaseTagVersion('v10.20.30').toString(), '10.20.30');

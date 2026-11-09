@@ -372,6 +372,15 @@ session) or "Skip this version". Web and iOS don't update themselves.
   `…-macos.zip`, signed through `SHA256SUMS-apps.txt` like the dev builds.
 - not set (local `flutter run`/`build`): no update checks at all.
 
+Settings → Updates → "Update channel" (Stable / Dev) switches a CI build to
+the other channel. While the installed build belongs to the other channel,
+the newest build of the chosen one is offered even when its number is lower
+(a dev build switched to stable gets the latest `vX.Y.Z`); once it is
+installed, it follows its own channel as above. Android refuses an APK with a
+lower build number (versionCode) than the installed one: going from dev to
+stable there works only when the stable release is newer, or after
+uninstalling, which the setting says.
+
 **Nothing unverified is installed.** CI lists the app files in
 `SHA256SUMS-apps.txt` and signs it like the backend checksums (job
 `sign-apps`, same key, namespace `stonerspots-release`). The app has the

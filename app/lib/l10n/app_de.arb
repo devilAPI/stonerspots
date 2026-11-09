@@ -688,5 +688,10 @@
   "devBuildBody": "Diese Version enthält die neuesten, ungetesteten Änderungen. Dinge können kaputtgehen, sich täglich ändern oder Daten verlieren. Für den Alltag nimm die stabile Version.",
   "devBuildOpenStableWeb": "Stabile Version öffnen",
   "devBuildLatestRelease": "Neueste stabile Version",
-  "devBuildSnooze": "30 Tage nicht mehr anzeigen"
+  "devBuildSnooze": "30 Tage nicht mehr anzeigen",
+  "settingsUpdateChannel": "Update-Kanal",
+  "updateChannelRelease": "Stabil",
+  "updateChannelDev": "Dev",
+  "settingsUpdateChannelHint": "Dev-Versionen haben die neuesten Änderungen und können kaputt sein.",
+  "updateChannelAndroidDowngrade": "Android installiert die stabile Version erst, wenn sie neuer ist als diese Dev-Version. Um sofort zu wechseln, deinstalliere die App vorher."
 }

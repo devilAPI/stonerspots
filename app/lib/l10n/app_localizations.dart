@@ -3283,6 +3283,36 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'30 Tage nicht mehr anzeigen'**
   String get devBuildSnooze;
+
+  /// No description provided for @settingsUpdateChannel.
+  ///
+  /// In de, this message translates to:
+  /// **'Update-Kanal'**
+  String get settingsUpdateChannel;
+
+  /// No description provided for @updateChannelRelease.
+  ///
+  /// In de, this message translates to:
+  /// **'Stabil'**
+  String get updateChannelRelease;
+
+  /// No description provided for @updateChannelDev.
+  ///
+  /// In de, this message translates to:
+  /// **'Dev'**
+  String get updateChannelDev;
+
+  /// No description provided for @settingsUpdateChannelHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Dev-Versionen haben die neuesten Änderungen und können kaputt sein.'**
+  String get settingsUpdateChannelHint;
+
+  /// No description provided for @updateChannelAndroidDowngrade.
+  ///
+  /// In de, this message translates to:
+  /// **'Android installiert die stabile Version erst, wenn sie neuer ist als diese Dev-Version. Um sofort zu wechseln, deinstalliere die App vorher.'**
+  String get updateChannelAndroidDowngrade;
 }
 
 class _AppLocalizationsDelegate

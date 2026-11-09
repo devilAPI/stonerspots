@@ -175,6 +175,42 @@ void main() {
     expect(find.text('Up to date (dev-7)'), findsOneWidget);
   });
 
+  Future<void> pumpSettings(WidgetTester t, UpdaterHarness h) => t.pumpWidget(
+    ProviderScope(
+      overrides: h.overrides,
+      child: const MaterialApp(
+        locale: Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: SettingsScreen(),
+      ),
+    ),
+  );
+
+  testWidgets('settings: switching to stable offers the stable release', (
+    t,
+  ) async {
+    // dev build 63 of 1.0.1: up to date on dev
+    final h = UpdaterHarness(build: '63', version: '1.0.1');
+    await pumpSettings(t, h);
+    final tile = find.byKey(const Key('updateChannel'));
+    await t.ensureVisible(tile);
+    expect(find.text('Update channel'), findsOneWidget);
+    await t.tap(find.descendant(of: tile, matching: find.text('Stable')));
+    await settle(t);
+    expect(h.store.getString('update_channel'), 'release');
+    expect(find.textContaining('v1.0.1'), findsWidgets);
+  });
+
+  testWidgets('Android, dev build switched to stable: the downgrade note', (
+    t,
+  ) async {
+    final h = UpdaterHarness(platform: UpdatePlatform.android, build: '63');
+    h.store.setString('update_channel', 'release');
+    await pumpSettings(t, h);
+    expect(find.textContaining('uninstall the app first'), findsOneWidget);
+  });
+
   testWidgets('settings on a build without a channel', (t) async {
     final h = UpdaterHarness()..channel = null;
     await t.pumpWidget(

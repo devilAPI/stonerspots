@@ -1917,4 +1917,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get devBuildSnooze => 'Don\'t show again for 30 days';
+
+  @override
+  String get settingsUpdateChannel => 'Update channel';
+
+  @override
+  String get updateChannelRelease => 'Stable';
+
+  @override
+  String get updateChannelDev => 'Dev';
+
+  @override
+  String get settingsUpdateChannelHint =>
+      'Dev builds have the newest changes and can be broken.';
+
+  @override
+  String get updateChannelAndroidDowngrade =>
+      'Android only installs the stable version once it is newer than this dev build. To switch right away, uninstall the app first.';
 }

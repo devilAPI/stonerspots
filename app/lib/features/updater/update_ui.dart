@@ -253,8 +253,43 @@ class UpdateSettingsTiles extends ConsumerWidget {
       _ when s.release != null => l.updateStatusAvailable(s.release!.tag),
       _ => installed.isEmpty ? null : l.updateInstalledVersion(installed),
     };
+    final channel = ref.watch(updateChannelProvider)!;
+    // Android refuses an APK with a lower build number than the installed one
+    final downgradeNote =
+        config.platform == UpdatePlatform.android &&
+        config.channel == UpdateChannel.dev &&
+        channel == UpdateChannel.release;
     return Column(
       children: [
+        ListTile(
+          key: const Key('updateChannel'),
+          title: Text(l.settingsUpdateChannel),
+          subtitle: Text(
+            downgradeNote
+                ? l.updateChannelAndroidDowngrade
+                : l.settingsUpdateChannelHint,
+          ),
+          trailing: SegmentedButton<UpdateChannel>(
+            showSelectedIcon: false,
+            segments: [
+              ButtonSegment(
+                value: UpdateChannel.release,
+                label: Text(l.updateChannelRelease),
+              ),
+              ButtonSegment(
+                value: UpdateChannel.dev,
+                label: Text(l.updateChannelDev),
+              ),
+            ],
+            selected: {channel},
+            onSelectionChanged: s.busy
+                ? null
+                : (picked) {
+                    ref.read(updateChannelProvider.notifier).set(picked.first);
+                    ref.read(updateControllerProvider.notifier).checkNow();
+                  },
+          ),
+        ),
         SwitchListTile(
           key: const Key('autoUpdateCheck'),
           title: Text(l.settingsAutoUpdate),
