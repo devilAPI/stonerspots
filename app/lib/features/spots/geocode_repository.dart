@@ -17,8 +17,8 @@ class GeoResult {
   final double lon;
 }
 
-/// Address search via the backend (`GET /geocode?q=`). Results are already
-/// restricted to DACH. Throws [ApiException] (`invalid_query`, `rate_limited`,
+/// Address search via the backend (`GET /geocode?q=`). Results may be
+/// anywhere in the world. Throws [ApiException] (`invalid_query`, `rate_limited`,
 /// `geocoder_unavailable`, `geocoder_busy`).
 abstract class GeocodeRepository {
   Future<List<GeoResult>> search(String query);

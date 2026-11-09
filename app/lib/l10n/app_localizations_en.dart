@@ -209,8 +209,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get placeSearchNoResult => 'No place found';
 
   @override
-  String get placeSearchOutside =>
-      'These coordinates are outside the supported region (Germany, Austria, Switzerland, Liechtenstein)';
+  String get invalidLocation => 'These coordinates are not valid';
 
   @override
   String get placeSearchRateLimited =>

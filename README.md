@@ -2,7 +2,8 @@
 
 A community map for finding good places to smoke weed outdoors: nice benches,
 rivers, lakes, viewpoints. People add spots, post photo updates, and browse a
-small picture feed. Launch region: Germany, Austria, Switzerland, Liechtenstein.
+small picture feed. Spots can be anywhere in the world; address search and
+coordinates are not limited to a region.
 
 - **App:** Flutter (Android, iOS, web, Linux, Windows, macOS) in [`app/`](app);
   the Android and desktop apps [update themselves](#app-updates)

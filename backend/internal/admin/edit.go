@@ -311,8 +311,8 @@ func (h handler) patchSpot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if latPresent {
-		if !spots.ValidCoord(lat, lon) || !spots.InRegion(lat, lon) {
-			httpx.Error(w, http.StatusBadRequest, "invalid_location", "location must be valid and inside the supported region (DACH)")
+		if !spots.ValidCoord(lat, lon) {
+			httpx.Error(w, http.StatusBadRequest, "invalid_location", "lat must be in -90..90 and lon in -180..180")
 			return
 		}
 		sp.lat, sp.lon = &lat, &lon

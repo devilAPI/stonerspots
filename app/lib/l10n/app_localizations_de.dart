@@ -209,8 +209,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get placeSearchNoResult => 'Kein Ort gefunden';
 
   @override
-  String get placeSearchOutside =>
-      'Diese Koordinaten liegen außerhalb des unterstützten Gebiets (Deutschland, Österreich, Schweiz, Liechtenstein)';
+  String get invalidLocation => 'Diese Koordinaten sind ungültig';
 
   @override
   String get placeSearchRateLimited =>

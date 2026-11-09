@@ -144,13 +144,12 @@ void main() {
         expect(find.text('Please enter at least 3 characters'), findsOne);
       });
 
-      testWidgets('outside region: message, point unchanged', (t) async {
+      testWidgets('coordinates anywhere in the world are placed', (t) async {
         await pumpAt(t, size);
         await search(t, '40.7128, -74.0060');
         await t.pumpAndSettle();
-        expect(point, isNull);
+        expect(point, const LatLng(40.7128, -74.0060));
         expect(geo.queries, isEmpty);
-        expect(find.textContaining('outside the supported region'), findsOne);
       });
 
       testWidgets('short link: hint, no call', (t) async {

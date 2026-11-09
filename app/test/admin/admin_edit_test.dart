@@ -459,7 +459,7 @@ void main() {
           expect(find.text('Edit spot'), findsOneWidget);
         });
 
-        testWidgets('outside region coordinates never call the API', (
+        testWidgets('coordinates anywhere in the world are saved', (
           tester,
         ) async {
           final repo = base();
@@ -468,8 +468,9 @@ void main() {
           await _tap(tester, 'spot-edit-100');
           await _type(tester, 'edit-spot-coords', '40.4, -3.7');
           await _tap(tester, 'edit-spot-save');
-          expect(repo.spotPatches, isEmpty);
-          expect(find.textContaining('outside the supported'), findsOneWidget);
+          expect(repo.spotPatches, [
+            {'lat': 40.4, 'lon': -3.7},
+          ]);
         });
 
         const errors = {

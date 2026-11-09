@@ -144,7 +144,6 @@ func (c *client) fetch(ctx context.Context, q string) ([]Result, error) {
 	v.Set("format", "jsonv2")
 	v.Set("q", q)
 	v.Set("limit", strconv.Itoa(maxResults))
-	v.Set("countrycodes", "de,at,ch,li")
 	v.Set("accept-language", "de")
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/search?"+v.Encode(), nil)
 	if err != nil {

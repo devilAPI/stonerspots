@@ -18,7 +18,7 @@ class MapFocus {
 }
 
 /// Map on which the user taps to place the spot's pin. The pin is shown at
-/// [point]; the map starts at [initialCenter] (or the DACH fallback) and moves
+/// [point]; the map starts at [initialCenter] (or the default centre) and moves
 /// whenever a new [focus] arrives.
 class LocationPicker extends StatefulWidget {
   const LocationPicker({

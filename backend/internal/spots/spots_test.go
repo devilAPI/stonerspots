@@ -133,7 +133,7 @@ func TestCreateValidation(t *testing.T) {
 
 func TestRejectsOutOfRangeAndSwappedCoordinates(t *testing.T) {
 	e := setup(t)
-	for _, c := range [][2]float64{{200, 13.4}, {52.5, 190}, {13.405, 52.52}} {
+	for _, c := range [][2]float64{{200, 13.4}, {52.5, 190}, {-91, 0}} {
 		rec := e.do("POST", "/spots", body("Test spot", c[0], c[1], ""), true)
 		if rec.Code != 400 || errCode(rec) != "invalid_location" {
 			t.Errorf("%v: %d %s", c, rec.Code, rec.Body)
@@ -145,15 +145,11 @@ func TestRejectsOutOfRangeAndSwappedCoordinates(t *testing.T) {
 	}
 }
 
-func TestRejectsOutsideRegion(t *testing.T) {
+func TestAcceptsSpotsWorldwide(t *testing.T) {
 	e := setup(t)
-	for _, c := range [][2]float64{{48.8566, 2.3522}, {40, -30}} {
-		rec := e.do("POST", "/spots", body("Test spot", c[0], c[1], ""), true)
-		if rec.Code != 400 || errCode(rec) != "invalid_location" {
-			t.Errorf("%v: %d %s", c, rec.Code, rec.Body)
-		}
-	}
-	for _, c := range [][2]float64{{52.52, 13.405}, {48.2082, 16.3738}} {
+	// Berlin, Vienna, Paris, the mid-Atlantic, Sydney, Porto, both poles' edges.
+	for _, c := range [][2]float64{{52.52, 13.405}, {48.2082, 16.3738}, {48.8566, 2.3522}, {40, -30},
+		{-33.8688, 151.2093}, {41.1373, -8.6094}, {90, 180}, {-90, -180}} {
 		if rec := e.do("POST", "/spots", body("Test spot", c[0], c[1], ""), true); rec.Code != 201 {
 			t.Errorf("%v: %d %s", c, rec.Code, rec.Body)
 		}

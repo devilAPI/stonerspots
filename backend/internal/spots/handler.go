@@ -155,15 +155,8 @@ func (h *handler) putTags(w http.ResponseWriter, r *http.Request) {
 // ValidCoord reports whether lat/lon are valid degrees.
 func ValidCoord(lat, lon float64) bool { return validCoord(lat, lon) }
 
-// InRegion reports whether lat/lon lie inside the supported DACH box.
-func InRegion(lat, lon float64) bool { return inRegion(lat, lon) }
-
 func validCoord(lat, lon float64) bool {
 	return lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
-}
-
-func inRegion(lat, lon float64) bool {
-	return lat >= regionSouth && lat <= regionNorth && lon >= regionWest && lon <= regionEast
 }
 
 func (h *handler) create(w http.ResponseWriter, r *http.Request) {
@@ -200,10 +193,6 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lat, lon := *req.Lat, *req.Lon
-	if !inRegion(lat, lon) {
-		httpx.Error(w, http.StatusBadRequest, "invalid_location", "location is outside the supported region (DACH); check that lat and lon are not swapped")
-		return
-	}
 	if !req.Force {
 		dup, err := h.repo.FindWithin(r.Context(), lat, lon, duplicateMeters)
 		if err != nil {

@@ -55,11 +55,9 @@ type Filter struct {
 	Limit int
 }
 
-// Region bounding box (DACH, rough) and duplicate radius.
+// Duplicate radius and query limits. Spots may be anywhere in the world.
 const (
-	regionSouth, regionNorth = 45.8, 55.1
-	regionWest, regionEast   = 5.8, 17.2
-	duplicateMeters          = 25.0
-	maxNearbyRadius          = 50000
-	defaultLimit, maxLimit   = 20, 200
+	duplicateMeters        = 25.0
+	maxNearbyRadius        = 50000
+	defaultLimit, maxLimit = 20, 200
 )

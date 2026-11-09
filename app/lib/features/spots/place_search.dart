@@ -14,7 +14,6 @@ const int kMinSearchLength = 3;
 enum PlaceSearchMessage {
   tooShort,
   noResult,
-  outsideRegion,
   shortLink,
   rateLimited,
   unavailable,
@@ -86,11 +85,7 @@ class PlaceSearchController extends Notifier<PlaceSearchState> {
     }
     final p = parseCoordinates(text);
     if (p != null) {
-      if (inSupportedRegion(p)) {
-        _place(p);
-      } else {
-        state = only(message: PlaceSearchMessage.outsideRegion);
-      }
+      _place(p);
       return;
     }
     if (text.length < kMinSearchLength) {
@@ -244,7 +239,6 @@ class _PlaceSearchFieldState extends ConsumerState<PlaceSearchField> {
   String _messageText(AppLocalizations l, PlaceSearchMessage m) => switch (m) {
     PlaceSearchMessage.tooShort => l.placeSearchTooShort,
     PlaceSearchMessage.noResult => l.placeSearchNoResult,
-    PlaceSearchMessage.outsideRegion => l.placeSearchOutside,
     PlaceSearchMessage.shortLink => l.placeSearchShortLink,
     PlaceSearchMessage.rateLimited => l.placeSearchRateLimited,
     PlaceSearchMessage.unavailable => l.placeSearchUnavailable,

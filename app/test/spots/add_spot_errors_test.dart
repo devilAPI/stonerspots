@@ -44,7 +44,7 @@ void main() {
       expect(addSpotErrorText(l, e(413, 'too_large')), contains('8'));
       expect(
         addSpotErrorText(l, e(400, 'invalid_location')),
-        l.placeSearchOutside,
+        l.invalidLocation,
       );
       expect(addSpotErrorText(l, e(0, 'network_error')), l.errorNetwork);
     },

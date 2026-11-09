@@ -68,7 +68,7 @@
   "placeSearchGo": "Search",
   "placeSearchTooShort": "Please enter at least 3 characters",
   "placeSearchNoResult": "No place found",
-  "placeSearchOutside": "These coordinates are outside the supported region (Germany, Austria, Switzerland, Liechtenstein)",
+  "invalidLocation": "These coordinates are not valid",
   "placeSearchRateLimited": "Too many searches, please try again in a moment",
   "placeSearchUnavailable": "Address search is currently unavailable, please try again later",
   "placeSearchError": "Search failed, please try again",

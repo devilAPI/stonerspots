@@ -5,8 +5,8 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 
 ## 1.0.0
 
-The first release: a community map of good places to smoke outdoors in
-Germany, Austria, Switzerland and Liechtenstein.
+The first release: a community map of good places to smoke outdoors,
+anywhere in the world.
 
 ### App (Android, iOS, web, Linux, Windows, macOS)
 

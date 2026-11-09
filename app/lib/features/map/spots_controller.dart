@@ -82,7 +82,7 @@ class SpotsController extends Notifier<SpotsState> {
     return const SpotsState();
   }
 
-  /// Location if granted, else the DACH region centre. A lookup that takes
+  /// Location if granted, else the default centre (Central Europe). A lookup that takes
   /// longer than the timeout is not given up: see [MapView.later].
   Future<MapView> resolveInitialView() async {
     final lookup = ref.read(locationServiceProvider).currentPosition();

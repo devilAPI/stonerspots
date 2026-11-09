@@ -12,7 +12,7 @@ String addSpotErrorText(AppLocalizations l, Object error) {
     case 'too_large':
       return l.addSpotPhotoTooLarge;
     case 'invalid_location':
-      return l.placeSearchOutside;
+      return l.invalidLocation;
     case 'network_error':
       return l.errorNetwork;
   }

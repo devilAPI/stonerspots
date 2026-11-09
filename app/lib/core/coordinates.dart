@@ -1,17 +1,5 @@
 import 'package:latlong2/latlong.dart';
 
-/// Rough DACH bounding box, same as the backend's region check.
-const double kRegionMinLat = 45.8;
-const double kRegionMaxLat = 55.1;
-const double kRegionMinLon = 5.8;
-const double kRegionMaxLon = 17.2;
-
-bool inSupportedRegion(LatLng p) =>
-    p.latitude >= kRegionMinLat &&
-    p.latitude <= kRegionMaxLat &&
-    p.longitude >= kRegionMinLon &&
-    p.longitude <= kRegionMaxLon;
-
 /// True for short map links that can only be resolved online.
 bool isShortMapLink(String input) {
   final s = input.trim().toLowerCase();
@@ -23,8 +11,9 @@ typedef _Raw = ({double lat, double lon, bool explicitAxes});
 /// Parses coordinates typed or pasted by a user: decimal degrees (dot or
 /// comma), hemisphere letters, degrees/minutes/seconds, Google Maps and
 /// OpenStreetMap links and `geo:` URIs. Returns null when [input] is not
-/// clearly a coordinate pair. A pair given as lon/lat is swapped when only the
-/// swapped pair lies in the supported region.
+/// clearly a coordinate pair. An unlabelled pair is read as lat, lon (the
+/// order map apps copy); it is swapped only when that order is impossible
+/// (|lat| > 90) and lon, lat is not.
 LatLng? parseCoordinates(String input) {
   final s = input.trim();
   if (s.isEmpty) return null;
@@ -41,16 +30,8 @@ LatLng? parseCoordinates(String input) {
   bool valid(double a, double b) => a.abs() <= 90 && b.abs() <= 180;
   final direct = valid(raw.lat, raw.lon) ? LatLng(raw.lat, raw.lon) : null;
   if (raw.explicitAxes) return direct;
-  final swapped = valid(raw.lon, raw.lat) ? LatLng(raw.lon, raw.lat) : null;
-  if (direct == null) {
-    return swapped != null && inSupportedRegion(swapped) ? swapped : null;
-  }
-  if (!inSupportedRegion(direct) &&
-      swapped != null &&
-      inSupportedRegion(swapped)) {
-    return swapped;
-  }
-  return direct;
+  if (direct != null) return direct;
+  return valid(raw.lon, raw.lat) ? LatLng(raw.lon, raw.lat) : null;
 }
 
 const _num = r'\d+(?:[.,]\d+)?';

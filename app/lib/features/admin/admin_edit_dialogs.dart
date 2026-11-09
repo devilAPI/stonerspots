@@ -264,10 +264,6 @@ class _EditSpotDialogState extends ConsumerState<_EditSpotDialog> {
         setState(() => _error = l10n.adminCoordsInvalid);
         return;
       }
-      if (!inSupportedRegion(point)) {
-        setState(() => _error = l10n.placeSearchOutside);
-        return;
-      }
       if (_same(point.latitude, s.lat) && _same(point.longitude, s.lon)) {
         point = null;
       }

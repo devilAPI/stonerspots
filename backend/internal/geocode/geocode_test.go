@@ -106,7 +106,7 @@ func TestHappyPath(t *testing.T) {
 		t.Fatalf("path %s", req.URL.Path)
 	}
 	want := map[string]string{"format": "jsonv2", "q": "Marienplatz München", "limit": "5",
-		"countrycodes": "de,at,ch,li", "accept-language": "de"}
+		"accept-language": "de"}
 	got := req.URL.Query()
 	for k, v := range want {
 		if got.Get(k) != v {

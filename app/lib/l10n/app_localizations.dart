@@ -458,11 +458,11 @@ abstract class AppLocalizations {
   /// **'Kein Ort gefunden'**
   String get placeSearchNoResult;
 
-  /// No description provided for @placeSearchOutside.
+  /// No description provided for @invalidLocation.
   ///
   /// In de, this message translates to:
-  /// **'Diese Koordinaten liegen außerhalb des unterstützten Gebiets (Deutschland, Österreich, Schweiz, Liechtenstein)'**
-  String get placeSearchOutside;
+  /// **'Diese Koordinaten sind ungültig'**
+  String get invalidLocation;
 
   /// No description provided for @placeSearchRateLimited.
   ///

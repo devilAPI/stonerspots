@@ -246,8 +246,8 @@ func TestPatchSpotValidation(t *testing.T) {
 		{"lat only", `{"lat":50}`, 400, "invalid_location"},
 		{"lon only", `{"lon":10}`, 400, "invalid_location"},
 		{"out of range", `{"lat":95,"lon":10}`, 400, "invalid_location"},
-		{"outside box", `{"lat":40,"lon":10}`, 400, "invalid_location"},
-		{"swapped", `{"lat":10,"lon":50}`, 400, "invalid_location"},
+		{"lon out of range", `{"lat":40,"lon":181}`, 400, "invalid_location"},
+		{"anywhere in the world", `{"lat":-33.8688,"lon":151.2093}`, 200, ""},
 		{"title type", `{"title":5}`, 400, "invalid_body"},
 		{"lat type", `{"lat":"a","lon":10}`, 400, "invalid_body"},
 	}

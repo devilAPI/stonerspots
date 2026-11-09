@@ -68,7 +68,7 @@
   "placeSearchGo": "Suchen",
   "placeSearchTooShort": "Bitte mindestens 3 Zeichen eingeben",
   "placeSearchNoResult": "Kein Ort gefunden",
-  "placeSearchOutside": "Diese Koordinaten liegen außerhalb des unterstützten Gebiets (Deutschland, Österreich, Schweiz, Liechtenstein)",
+  "invalidLocation": "Diese Koordinaten sind ungültig",
   "placeSearchRateLimited": "Zu viele Suchanfragen, bitte gleich noch einmal versuchen",
   "placeSearchUnavailable": "Die Adresssuche ist gerade nicht verfügbar, bitte später erneut versuchen",
   "placeSearchError": "Suche fehlgeschlagen, bitte erneut versuchen",

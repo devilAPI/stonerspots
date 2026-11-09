@@ -1,6 +1,5 @@
 import 'package:app/core/coordinates.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:latlong2/latlong.dart';
 
 void main() {
   const lat = 48.1234;
@@ -49,7 +48,13 @@ void main() {
     ],
     'geo:48.1234,11.5678': [lat, lon],
     'geo:48.1234,11.5678?z=17': [lat, lon],
-    '11.5678, 48.1234': [lat, lon],
+    // Unlabelled pairs are lat, lon anywhere in the world...
+    '11.5678, 48.1234': [lon, lat],
+    '40.7128, -74.0060': [40.7128, -74.0060],
+    '-33.8688, 151.2093': [-33.8688, 151.2093],
+    // ...and swapped only when lat, lon cannot be right.
+    '151.2093, -33.8688': [-33.8688, 151.2093],
+    '95.0, 11.5': [11.5, 95.0],
   };
 
   ok.forEach((input, want) {
@@ -66,7 +71,6 @@ void main() {
     '   ',
     'Marienplatz 1',
     'Hauptstraße 12, 80331 München',
-    '95.0, 11.5',
     '48.1234',
     '48.1 11.5 3.2',
     '200, 300',
@@ -75,18 +79,4 @@ void main() {
   ]) {
     test('rejects "$input"', () => expect(parseCoordinates(input), isNull));
   }
-
-  test('out-of-region pair is kept as is', () {
-    final p = parseCoordinates('40.7128, -74.0060')!;
-    expect(p.latitude, closeTo(40.7128, 1e-9));
-    expect(inSupportedRegion(p), isFalse);
-  });
-
-  test('inSupportedRegion box', () {
-    expect(inSupportedRegion(const LatLng(48.1, 11.5)), isTrue);
-    expect(inSupportedRegion(const LatLng(45.8, 5.8)), isTrue);
-    expect(inSupportedRegion(const LatLng(55.1, 17.2)), isTrue);
-    expect(inSupportedRegion(const LatLng(45.7, 11.5)), isFalse);
-    expect(inSupportedRegion(const LatLng(48.1, 17.3)), isFalse);
-  });
 }
