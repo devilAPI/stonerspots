@@ -119,7 +119,9 @@ func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 			if r.Context().Err() != nil {
 				return // the client left
 			}
-			if errors.Is(res.err, context.DeadlineExceeded) {
+			// still being fetched, or waiting for an upstream slot: the
+			// client should simply ask again
+			if errors.Is(res.err, context.DeadlineExceeded) || errors.Is(res.err, errBusy) {
 				w.Header().Set("Retry-After", strconv.Itoa(pendingRetryAfter))
 				httpx.Error(w, http.StatusServiceUnavailable, "zones_pending",
 					"zone data is being fetched, try again in a few seconds")

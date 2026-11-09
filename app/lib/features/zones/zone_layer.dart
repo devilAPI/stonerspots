@@ -45,6 +45,37 @@ final zoneDebounceProvider = Provider<Duration>(
   (ref) => const Duration(milliseconds: 350),
 );
 
+/// Whether the map is zoomed in to zone level on a view without any part
+/// of Germany. The zone buttons hide there (zones exist only in Germany).
+/// Fed by [ZoneOverlay], which rebuilds with every camera change.
+final zonesAbroadProvider = NotifierProvider<ZonesAbroad, bool>(
+  ZonesAbroad.new,
+);
+
+class ZonesAbroad extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  /// May be called during build: the new value is set right after.
+  void onCamera(MapCamera camera) {
+    final b = camera.visibleBounds;
+    final abroad =
+        camera.zoom >= kZoneMinZoom &&
+        !touchesGermany(b.south, b.west, b.north, b.east);
+    if (abroad == state) return;
+    scheduleMicrotask(() {
+      if (ref.mounted) state = abroad;
+    });
+  }
+}
+
+/// How long a tile that could not be loaded waits before it is asked for
+/// again while it is in view (the server itself waits a minute before it
+/// asks Overpass for a failed tile again).
+final zoneRetryProvider = Provider<Duration>(
+  (ref) => const Duration(seconds: 60),
+);
+
 /// The clock for the pedestrian-zone hours; tests replace it.
 final zoneClockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 
@@ -157,6 +188,7 @@ class ZoneLayerState {
 class ZoneLayerController extends Notifier<ZoneLayerState> {
   Timer? _debounce;
   Timer? _clock;
+  Timer? _retry;
   List<ZoneTileId> _wanted = const [];
   final _graphics = <ZoneTileId, ZoneTileGraphics>{}; // insertion order
   final _loading = <ZoneTileId>{};
@@ -167,6 +199,7 @@ class ZoneLayerController extends Notifier<ZoneLayerState> {
     ref.onDispose(() {
       _debounce?.cancel();
       _clock?.cancel();
+      _retry?.cancel();
     });
     final now = ref.watch(zoneClockProvider);
     _scheduleClock(now);
@@ -215,6 +248,15 @@ class ZoneLayerController extends Notifier<ZoneLayerState> {
     }
   }
 
+  /// Overpass is often only briefly overloaded: failed tiles still in view
+  /// are asked for again after [zoneRetryProvider].
+  void _scheduleRetry() {
+    _retry ??= Timer(ref.read(zoneRetryProvider), () {
+      _retry = null;
+      if (_wanted.any(_failed.contains)) _load();
+    });
+  }
+
   static bool _sameTiles(List<ZoneTileId> a, List<ZoneTileId> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
@@ -241,6 +283,7 @@ class ZoneLayerController extends Notifier<ZoneLayerState> {
               _loading.remove(t);
               _failed.add(t);
               _publish();
+              _scheduleRetry();
             },
           );
     }
@@ -415,11 +458,15 @@ class _ZoneOverlayState extends ConsumerState<ZoneOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    if (!ref.watch(zonesEnabledProvider)) return const SizedBox.shrink();
     final camera = MapCamera.of(context);
+    // also while the layer is off: the button to turn it on hides abroad
+    ref.read(zonesAbroadProvider.notifier).onCamera(camera);
+    if (!ref.watch(zonesEnabledProvider)) return const SizedBox.shrink();
     final zoomedIn = camera.zoom >= kZoneMinZoom;
     if (_outsideGermany(camera, zoomedIn)) {
-      // nothing to show or to agree to: say why instead
+      // zoomed in abroad the zone buttons hide too: nothing at all
+      if (zoomedIn) return const SizedBox.shrink();
+      // zoomed out: nothing to show or to agree to, so say why
       final l = AppLocalizations.of(context);
       final insets = MediaQuery.paddingOf(context);
       return Stack(
@@ -523,6 +570,7 @@ class ZoneToggleButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(zonesAbroadProvider)) return const SizedBox.shrink();
     final l = AppLocalizations.of(context);
     final on = ref.watch(zonesEnabledProvider);
     return IconButton(
@@ -556,7 +604,9 @@ class ZoneInfoButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!ref.watch(zonesEnabledProvider)) return const SizedBox.shrink();
+    if (!ref.watch(zonesEnabledProvider) || ref.watch(zonesAbroadProvider)) {
+      return const SizedBox.shrink();
+    }
     return IconButton(
       key: const Key('mapZonesInfo'),
       tooltip: AppLocalizations.of(context).zonesInfo,

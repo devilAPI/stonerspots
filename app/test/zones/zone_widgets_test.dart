@@ -139,16 +139,26 @@ const _vienna = LatLng(48.2082, 16.3738);
 
 void main() {
   group('outside Germany (§ 5 KCanG is German law)', () {
-    testWidgets('street level: a hint, no disclaimer, no requests', (t) async {
+    testWidgets('street level: no zone buttons, hint, disclaimer or requests', (
+      t,
+    ) async {
       final repo = repoWith([_playground]);
       await _pumpMap(t, overridesFor(repo, accepted: false), center: _vienna);
-      expect(find.text('Zones are only shown in Germany'), findsOneWidget);
+      expect(find.byKey(const Key('mapZones')), findsNothing);
+      expect(find.byKey(const Key('mapZonesInfo')), findsNothing);
+      expect(find.byKey(const Key('zoneOnlyGermany')), findsNothing);
       expect(find.byKey(const Key('zoneDisclaimer')), findsNothing);
       expect(_painter(t)?.tiles ?? const [], isEmpty);
       expect(repo.asked, isEmpty);
     });
 
-    testWidgets('zoomed out away from Germany: the same hint', (t) async {
+    testWidgets('street level in Germany: the buttons are there', (t) async {
+      await _pumpMap(t, overridesFor(repoWith([_playground])));
+      expect(find.byKey(const Key('mapZones')), findsOneWidget);
+      expect(find.byKey(const Key('mapZonesInfo')), findsOneWidget);
+    });
+
+    testWidgets('zoomed out away from Germany: buttons and a hint', (t) async {
       await _pumpMap(
         t,
         overridesFor(repoWith([])),
@@ -157,6 +167,36 @@ void main() {
       );
       expect(find.byKey(const Key('zoneOnlyGermany')), findsOneWidget);
       expect(find.byKey(const Key('zoneZoomHint')), findsNothing);
+      expect(find.byKey(const Key('mapZones')), findsOneWidget);
+    });
+
+    testWidgets('map page: zooming in on Vienna hides the zone buttons', (
+      t,
+    ) async {
+      t.view.physicalSize = const Size(800, 1000);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      await t.pumpWidget(
+        _app([
+          ...overridesFor(FakeZonesRepository()),
+          mapSpotsRepositoryProvider.overrideWithValue(_MapRepo()),
+          locationServiceProvider.overrideWithValue(_Location(_vienna)),
+          mapDebounceProvider.overrideWithValue(Duration.zero),
+        ], const MapScreen()),
+      );
+      await t.pumpAndSettle();
+      // zoom 13 around the user: still shown
+      expect(find.byKey(const Key('mapZones')), findsOneWidget);
+
+      final map = t.getCenter(find.byType(FlutterMap));
+      for (var i = 0; i < 2; i++) {
+        await t.tapAt(map);
+        await t.pump(const Duration(milliseconds: 50));
+        await t.tapAt(map);
+        await t.pumpAndSettle();
+      }
+      expect(find.byKey(const Key('mapZones')), findsNothing);
+      expect(find.byKey(const Key('mapZonesInfo')), findsNothing);
     });
 
     testWidgets('a spot there has no zone chip and asks nothing', (t) async {
@@ -175,6 +215,23 @@ void main() {
   });
 
   group('map layer', () {
+    testWidgets('a tile that failed is tried again while in view', (t) async {
+      final repo = repoWith([_playground])..fail = true;
+      await _pumpMap(t, [
+        ...overridesFor(repo),
+        zoneRetryProvider.overrideWithValue(const Duration(seconds: 5)),
+      ]);
+      expect(find.byKey(const Key('zoneLoadFailed')), findsOneWidget);
+      expect(repo.asked, hasLength(1));
+
+      repo.fail = false; // Overpass is back
+      await t.pump(const Duration(seconds: 5));
+      await t.pumpAndSettle();
+      expect(repo.asked, hasLength(2));
+      expect(find.byKey(const Key('zoneLoadFailed')), findsNothing);
+      expect(_painter(t)!.tiles.single.zones.single.id, 'way/1');
+    });
+
     testWidgets('zoomed out: a hint, no zones and no requests', (t) async {
       final repo = repoWith([_playground]);
       await _pumpMap(t, overridesFor(repo), zoom: 13);

@@ -188,7 +188,9 @@ func (s *Service) run(key string, t Tile, c *call) {
 	s.mu.Lock()
 	delete(s.inflight, key)
 	now := s.now()
-	if c.err != nil {
+	// a full queue says nothing about the tile: the next request may try
+	// again right away
+	if c.err != nil && !errors.Is(c.err, errBusy) {
 		s.failed[key] = now.Add(retryAfter)
 	} else {
 		delete(s.failed, key)

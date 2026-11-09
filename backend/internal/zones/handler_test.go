@@ -452,3 +452,48 @@ func TestZonesOnlyInGermany(t *testing.T) {
 		t.Fatalf("border zones = %+v", body.Zones)
 	}
 }
+
+// A tile that finds every upstream slot taken is "pending", not failed: the
+// app keeps retrying it, and it is fetched as soon as a slot frees up.
+func TestZonesBusyIsPending(t *testing.T) {
+	var busy atomic.Bool
+	busy.Store(true)
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if busy.Load() {
+			<-release
+		}
+		fmt.Fprint(w, `{"elements":[]}`)
+	}))
+	defer srv.Close()
+	var once sync.Once
+	free := func() { once.Do(func() { busy.Store(false); close(release) }) }
+	defer free() // before srv.Close, also when the test fails
+	svc := NewService(srv.URL, testBase, nil)
+	svc.slotWait = 20 * time.Millisecond
+	h := router(testDeps(ratelimit.Rule{}, true), svc)
+
+	// fill every slot with other tiles
+	for i := 0; i < maxUpstream; i++ {
+		go func() { _, _, _ = svc.Tile(context.Background(), Tile{Y: 2300 + i, X: 578}) }()
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for len(svc.sem) < maxUpstream && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	rec, _ := get(t, h, 48.12, 11.56, 48.14, 11.58)
+	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "zones_pending") ||
+		rec.Header().Get("Retry-After") == "" {
+		t.Fatalf("all slots busy: %d %s", rec.Code, rec.Body)
+	}
+
+	free()
+	deadline = time.Now().Add(5 * time.Second)
+	for len(svc.sem) > 0 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if rec, _ := get(t, h, 48.12, 11.56, 48.14, 11.58); rec.Code != 200 {
+		t.Fatalf("after a slot freed up: %d %s", rec.Code, rec.Body)
+	}
+}

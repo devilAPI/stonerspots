@@ -672,7 +672,11 @@ How it works:
   `smoking:cannabis=no`, `highway=pedestrian` ways and areas). At most two
   queries run at once; each tile is cached for 7 days in memory and in the
   `zone_tiles` table, so a restart does not refetch. When Overpass fails, the
-  last copy is served with `"stale": true`. Only the query goes upstream,
+  last copy is served with `"stale": true`. A tile that is still being
+  fetched, or waits for one of the two slots, is answered with 503
+  `zones_pending` (the app asks again every 10 s); one that failed upstream is
+  not asked for again for a minute, and the app retries it after 60 s while
+  it is in view. Only the query goes upstream,
   with a User-Agent naming the project and `public_base_url`; never client
   addresses or user data. A dense city tile (central Munich) is about 280 kB
   from Overpass and 77 kB of JSON (13 kB gzipped) to the app.
