@@ -11,8 +11,8 @@
 // [kPrivacyVersionEn] whenever the content changes.
 
 /// Shown as "Stand: …" / "Last updated: …" at the top.
-const kPrivacyVersionDe = 'November 2026';
-const kPrivacyVersionEn = 'November 2026';
+const kPrivacyVersionDe = '9. November 2026';
+const kPrivacyVersionEn = '9 November 2026';
 
 const privacyTextDe =
     '''
@@ -71,7 +71,7 @@ Die App fragt nur mit deiner Erlaubnis nach dem Standort deines Geräts. Du kann
 - **Feed „In der Nähe" und Spot-Suche:** Hier schickt die App deine Koordinaten mit der Anfrage an den Server, damit er nach Entfernung sortieren kann. Der Server verwendet sie nur für diese Antwort und speichert sie nicht; sein Protokoll enthält keine Anfrageparameter.
 - **Widget „Nächster Spot" (Android):** Die Entfernung wird auf dem Gerät berechnet. Das Widget speichert nur Name, Nummer und Entfernung des Spots, keine Koordinaten.
 - **Neuer Spot:** Die Koordinaten, die du für einen Spot wählst, werden mit dem Spot veröffentlicht.
-- **Verbotszonen:** Um Verbotszonen (z. B. rund um Schulen und Spielplätze) anzuzeigen, schickt die App den sichtbaren Kartenausschnitt bzw. die Position eines Spots an unseren Server. Der Server fragt die Zonen bei der Overpass API ab, einem öffentlichen Dienst für OpenStreetMap-Daten (standardmäßig overpass-api.de) – nur mit den Koordinaten des Gebiets, ohne deine IP-Adresse oder andere Daten von dir. Die Antworten hält der Server in einem Zwischenspeicher, damit dasselbe Gebiet nicht erneut abgefragt wird.
+- **Verbotszonen:** Nur wenn du sie einschaltest und nur für Gebiete in Deutschland: Um Verbotszonen (z. B. rund um Schulen und Spielplätze) anzuzeigen, schickt die App den sichtbaren Kartenausschnitt bzw. die Position eines Spots an unseren Server. Der Server fragt die Zonen bei der Overpass API ab, einem öffentlichen Dienst für OpenStreetMap-Daten (standardmäßig overpass-api.de) – nur mit den Koordinaten des Gebiets, ohne deine IP-Adresse oder andere Daten von dir. Die Antworten hält der Server in einem Zwischenspeicher, damit dasselbe Gebiet nicht erneut abgefragt wird.
 - **Adresssuche beim Anlegen eines Spots:** Der Suchtext geht an unseren Server, der ihn an den Dienst Nominatim der OpenStreetMap Foundation weiterleitet – ohne deine IP-Adresse. Der Server hält Suchtexte und Ergebnisse bis zu 24 Stunden im Arbeitsspeicher, um Nominatim nicht doppelt zu fragen.
 
 Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (deine Einwilligung durch die Standortfreigabe) und lit. b (die Funktion, die du aufrufst).
@@ -100,7 +100,7 @@ Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (Schutz deines Kontos).
 ## 8. Speicherung auf deinem Gerät
 
 - Die Anmelde-Tokens liegen im sicheren Speicher des Betriebssystems (Schlüsselbund, Keystore o. Ä.), in der Web-App im lokalen Speicher (localStorage) des Browsers für diese Seite.
-- Einstellungen (z. B. Transparenz, automatische Update-Suche, eine übersprungene Version, ob du den Hinweis zu Verbotszonen geschlossen hast) und die zuletzt geladene Liste der App-Versionen speichert die App lokal.
+- Einstellungen (z. B. Transparenz, Verbotszonen an oder aus, 3D-Ansicht, automatische Update-Suche und Update-Kanal, eine übersprungene Version, bis wann der Hinweis auf eine Entwicklerversion ausgeblendet ist) und die zuletzt geladene Liste der App-Versionen speichert die App lokal.
 - Bilder werden zwischengespeichert, damit sie nicht jedes Mal neu geladen werden.
 
 Diese Daten verlassen dein Gerät nicht und sind für die Funktion der App unbedingt erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG). Du löschst sie, indem du dich abmeldest bzw. die App-Daten oder Website-Daten löschst.
@@ -109,7 +109,7 @@ Diese Daten verlassen dein Gerät nicht und sind für die Funktion der App unbed
 
 Für die folgenden Funktionen verbindet sich die App direkt mit anderen Anbietern. Diese sehen dabei – wie bei jedem Abruf im Internet – deine IP-Adresse, die Uhrzeit und technische Angaben (z. B. App- oder Browser-Kennung) und das, was abgerufen wird:
 
-- **Kartenkacheln:** OpenStreetMap Foundation (tile.openstreetmap.org) für die Standardkarte; CARTO (basemaps.cartocdn.com) für die dunkle Karte, wenn diese App-Version sie verwendet; Thunderforest (tile.thunderforest.com) für die ÖPNV-Karte, nur wenn du sie einschaltest; Esri (server.arcgisonline.com) für Satellitenbilder in der Satellitenansicht und in Vorschaubildern von Spots. Aus den abgerufenen Kacheln ist erkennbar, welchen Kartenausschnitt du ansiehst.
+- **Kartenkacheln:** OpenStreetMap Foundation (tile.openstreetmap.org) für die Standardkarte; CARTO (basemaps.cartocdn.com) für die dunkle Karte, wenn diese App-Version sie verwendet; für die ÖPNV-Karte, nur wenn du sie einschaltest, Thunderforest (tile.thunderforest.com) oder, in App-Versionen ohne Thunderforest-Zugang, ÖPNVKarte (tileserver.memomaps.de, memomaps.de); Esri (server.arcgisonline.com) für Satellitenbilder in der Satellitenansicht und in Vorschaubildern von Spots; OpenFreeMap (tiles.openfreemap.org) für die Gebäude der 3D-Ansicht, nur solange sie eingeschaltet ist. Aus den abgerufenen Kacheln ist erkennbar, welchen Kartenausschnitt du ansiehst.
 - **Wetter:** Open-Meteo (api.open-meteo.com) erhält beim Öffnen einer Spot-Seite die Koordinaten des Spots (nicht deinen Standort).
 - **App-Updates** (Android, Windows, Linux, macOS): Die App fragt beim Start höchstens alle 6 Stunden bei GitHub (api.github.com) nach neuen Versionen und lädt Updates von GitHub herunter. Die automatische Suche lässt sich unter Einstellungen → Updates abschalten.
 - **Web-App:** Die Web-App wird von GitHub Pages (GitHub, Inc.) ausgeliefert, das dabei deine IP-Adresse verarbeitet. Beim Start lädt sie Schriftarten und Teile ihrer Grafik-Engine von Servern von Google (fonts.gstatic.com, www.gstatic.com).
@@ -200,7 +200,7 @@ The app asks for your device's location only with your permission. You can withd
 - **Feed "Nearby" and spot search:** Here the app sends your coordinates with the request so that the server can sort by distance. The server uses them only for this answer and does not store them; its log contains no request parameters.
 - **"Nearest spot" widget (Android):** The distance is calculated on the device. The widget stores only the spot's name, number and distance, no coordinates.
 - **New spot:** The coordinates you choose for a spot are published with it.
-- **No-smoking zones:** To show no-smoking zones (e.g. around schools and playgrounds), the app sends the visible map area or a spot's position to our server. The server fetches the zones from the Overpass API, a public service for OpenStreetMap data (by default overpass-api.de) – with the coordinates of the area only, without your IP address or any other data of yours. The server keeps the answers in a cache so that the same area is not fetched again.
+- **No-smoking zones:** Only when you switch them on, and only for areas in Germany: to show no-smoking zones (e.g. around schools and playgrounds), the app sends the visible map area or a spot's position to our server. The server fetches the zones from the Overpass API, a public service for OpenStreetMap data (by default overpass-api.de) – with the coordinates of the area only, without your IP address or any other data of yours. The server keeps the answers in a cache so that the same area is not fetched again.
 - **Address search when adding a spot:** The search text goes to our server, which forwards it to the Nominatim service of the OpenStreetMap Foundation – without your IP address. The server keeps search texts and results in memory for up to 24 hours so as not to ask Nominatim twice.
 
 Legal basis: Art. 6(1)(a) GDPR (your consent by granting location access) and (b) (the feature you use).
@@ -229,7 +229,7 @@ Legal basis: Art. 6(1)(f) GDPR (protecting your account).
 ## 8. Storage on your device
 
 - The login tokens are kept in the operating system's secure storage (keychain, keystore or similar), in the web app in the browser's local storage (localStorage) for this site.
-- Settings (e.g. transparency, automatic update checks, a skipped version, whether you closed the notice about no-smoking zones) and the last loaded list of app versions are stored locally by the app.
+- Settings (e.g. transparency, no-smoking zones on or off, the 3D view, automatic update checks and the update channel, a skipped version, until when the development-build notice is hidden) and the last loaded list of app versions are stored locally by the app.
 - Images are cached so that they do not have to be loaded every time.
 
 This data does not leave your device and is strictly necessary for the app to work (§ 25(2) no. 2 TDDDG). You delete it by logging out or by clearing the app's or website's data.
@@ -238,7 +238,7 @@ This data does not leave your device and is strictly necessary for the app to wo
 
 For the following features the app connects directly to other providers. Like with any request on the internet, they see your IP address, the time, technical details (e.g. app or browser identifier) and what is requested:
 
-- **Map tiles:** OpenStreetMap Foundation (tile.openstreetmap.org) for the standard map; CARTO (basemaps.cartocdn.com) for the dark map, if this app version uses it; Thunderforest (tile.thunderforest.com) for the public transport map, only when you switch it on; Esri (server.arcgisonline.com) for satellite images in the satellite view and in spot previews. The tiles requested show which map area you are looking at.
+- **Map tiles:** OpenStreetMap Foundation (tile.openstreetmap.org) for the standard map; CARTO (basemaps.cartocdn.com) for the dark map, if this app version uses it; for the public transport map, only when you switch it on, Thunderforest (tile.thunderforest.com) or, in app versions without Thunderforest access, ÖPNVKarte (tileserver.memomaps.de, memomaps.de); Esri (server.arcgisonline.com) for satellite images in the satellite view and in spot previews; OpenFreeMap (tiles.openfreemap.org) for the buildings of the 3D view, only while it is switched on. The tiles requested show which map area you are looking at.
 - **Weather:** Open-Meteo (api.open-meteo.com) receives the coordinates of the spot (not your location) when you open a spot page.
 - **App updates** (Android, Windows, Linux, macOS): At start, at most every 6 hours, the app asks GitHub (api.github.com) for new versions and downloads updates from GitHub. Automatic checks can be switched off under Settings → Updates.
 - **Web app:** The web app is served by GitHub Pages (GitHub, Inc.), which processes your IP address. At start it loads fonts and parts of its graphics engine from Google servers (fonts.gstatic.com, www.gstatic.com).
