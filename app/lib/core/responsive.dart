@@ -75,3 +75,22 @@ class ContentWidth extends StatelessWidget {
     ),
   );
 }
+
+/// Around a list whose own padding already keeps clear of the sides
+/// (MediaQuery's left/right padding, e.g. the navigation rail on wide
+/// windows): removes that padding below, or every ListTile in it would keep
+/// clear of it a second time (it sits in a SafeArea) and its rows would
+/// start far to the right of the list.
+class SideInsetsHandled extends StatelessWidget {
+  const SideInsetsHandled({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => MediaQuery.removePadding(
+    context: context,
+    removeLeft: true,
+    removeRight: true,
+    child: child,
+  );
+}

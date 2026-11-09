@@ -8,6 +8,7 @@ import '../../core/glass.dart';
 import '../../core/models.dart';
 import '../../core/net_photo.dart';
 import '../../core/paging.dart';
+import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import '../feed/satellite_thumb.dart';
 import '../reviews/rating_widgets.dart';
@@ -127,32 +128,34 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen> {
       builder: (context, c) => RefreshIndicator(
         edgeOffset: GlassAppBar.contentTop(context),
         onRefresh: _controller.refresh,
-        child: ListView.builder(
-          controller: _scroll,
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: savedPagePadding(context, c.maxWidth),
-          itemCount:
-              page.items.length +
-              (page.loadingMore ? 1 : 0) +
-              (satellite ? 1 : 0),
-          itemBuilder: (_, i) {
-            if (i >= page.items.length) {
-              if (page.loadingMore && i == page.items.length) {
-                return const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator()),
-                );
+        child: SideInsetsHandled(
+          child: ListView.builder(
+            controller: _scroll,
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: savedPagePadding(context, c.maxWidth),
+            itemCount:
+                page.items.length +
+                (page.loadingMore ? 1 : 0) +
+                (satellite ? 1 : 0),
+            itemBuilder: (_, i) {
+              if (i >= page.items.length) {
+                if (page.loadingMore && i == page.items.length) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                // the thumbnails are too small to carry it themselves
+                return const SatelliteCredit(key: Key('satelliteCredit'));
               }
-              // the thumbnails are too small to carry it themselves
-              return const SatelliteCredit(key: Key('satelliteCredit'));
-            }
-            final spot = page.items[i];
-            return _SpotRow(
-              key: ValueKey(spot.id),
-              spot: spot,
-              onRemove: () => _remove(spot),
-            );
-          },
+              final spot = page.items[i];
+              return _SpotRow(
+                key: ValueKey(spot.id),
+                spot: spot,
+                onRemove: () => _remove(spot),
+              );
+            },
+          ),
         ),
       ),
     );

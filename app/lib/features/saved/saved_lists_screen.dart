@@ -65,28 +65,30 @@ class SavedListsScreen extends ConsumerWidget {
             return RefreshIndicator(
               edgeOffset: GlassAppBar.contentTop(context),
               onRefresh: () => ref.refresh(savedListsProvider.future),
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: savedPagePadding(context, c.maxWidth),
-                children: [
-                  for (final list in all) _ListRow(list: list),
-                  if (empty)
-                    Padding(
-                      key: const Key('savedEmpty'),
-                      padding: const EdgeInsets.fromLTRB(32, 48, 32, 0),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.bookmark_border,
-                            size: 48,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(l.savedEmpty, textAlign: TextAlign.center),
-                        ],
+              child: SideInsetsHandled(
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: savedPagePadding(context, c.maxWidth),
+                  children: [
+                    for (final list in all) _ListRow(list: list),
+                    if (empty)
+                      Padding(
+                        key: const Key('savedEmpty'),
+                        padding: const EdgeInsets.fromLTRB(32, 48, 32, 0),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.bookmark_border,
+                              size: 48,
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(l.savedEmpty, textAlign: TextAlign.center),
+                          ],
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             );
           },

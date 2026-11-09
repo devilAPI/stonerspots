@@ -143,6 +143,31 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
+  testWidgets('wide window with the nav rail: rows start with the list', (
+    t,
+  ) async {
+    // the shell reserves the rail's width as MediaQuery padding (left)
+    portrait(t, const Size(1290, 900));
+    await pumpProfile(
+      t,
+      FakeUsers(spotIds: [1, 2]),
+      padding: const EdgeInsets.only(left: 210),
+    );
+    final tabs = t.getRect(find.byKey(const Key('userTabs')));
+    final thumb = t.getRect(
+      find
+          .descendant(
+            of: find.byKey(const Key('userSpot-1')),
+            matching: find.byType(ClipRRect),
+          )
+          .first,
+    );
+    // the thumbnail lines up with the tabs (both 16 px in from the list),
+    // not 210 px further right
+    expect(thumb.left, closeTo(tabs.left, 1));
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets('spot rows: no credit in the thumbnails, once below them', (
     t,
   ) async {

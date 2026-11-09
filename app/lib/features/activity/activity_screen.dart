@@ -129,11 +129,13 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
     return RefreshIndicator(
       edgeOffset: GlassAppBar.contentTop(context),
       onRefresh: ctrl.refresh,
-      child: ListView(
-        controller: _scroll,
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: padding,
-        children: children,
+      child: SideInsetsHandled(
+        child: ListView(
+          controller: _scroll,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: padding,
+          children: children,
+        ),
       ),
     );
   }

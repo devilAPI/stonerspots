@@ -168,80 +168,85 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     return RefreshIndicator(
       edgeOffset: GlassAppBar.contentTop(context),
       onRefresh: _refresh,
-      child: ListView(
-        controller: _scroll,
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(
-          insets.left + gutter,
-          GlassAppBar.contentTop(context),
-          insets.right + gutter,
-          insets.bottom + 16,
-        ),
-        children: [
-          _Header(
-            profile: p,
-            busy: _busy,
-            onFollow: () => _toggleFollow(p),
-            editable: (p.isMe && myId == p.id) || iAmAdmin,
-            moderating: !(p.isMe && myId == p.id),
-            extra: widget.headerExtra,
+      child: SideInsetsHandled(
+        child: ListView(
+          controller: _scroll,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(
+            insets.left + gutter,
+            GlassAppBar.contentTop(context),
+            insets.right + gutter,
+            insets.bottom + 16,
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: SegmentedButton<_Tab>(
-              key: const Key('userTabs'),
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(
-                  value: _Tab.spots,
-                  label: Text(l.userTabSpots),
-                  icon: const Icon(Icons.place_outlined),
+          children: [
+            _Header(
+              profile: p,
+              busy: _busy,
+              onFollow: () => _toggleFollow(p),
+              editable: (p.isMe && myId == p.id) || iAmAdmin,
+              moderating: !(p.isMe && myId == p.id),
+              extra: widget.headerExtra,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: SegmentedButton<_Tab>(
+                key: const Key('userTabs'),
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(
+                    value: _Tab.spots,
+                    label: Text(l.userTabSpots),
+                    icon: const Icon(Icons.place_outlined),
+                  ),
+                  ButtonSegment(
+                    value: _Tab.updates,
+                    label: Text(l.userTabUpdates),
+                    icon: const Icon(Icons.dynamic_feed_outlined),
+                  ),
+                ],
+                selected: {_tab},
+                onSelectionChanged: (s) => setState(() => _tab = s.first),
+              ),
+            ),
+            ...switch (_tab) {
+              _Tab.spots => [
+                ..._list(
+                  l,
+                  spots,
+                  empty: l.userNoSpots,
+                  retry: () => ref
+                      .read(userSpotsProvider(widget.userId).notifier)
+                      .loadFirst(),
+                  item: (s) => _SpotRow(key: ValueKey('s${s.id}'), spot: s),
                 ),
-                ButtonSegment(
-                  value: _Tab.updates,
-                  label: Text(l.userTabUpdates),
-                  icon: const Icon(Icons.dynamic_feed_outlined),
-                ),
+                // the thumbnails are too small to carry it themselves
+                if (spots.items.any((s) => s.coverUrl == null))
+                  const SatelliteCredit(key: Key('satelliteCredit')),
               ],
-              selected: {_tab},
-              onSelectionChanged: (s) => setState(() => _tab = s.first),
-            ),
-          ),
-          ...switch (_tab) {
-            _Tab.spots => [
-              ..._list(
+              _Tab.updates => _list(
                 l,
-                spots,
-                empty: l.userNoSpots,
+                updates,
+                empty: l.userNoUpdates,
                 retry: () => ref
-                    .read(userSpotsProvider(widget.userId).notifier)
+                    .read(userUpdatesProvider(widget.userId).notifier)
                     .loadFirst(),
-                item: (s) => _SpotRow(key: ValueKey('s${s.id}'), spot: s),
+                item: (u) => FeedCard(
+                  key: ValueKey('u${u.id}'),
+                  item: u,
+                  // like the feed: a 4:3 picture on top would be taller than
+                  // a landscape phone
+                  layout: context.isPhoneLandscape
+                      ? FeedCardLayout.side
+                      : FeedCardLayout.stacked,
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                ),
               ),
-              // the thumbnails are too small to carry it themselves
-              if (spots.items.any((s) => s.coverUrl == null))
-                const SatelliteCredit(key: Key('satelliteCredit')),
-            ],
-            _Tab.updates => _list(
-              l,
-              updates,
-              empty: l.userNoUpdates,
-              retry: () => ref
-                  .read(userUpdatesProvider(widget.userId).notifier)
-                  .loadFirst(),
-              item: (u) => FeedCard(
-                key: ValueKey('u${u.id}'),
-                item: u,
-                // like the feed: a 4:3 picture on top would be taller than
-                // a landscape phone
-                layout: context.isPhoneLandscape
-                    ? FeedCardLayout.side
-                    : FeedCardLayout.stacked,
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              ),
-            ),
-          },
-        ],
+            },
+          ],
+        ),
       ),
     );
   }

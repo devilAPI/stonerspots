@@ -8,6 +8,9 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 - Zones: the note that says why a tapped place is a zone goes away again:
   after 6 seconds, with its ✕, or with a tap where there is no zone. (Since
   it has a button, Flutter kept it until it was dismissed.)
+- Wide windows (navigation rail on the left): the rows of the profile's
+  spots, the saved lists and the activity page start with their list again
+  instead of a rail's width further right, cutting off their names.
 
 ## 1.0.4
 

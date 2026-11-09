@@ -114,6 +114,8 @@ Future<GoRouter> pumpProfile(
   int userId = 7,
   User? user = kMe,
   Locale locale = const Locale('en'),
+  // extra MediaQuery padding, e.g. the navigation rail on wide windows
+  EdgeInsets padding = EdgeInsets.zero,
 }) async {
   final router = GoRouter(
     initialLocation: '/',
@@ -147,6 +149,11 @@ Future<GoRouter> pumpProfile(
       ],
       child: MaterialApp.router(
         routerConfig: router,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(padding: MediaQuery.paddingOf(context) + padding),
+          child: child!,
+        ),
         locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
