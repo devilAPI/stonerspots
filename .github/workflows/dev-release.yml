@@ -94,7 +94,9 @@ env:
   # that a release tag is exactly vX.Y.Z before anything is built.
   TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag || format('dev-{0}', github.run_number) }}
   # which releases the apps' updater follows (README, "App updates")
-  CHANNEL: ${{ (github.ref_type == 'tag' || inputs.tag) && 'release' || 'dev' }}
+  # not "CHANNEL": subosito/flutter-action reads that variable as its own
+  # Flutter channel ("Unable to determine Flutter version for channel: dev")
+  BUILD_CHANNEL: ${{ (github.ref_type == 'tag' || inputs.tag) && 'release' || 'dev' }}
   # what every job checks out: the tag of a manual release run, else the
   # commit that started the run
   CHECKOUT_REF: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.sha }}
@@ -133,8 +135,8 @@ jobs:
           RELEASE_SIGNING_PUBKEY: ${{ vars.RELEASE_SIGNING_PUBKEY }}
         run: |
           set -euo pipefail
-          echo "channel=${CHANNEL}" >> "$GITHUB_OUTPUT"
-          if [ "$CHANNEL" = dev ]; then
+          echo "channel=${BUILD_CHANNEL}" >> "$GITHUB_OUTPUT"
+          if [ "$BUILD_CHANNEL" = dev ]; then
             echo "dev build ${TAG}"
             exit 0
           fi
@@ -251,7 +253,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
-            if [ "$CHANNEL" = release ]; then
+            if [ "$BUILD_CHANNEL" = release ]; then
               echo "::error::Secret ANDROID_KEYSTORE_BASE64 is not set: a release APK must be signed with the project key (README, \"App updates\")."
               exit 1
             fi
@@ -279,7 +281,7 @@ jobs:
             --dart-define=API_URL="$API_URL" \
             --dart-define=CARTO_KEY="$CARTO_KEY" \
             --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY" \
-            --dart-define=UPDATE_CHANNEL="$CHANNEL" \
+            --dart-define=UPDATE_CHANNEL="$BUILD_CHANNEL" \
             --dart-define=RELEASE_SIGNING_PUBKEY="$RELEASE_SIGNING_PUBKEY"
           rm -f android/key.properties
           mkdir -p ../dist
@@ -326,7 +328,7 @@ jobs:
             --dart-define=API_URL="$API_URL" \
             --dart-define=CARTO_KEY="$CARTO_KEY" \
             --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY" \
-            --dart-define=UPDATE_CHANNEL="$CHANNEL" \
+            --dart-define=UPDATE_CHANNEL="$BUILD_CHANNEL" \
             --dart-define=RELEASE_SIGNING_PUBKEY="$RELEASE_SIGNING_PUBKEY"
           mkdir -p ../dist
           tar -czf "../dist/stonerspots-${TAG}-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
@@ -417,7 +419,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$RELEASE_SIGNING_KEY" ]; then
-            if [ "$CHANNEL" = release ]; then
+            if [ "$BUILD_CHANNEL" = release ]; then
               echo "::error::Secret RELEASE_SIGNING_KEY is not set: a release must be signed (README, \"Signed releases\")."
               exit 1
             fi
@@ -468,7 +470,7 @@ jobs:
             --dart-define=API_URL="$API_URL" \
             --dart-define=CARTO_KEY="$CARTO_KEY" \
             --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY" \
-            --dart-define=UPDATE_CHANNEL="$CHANNEL"
+            --dart-define=UPDATE_CHANNEL="$BUILD_CHANNEL"
           tool/web_cache_bust.sh build/web "$BUILD_NUMBER"
           mkdir -p ../dist
           (cd build/web && zip -qr "../../../dist/stonerspots-${TAG}-web.zip" .)
@@ -506,7 +508,7 @@ jobs:
             --dart-define=API_URL="$API_URL" \
             --dart-define=CARTO_KEY="$CARTO_KEY" \
             --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY" \
-            --dart-define=UPDATE_CHANNEL="$CHANNEL"
+            --dart-define=UPDATE_CHANNEL="$BUILD_CHANNEL"
           mkdir -p Payload ../dist
           cp -R build/ios/iphoneos/Runner.app Payload/
           zip -qry "../dist/stonerspots-${TAG}-ios-unsigned.ipa" Payload
@@ -549,7 +551,7 @@ jobs:
             "--dart-define=API_URL=$env:API_URL" `
             "--dart-define=CARTO_KEY=$env:CARTO_KEY" `
             "--dart-define=THUNDERFOREST_KEY=$env:THUNDERFOREST_KEY" `
-            "--dart-define=UPDATE_CHANNEL=$env:CHANNEL" `
+            "--dart-define=UPDATE_CHANNEL=$env:BUILD_CHANNEL" `
             "--dart-define=RELEASE_SIGNING_PUBKEY=$env:RELEASE_SIGNING_PUBKEY"
           New-Item -ItemType Directory -Force ..\dist | Out-Null
           # the folder's contents at the zip's top level, like the Linux tarball
@@ -591,7 +593,7 @@ jobs:
             --dart-define=API_URL="$API_URL" \
             --dart-define=CARTO_KEY="$CARTO_KEY" \
             --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY" \
-            --dart-define=UPDATE_CHANNEL="$CHANNEL" \
+            --dart-define=UPDATE_CHANNEL="$BUILD_CHANNEL" \
             --dart-define=RELEASE_SIGNING_PUBKEY="$RELEASE_SIGNING_PUBKEY"
           mkdir -p ../dist
           # -y keeps the framework symlinks as links
@@ -661,7 +663,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$RELEASE_SIGNING_KEY" ]; then
-            if [ "$CHANNEL" = release ]; then
+            if [ "$BUILD_CHANNEL" = release ]; then
               echo "::error::Secret RELEASE_SIGNING_KEY is not set: a release must be signed (README, \"App updates\")."
               exit 1
             fi
@@ -761,7 +763,7 @@ jobs:
           # by sign-apps; the apps' updater installs nothing they don't cover
           cp artifacts/app-checksums/SHA256SUMS-apps.txt* dist/
           (cd dist && sha256sum -c SHA256SUMS-apps.txt)
-          if [ "$CHANNEL" = release ]; then
+          if [ "$BUILD_CHANNEL" = release ]; then
             # a release is never published unsigned (job version checked the
             # keys; this checks the result)
             for f in SHA256SUMS.txt.sig SHA256SUMS-apps.txt.sig; do
@@ -770,7 +772,7 @@ jobs:
           fi
           ls -l dist
       - name: Create prerelease
-        if: env.CHANNEL == 'dev'
+        if: env.BUILD_CHANNEL == 'dev'
         env:
           # untrusted text: only ever read through the environment
           COMMIT_MSG: ${{ github.event.head_commit.message }}
@@ -798,7 +800,7 @@ jobs:
       # tag), titled "Stonerspots X.Y.Z": a short install section, then the
       # notes GitHub generates since the previous release.
       - name: Create release
-        if: env.CHANNEL == 'release'
+        if: env.BUILD_CHANNEL == 'release'
         env:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
