@@ -351,6 +351,40 @@ void main() {
       },
     );
 
+    testWidgets('the zone notice goes away: by itself, ✕, or a tap outside', (
+      t,
+    ) async {
+      final repo = repoWith([_playground]);
+      await _pumpMap(t, overridesFor(repo));
+      final centre = t.getCenter(find.byType(FlutterMap));
+      Future<void> tapAt(Offset p) async {
+        await t.tapAt(p);
+        await t.pump(const Duration(milliseconds: 500)); // double-tap timeout
+        await t.pumpAndSettle();
+      }
+
+      final notice = find.byKey(const Key('zoneTapInfo'));
+      // by itself after a few seconds (it has an action, so Flutter would
+      // keep it until dismissed)
+      await tapAt(centre);
+      expect(notice, findsOneWidget);
+      await t.pump(const Duration(seconds: 7));
+      await t.pumpAndSettle();
+      expect(notice, findsNothing);
+
+      // the close button
+      await tapAt(centre);
+      await t.tap(find.byIcon(Icons.close));
+      await t.pumpAndSettle();
+      expect(notice, findsNothing);
+
+      // a tap where there is no zone
+      await tapAt(centre);
+      expect(notice, findsOneWidget);
+      await tapAt(centre + const Offset(0, -350));
+      expect(notice, findsNothing);
+    });
+
     testWidgets('the button turns the layer off and on; it is kept', (t) async {
       final store = SettingsStore.memory();
       final repo = repoWith([_playground]);

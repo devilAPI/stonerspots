@@ -3,6 +3,12 @@
 Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 "Releasing 1.0". Development builds (`dev-<n>`) are not listed here.
 
+## 1.0.5
+
+- Zones: the note that says why a tapped place is a zone goes away again:
+  after 6 seconds, with its ✕, or with a tap where there is no zone. (Since
+  it has a button, Flutter kept it until it was dismissed.)
+
 ## 1.0.4
 
 - 3D: zoom stops at 18.5. Further in, buildings near the viewer reached the

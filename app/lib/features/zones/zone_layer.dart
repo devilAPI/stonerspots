@@ -672,7 +672,11 @@ class ZoneInfoButton extends ConsumerWidget {
 void showZonesAt(BuildContext context, WidgetRef ref, LatLng p, double zoom) {
   if (zoom < kZoneMinZoom || !ref.read(zonesActiveProvider)) return;
   final hits = ref.read(zoneLayerControllerProvider.notifier).hitsAt(p);
-  if (hits.isEmpty) return;
+  if (hits.isEmpty) {
+    // a tap where there is no zone puts the last zone notice away
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    return;
+  }
   final l = AppLocalizations.of(context);
   final banNow = ref.read(zoneLayerControllerProvider).banNow;
   String line(ZoneHit h) {
@@ -693,6 +697,10 @@ void showZonesAt(BuildContext context, WidgetRef ref, LatLng p, double zoom) {
     SnackBar(
       key: const Key('zoneTapInfo'),
       content: Text(hits.take(3).map(line).join('\n')),
+      // with an action Flutter would keep it until dismissed
+      persist: false,
+      duration: const Duration(seconds: 6),
+      showCloseIcon: true,
       action: SnackBarAction(
         label: l.zonesInfo,
         onPressed: () => showZoneDisclaimer(context),
