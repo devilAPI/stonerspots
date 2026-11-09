@@ -6,6 +6,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 
+import '../../core/api_client.dart';
 import '../../l10n/app_localizations.dart';
 import '../map/buildings/map_tilt.dart';
 import 'germany.dart';
@@ -85,6 +86,16 @@ bool outsideGermany(MapCamera camera, MapTilt? tilt) {
     for (final c in corners) camera.screenOffsetToLatLng(c),
   ]);
 }
+
+/// How long a tile the server is still fetching from Overpass waits before
+/// it is asked for again ("zones_pending": not a failure, just slow).
+final zonePendingRetryProvider = Provider<Duration>(
+  (ref) => const Duration(seconds: 10),
+);
+
+/// A view still loading after this long says so ("Loading zones…"); quicker
+/// loads (the server's cache) show nothing.
+const Duration kZoneSlowLoad = Duration(milliseconds: 1500);
 
 /// How long a tile that could not be loaded waits before it is asked for
 /// again while it is in view (the server itself waits a minute before it
@@ -178,6 +189,7 @@ class ZoneLayerState {
   const ZoneLayerState({
     this.tiles = const {},
     this.failed = false,
+    this.loading = false,
     this.banNow = false,
   });
 
@@ -187,16 +199,22 @@ class ZoneLayerState {
   /// A tile of the current view could not be loaded.
   final bool failed;
 
+  /// Tiles of the current view have been on their way for a while (the
+  /// server is fetching them from Overpass).
+  final bool loading;
+
   /// Pedestrian zones are forbidden right now (7-20 h German time).
   final bool banNow;
 
   ZoneLayerState copyWith({
     Map<ZoneTileId, ZoneTileGraphics>? tiles,
     bool? failed,
+    bool? loading,
     bool? banNow,
   }) => ZoneLayerState(
     tiles: tiles ?? this.tiles,
     failed: failed ?? this.failed,
+    loading: loading ?? this.loading,
     banNow: banNow ?? this.banNow,
   );
 }
@@ -206,10 +224,19 @@ class ZoneLayerController extends Notifier<ZoneLayerState> {
   Timer? _debounce;
   Timer? _clock;
   Timer? _retry;
+  Timer? _pendingRetry;
+  Timer? _slow;
+
+  /// The view has been loading for [kZoneSlowLoad] (set by [_slow]).
+  bool _slowLoad = false;
   List<ZoneTileId> _wanted = const [];
   final _graphics = <ZoneTileId, ZoneTileGraphics>{}; // insertion order
   final _loading = <ZoneTileId>{};
   final _failed = <ZoneTileId>{};
+
+  /// Tiles the server is still fetching: asked for again soon, never shown
+  /// as failed.
+  final _waiting = <ZoneTileId>{};
 
   @override
   ZoneLayerState build() {
@@ -217,6 +244,8 @@ class ZoneLayerController extends Notifier<ZoneLayerState> {
       _debounce?.cancel();
       _clock?.cancel();
       _retry?.cancel();
+      _pendingRetry?.cancel();
+      _slow?.cancel();
     });
     final now = ref.watch(zoneClockProvider);
     _scheduleClock(now);
@@ -265,6 +294,17 @@ class ZoneLayerController extends Notifier<ZoneLayerState> {
     }
   }
 
+  /// Tiles the server is still fetching are asked for again after
+  /// [zonePendingRetryProvider], as long as they are in view.
+  void _schedulePendingRetry() {
+    _pendingRetry ??= Timer(ref.read(zonePendingRetryProvider), () {
+      _pendingRetry = null;
+      final again = _waiting.where(_wanted.contains).toList();
+      _waiting.clear();
+      if (again.isNotEmpty) _load();
+    });
+  }
+
   /// Overpass is often only briefly overloaded: failed tiles still in view
   /// are asked for again after [zoneRetryProvider].
   void _scheduleRetry() {
@@ -293,14 +333,21 @@ class ZoneLayerController extends Notifier<ZoneLayerState> {
             (data) {
               _loading.remove(t);
               _failed.remove(t);
+              _waiting.remove(t);
               _graphics[t] = ZoneTileGraphics.build(t, data.zones);
               _publish();
             },
-            onError: (Object _) {
+            onError: (Object e) {
               _loading.remove(t);
-              _failed.add(t);
+              if (e is ApiException && e.code == 'zones_pending') {
+                // slow, not broken: keep saying "loading" and ask again
+                _waiting.add(t);
+                _schedulePendingRetry();
+              } else {
+                _failed.add(t);
+                _scheduleRetry();
+              }
               _publish();
-              _scheduleRetry();
             },
           );
     }
@@ -317,9 +364,24 @@ class ZoneLayerController extends Notifier<ZoneLayerState> {
       );
       _graphics.remove(old);
     }
+    final busy = _wanted.any(
+      (t) => _loading.contains(t) || _waiting.contains(t),
+    );
+    if (!busy) {
+      _slow?.cancel();
+      _slow = null;
+      _slowLoad = false;
+    } else if (_slow == null && !_slowLoad) {
+      _slow = Timer(kZoneSlowLoad, () {
+        _slow = null;
+        _slowLoad = true;
+        _publish();
+      });
+    }
     state = state.copyWith(
       tiles: {for (final t in _wanted) t: ?_graphics[t]},
       failed: _wanted.any(_failed.contains),
+      loading: busy && _slowLoad,
     );
   }
 
@@ -487,11 +549,16 @@ class _ZoneOverlayState extends ConsumerState<ZoneOverlay> {
     final failed =
         zoomedIn &&
         ref.watch(zoneLayerControllerProvider.select((s) => s.failed));
+    final loading =
+        zoomedIn &&
+        ref.watch(zoneLayerControllerProvider.select((s) => s.loading));
     final insets = MediaQuery.paddingOf(context);
     final pill = !zoomedIn
         ? _Pill(key: const Key('zoneZoomHint'), text: l.zonesZoomHint)
         : failed
         ? _Pill(key: const Key('zoneLoadFailed'), text: l.zonesLoadFailed)
+        : loading
+        ? _Pill(key: const Key('zoneLoading'), text: l.zonesLoading)
         : null;
     return Stack(
       children: [

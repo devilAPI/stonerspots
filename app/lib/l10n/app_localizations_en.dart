@@ -1937,4 +1937,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get satelliteCredit => 'Satellite images: Esri World Imagery';
+
+  @override
+  String get zonesLoading => 'Loading zones…';
 }

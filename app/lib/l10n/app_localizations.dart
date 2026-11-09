@@ -3319,6 +3319,12 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Satellitenbilder: Esri World Imagery'**
   String get satelliteCredit;
+
+  /// No description provided for @zonesLoading.
+  ///
+  /// In de, this message translates to:
+  /// **'Verbotszonen werden geladen…'**
+  String get zonesLoading;
 }
 
 class _AppLocalizationsDelegate

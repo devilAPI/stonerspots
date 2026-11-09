@@ -10,6 +10,10 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
   are now left out, and switching to 3D closer in zooms out to 18.5.
 - Adding a spot: a zone check that fails can no longer keep "Save"
   spinning; the check only ever warns, so the spot is saved.
+- Zones: while the server is still fetching an area from Overpass (which
+  often takes 30-60 s per area right now), the map says "Loading zones…"
+  and keeps asking every 10 s, instead of giving up after two minutes with
+  "Zones could not be loaded". That message is left for real errors.
 
 ## 1.0.3
 

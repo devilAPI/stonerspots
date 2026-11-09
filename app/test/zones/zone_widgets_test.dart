@@ -76,6 +76,23 @@ class _ZoneMap extends ConsumerWidget {
   );
 }
 
+/// A server that is still fetching a tile from Overpass for the first
+/// [pendingTimes] requests ("zones_pending"), then has it.
+class _SlowRepo extends FakeZonesRepository {
+  _SlowRepo(super.tiles, this.pendingTimes);
+  int pendingTimes;
+
+  @override
+  Future<ZoneData> fetchTile(ZoneTileId tile) async {
+    if (pendingTimes > 0) {
+      pendingTimes--;
+      asked.add(tile);
+      throw ApiException(503, 'zones_pending', 'being fetched');
+    }
+    return super.fetchTile(tile);
+  }
+}
+
 class _FixedPitch extends MapPitch {
   _FixedPitch(this.degrees);
   final double degrees;
@@ -276,6 +293,27 @@ void main() {
       await t.pumpAndSettle();
       expect(repo.asked, hasLength(2));
       expect(find.byKey(const Key('zoneLoadFailed')), findsNothing);
+      expect(_painter(t)!.tiles.single.zones.single.id, 'way/1');
+    });
+
+    testWidgets('still being fetched: "loading", never "failed"', (t) async {
+      final zones = repoWith([_playground]);
+      final repo = _SlowRepo(zones.tiles, 2);
+      await _pumpMap(t, [
+        ...overridesFor(repo),
+        zoneRetryProvider.overrideWithValue(const Duration(seconds: 60)),
+        zonePendingRetryProvider.overrideWithValue(const Duration(seconds: 3)),
+      ]);
+      expect(find.byKey(const Key('zoneLoadFailed')), findsNothing);
+      await t.pump(const Duration(seconds: 2));
+      expect(find.text('Loading zones…'), findsOneWidget);
+      // asked again soon (not after a minute), and drawn once it is there
+      await t.pump(const Duration(seconds: 3));
+      await t.pump(const Duration(seconds: 3));
+      await t.pumpAndSettle();
+      expect(repo.asked.length, greaterThanOrEqualTo(3));
+      expect(find.byKey(const Key('zoneLoadFailed')), findsNothing);
+      expect(find.text('Loading zones…'), findsNothing);
       expect(_painter(t)!.tiles.single.zones.single.id, 'way/1');
     });
 

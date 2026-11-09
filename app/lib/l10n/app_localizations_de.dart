@@ -1952,4 +1952,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get satelliteCredit => 'Satellitenbilder: Esri World Imagery';
+
+  @override
+  String get zonesLoading => 'Verbotszonen werden geladen…';
 }
