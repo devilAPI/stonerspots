@@ -1,3 +1,6 @@
+import 'package:app/features/zones/germany.dart';
+import 'package:app/features/map/buildings/map_tilt.dart';
+import 'package:app/features/map/map_gestures.dart';
 import 'package:app/core/api_client.dart';
 import 'package:app/core/location_service.dart';
 import 'package:app/core/models.dart';
@@ -45,13 +48,17 @@ class _ZoneMap extends ConsumerWidget {
     body: Stack(
       fit: StackFit.expand,
       children: [
-        FlutterMap(
-          options: MapOptions(
-            initialCenter: center,
-            initialZoom: zoom,
-            onTap: (_, p) => showZonesAt(context, ref, p, zoom),
+        // as on the map page: tilted when the pitch says so (0: flat)
+        TiltedMap(
+          pitch: ref.watch(mapPitchProvider),
+          child: FlutterMap(
+            options: MapOptions(
+              initialCenter: center,
+              initialZoom: zoom,
+              onTap: (_, p) => showZonesAt(context, ref, p, zoom),
+            ),
+            children: const [ZoneLayer(), ZoneOverlay()],
           ),
-          children: const [ZoneLayer(), ZoneOverlay()],
         ),
         const Positioned(
           top: 8,
@@ -67,6 +74,13 @@ class _ZoneMap extends ConsumerWidget {
       ],
     ),
   );
+}
+
+class _FixedPitch extends MapPitch {
+  _FixedPitch(this.degrees);
+  final double degrees;
+  @override
+  double build() => degrees;
 }
 
 final _playground = square(
@@ -204,6 +218,32 @@ void main() {
       expect(find.byKey(const Key('mapZones')), findsNothing);
       expect(find.byKey(const Key('mapZonesInfo')), findsNothing);
       expect(find.byKey(const Key('map3d')), findsOneWidget);
+    });
+
+    testWidgets('3D: Germany behind the viewer, off the screen: no buttons', (
+      t,
+    ) async {
+      // Kolding, Denmark, looking north: the German border (with its
+      // waters in Flensburg Fjord) is ~65 km south, under the larger,
+      // tilted map but below the screen
+      const kolding = LatLng(55.49, 9.47);
+      await _pumpMap(
+        t,
+        [
+          ...overridesFor(repoWith([])),
+          mapPitchProvider.overrideWith(() => _FixedPitch(kMapPitch)),
+        ],
+        zoom: 9.5,
+        center: kolding,
+      );
+      final tilt = MapTiltScope.of(t.element(find.byType(ZoneLayer)));
+      expect(tilt, isNotNull);
+      final camera = MapCamera.of(t.element(find.byType(ZoneLayer)));
+      final v = camera.visibleBounds;
+      // the whole tilted map reaches into Germany, the screen does not
+      expect(touchesGermany(v.south, v.west, v.north, v.east), isTrue);
+      expect(find.byKey(const Key('mapZones')), findsNothing);
+      expect(find.byKey(const Key('mapZonesInfo')), findsNothing);
     });
 
     testWidgets('a spot there has no zone chip and asks nothing', (t) async {

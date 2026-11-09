@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 
 import '../../l10n/app_localizations.dart';
+import '../map/buildings/map_tilt.dart';
 import 'germany.dart';
 import 'zone_consent.dart';
 import 'zone_geo.dart';
@@ -57,8 +58,8 @@ class ZonesAbroad extends Notifier<bool> {
   bool build() => false;
 
   /// May be called during build: the new value is set right after.
-  void onCamera(MapCamera camera) {
-    final abroad = outsideGermany(camera);
+  void onCamera(MapCamera camera, MapTilt? tilt) {
+    final abroad = outsideGermany(camera, tilt);
     if (abroad == state) return;
     scheduleMicrotask(() {
       if (ref.mounted) state = abroad;
@@ -66,10 +67,23 @@ class ZonesAbroad extends Notifier<bool> {
   }
 }
 
-/// Whether the camera's view shows no part of Germany.
-bool outsideGermany(MapCamera camera) {
-  final v = camera.visibleBounds;
-  return !touchesGermany(v.south, v.west, v.north, v.east);
+/// Whether the screen shows no part of Germany. Not the camera's
+/// visibleBounds: tilted, the map is much larger than the screen, and
+/// turned, its box is larger than the map; the screen's own corners are
+/// used, through the tilt.
+bool outsideGermany(MapCamera camera, MapTilt? tilt) {
+  final size = camera.nonRotatedSize;
+  final corners =
+      tilt?.visibleGround ??
+      [
+        Offset.zero,
+        Offset(size.width, 0),
+        Offset(size.width, size.height),
+        Offset(0, size.height),
+      ];
+  return !touchesGermanyArea([
+    for (final c in corners) camera.screenOffsetToLatLng(c),
+  ]);
 }
 
 /// How long a tile that could not be loaded waits before it is asked for
@@ -451,11 +465,12 @@ class _ZoneOverlayState extends ConsumerState<ZoneOverlay> {
   Widget build(BuildContext context) {
     final camera = MapCamera.of(context);
     // also while the layer is off: the button to turn it on hides abroad
-    ref.read(zonesAbroadProvider.notifier).onCamera(camera);
+    final tilt = MapTiltScope.of(context);
+    ref.read(zonesAbroadProvider.notifier).onCamera(camera, tilt);
     if (!ref.watch(zonesEnabledProvider)) return const SizedBox.shrink();
     // no part of Germany on the screen: no zones, no hints (the buttons
     // hide too, see zonesAbroadProvider)
-    if (outsideGermany(camera)) return const SizedBox.shrink();
+    if (outsideGermany(camera, tilt)) return const SizedBox.shrink();
     final zoomedIn = camera.zoom >= kZoneMinZoom;
     final accepted = ref.watch(zonesAcceptedProvider);
     if (!accepted) {

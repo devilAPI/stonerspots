@@ -62,4 +62,27 @@ void main() {
       [43.252, -126.453],
     ]);
   });
+
+  test('areas: only what the area itself covers counts', () {
+    List<LatLng> diamond(double lat, double lon, double r) => [
+      LatLng(lat + r, lon),
+      LatLng(lat, lon + r),
+      LatLng(lat - r, lon),
+      LatLng(lat, lon - r),
+    ];
+    // east of Salzburg, all in Austria (checked on the full OSM border),
+    // though its bounding box reaches into Bavaria
+    final austria = diamond(47.95, 13.3, 0.25);
+    expect(inGermany(const LatLng(47.70, 13.05)), isTrue);
+    expect(touchesGermany(47.70, 13.05, 48.20, 13.55), isTrue);
+    expect(touchesGermanyArea(austria), isFalse);
+    // across the border
+    expect(touchesGermanyArea(diamond(47.80, 12.95, 0.2)), isTrue);
+    // inside Germany
+    expect(touchesGermanyArea(diamond(50.0, 10.0, 0.1)), isTrue);
+    // around all of Germany
+    expect(touchesGermanyArea(diamond(51.0, 10.5, 12)), isTrue);
+    // far away
+    expect(touchesGermanyArea(diamond(41.14, -8.61, 0.5)), isFalse);
+  });
 }

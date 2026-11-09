@@ -26,6 +26,7 @@ class _Border {
       }
     }
     bands = List.generate(_bandOf(n) + 1, (_) => <_Edge>[]);
+    firstPoints = [for (final r in rings) r.first];
     for (final r in rings) {
       for (var i = 0; i < r.length; i++) {
         final a = r[i], b = r[(i + 1) % r.length];
@@ -42,6 +43,10 @@ class _Border {
   double s = double.infinity, w = double.infinity;
   double n = double.negativeInfinity, e = double.negativeInfinity;
   late final List<List<_Edge>> bands;
+
+  /// One point of each ring (a ring wholly inside an area has its points
+  /// inside it).
+  late final List<LatLng> firstPoints;
 
   int _bandOf(double lat) => ((lat - s) / _bandDeg).floor();
 
@@ -71,6 +76,89 @@ class _Border {
     // no edge in the box: wholly in or wholly out
     return contains((south + north) / 2, (west + east) / 2);
   }
+
+  /// Whether any part of the convex area [quad] (corners in order) lies in
+  /// Germany.
+  bool touchesArea(List<LatLng> quad) {
+    var south = double.infinity, north = double.negativeInfinity;
+    var west = double.infinity, east = double.negativeInfinity;
+    for (final p in quad) {
+      south = math.min(south, p.latitude);
+      north = math.max(north, p.latitude);
+      west = math.min(west, p.longitude);
+      east = math.max(east, p.longitude);
+    }
+    // not even its bounding box: certainly not
+    if (!touches(south, west, north, east)) return false;
+    // a corner in Germany
+    for (final p in quad) {
+      if (contains(p.latitude, p.longitude)) return true;
+    }
+    // the border crossing an edge of the area
+    for (var k = band(south); k <= band(north); k++) {
+      for (final ed in bands[k]) {
+        for (var i = 0; i < quad.length; i++) {
+          final a = quad[i], b = quad[(i + 1) % quad.length];
+          if (_segmentsCross(
+            ed.aLat,
+            ed.aLon,
+            ed.bLat,
+            ed.bLon, //
+            a.latitude,
+            a.longitude,
+            b.latitude,
+            b.longitude,
+          )) {
+            return true;
+          }
+        }
+      }
+    }
+    // all of Germany (or an exclave) inside the area
+    return firstPoints.any((p) => _inConvex(quad, p));
+  }
+}
+
+bool _segmentsCross(
+  double ay,
+  double ax,
+  double by,
+  double bx, //
+  double cy,
+  double cx,
+  double dy,
+  double dx,
+) {
+  double side(
+    double px,
+    double py,
+    double qx,
+    double qy,
+    double rx,
+    double ry,
+  ) => (qx - px) * (ry - py) - (qy - py) * (rx - px);
+  final d1 = side(cx, cy, dx, dy, ax, ay), d2 = side(cx, cy, dx, dy, bx, by);
+  final d3 = side(ax, ay, bx, by, cx, cy), d4 = side(ax, ay, bx, by, dx, dy);
+  return (d1 > 0) != (d2 > 0) && (d3 > 0) != (d4 > 0);
+}
+
+/// Whether [p] lies inside the convex polygon [poly] (either winding).
+bool _inConvex(List<LatLng> poly, LatLng p) {
+  var sign = 0;
+  for (var i = 0; i < poly.length; i++) {
+    final a = poly[i], b = poly[(i + 1) % poly.length];
+    final c =
+        (b.longitude - a.longitude) * (p.latitude - a.latitude) -
+        (b.latitude - a.latitude) * (p.longitude - a.longitude);
+    final s = c > 0 ? 1 : (c < 0 ? -1 : 0);
+    if (s == 0) continue;
+    if (sign == 0) {
+      sign = s;
+    } else if (s != sign) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /// Liang-Barsky clipping of the edge against the box.
@@ -127,6 +215,10 @@ final _Border _germany = _Border([
 
 /// Whether [p] lies in Germany.
 bool inGermany(LatLng p) => _germany.contains(p.latitude, p.longitude);
+
+/// Whether any part of the convex area with the corners [quad] (in order,
+/// e.g. what the screen shows of a tilted map) lies in Germany.
+bool touchesGermanyArea(List<LatLng> quad) => _germany.touchesArea(quad);
 
 /// Whether any part of the box lies in Germany.
 bool touchesGermany(double south, double west, double north, double east) =>
