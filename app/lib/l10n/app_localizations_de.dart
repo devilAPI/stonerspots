@@ -1789,9 +1789,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get zonesZoomHint => 'Reinzoomen, um Verbotszonen zu sehen';
 
   @override
-  String get zonesOnlyGermany => 'Verbotszonen gibt es nur in Deutschland';
-
-  @override
   String get zonesLoadFailed => 'Verbotszonen konnten nicht geladen werden';
 
   @override

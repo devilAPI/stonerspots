@@ -147,7 +147,6 @@ void main() {
       await _pumpMap(t, overridesFor(repo, accepted: false), center: _vienna);
       expect(find.byKey(const Key('mapZones')), findsNothing);
       expect(find.byKey(const Key('mapZonesInfo')), findsNothing);
-      expect(find.byKey(const Key('zoneOnlyGermany')), findsNothing);
       expect(find.byKey(const Key('zoneDisclaimer')), findsNothing);
       expect(_painter(t)?.tiles ?? const [], isEmpty);
       expect(repo.asked, isEmpty);
@@ -159,21 +158,36 @@ void main() {
       expect(find.byKey(const Key('mapZonesInfo')), findsOneWidget);
     });
 
-    testWidgets('zoomed out away from Germany: buttons and a hint', (t) async {
+    testWidgets('zoomed out, Germany off the screen: no buttons, no hint', (
+      t,
+    ) async {
       await _pumpMap(
         t,
         overridesFor(repoWith([])),
-        zoom: 10,
-        center: const LatLng(41.1373, -8.6094),
+        zoom: 8,
+        center: const LatLng(41.1373, -8.6094), // Porto
       );
-      expect(find.byKey(const Key('zoneOnlyGermany')), findsOneWidget);
+      expect(find.byKey(const Key('mapZones')), findsNothing);
+      expect(find.byKey(const Key('mapZonesInfo')), findsNothing);
       expect(find.byKey(const Key('zoneZoomHint')), findsNothing);
-      expect(find.byKey(const Key('mapZones')), findsOneWidget);
+      expect(find.text('Zoom in to see zones'), findsNothing);
     });
 
-    testWidgets('map page: zooming in on Vienna hides the zone buttons', (
+    testWidgets('zoomed out with a bit of Germany in view: buttons stay', (
       t,
     ) async {
+      // Salzburg at zoom 9: Bavaria is on the screen
+      await _pumpMap(
+        t,
+        overridesFor(repoWith([])),
+        zoom: 9,
+        center: const LatLng(47.8095, 13.0550),
+      );
+      expect(find.byKey(const Key('mapZones')), findsOneWidget);
+      expect(find.byKey(const Key('zoneZoomHint')), findsOneWidget);
+    });
+
+    testWidgets('map page: at Vienna (zoom 13) no zone buttons', (t) async {
       t.view.physicalSize = const Size(800, 1000);
       t.view.devicePixelRatio = 1;
       addTearDown(t.view.reset);
@@ -186,18 +200,10 @@ void main() {
         ], const MapScreen()),
       );
       await t.pumpAndSettle();
-      // zoom 13 around the user: still shown
-      expect(find.byKey(const Key('mapZones')), findsOneWidget);
-
-      final map = t.getCenter(find.byType(FlutterMap));
-      for (var i = 0; i < 2; i++) {
-        await t.tapAt(map);
-        await t.pump(const Duration(milliseconds: 50));
-        await t.tapAt(map);
-        await t.pumpAndSettle();
-      }
+      // zoom 13 around the user, far from Germany
       expect(find.byKey(const Key('mapZones')), findsNothing);
       expect(find.byKey(const Key('mapZonesInfo')), findsNothing);
+      expect(find.byKey(const Key('map3d')), findsOneWidget);
     });
 
     testWidgets('a spot there has no zone chip and asks nothing', (t) async {

@@ -1773,9 +1773,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get zonesZoomHint => 'Zoom in to see zones';
 
   @override
-  String get zonesOnlyGermany => 'Zones are only shown in Germany';
-
-  @override
   String get zonesLoadFailed => 'Zones could not be loaded';
 
   @override

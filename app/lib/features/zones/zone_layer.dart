@@ -45,9 +45,9 @@ final zoneDebounceProvider = Provider<Duration>(
   (ref) => const Duration(milliseconds: 350),
 );
 
-/// Whether the map is zoomed in to zone level on a view without any part
-/// of Germany. The zone buttons hide there (zones exist only in Germany).
-/// Fed by [ZoneOverlay], which rebuilds with every camera change.
+/// Whether the view shows no part of Germany, at any zoom. The zone
+/// buttons hide then (zones exist only in Germany). Fed by [ZoneOverlay],
+/// which rebuilds with every camera change.
 final zonesAbroadProvider = NotifierProvider<ZonesAbroad, bool>(
   ZonesAbroad.new,
 );
@@ -58,15 +58,18 @@ class ZonesAbroad extends Notifier<bool> {
 
   /// May be called during build: the new value is set right after.
   void onCamera(MapCamera camera) {
-    final b = camera.visibleBounds;
-    final abroad =
-        camera.zoom >= kZoneMinZoom &&
-        !touchesGermany(b.south, b.west, b.north, b.east);
+    final abroad = outsideGermany(camera);
     if (abroad == state) return;
     scheduleMicrotask(() {
       if (ref.mounted) state = abroad;
     });
   }
+}
+
+/// Whether the camera's view shows no part of Germany.
+bool outsideGermany(MapCamera camera) {
+  final v = camera.visibleBounds;
+  return !touchesGermany(v.south, v.west, v.north, v.east);
 }
 
 /// How long a tile that could not be loaded waits before it is asked for
@@ -444,49 +447,16 @@ class ZoneOverlay extends ConsumerStatefulWidget {
 class _ZoneOverlayState extends ConsumerState<ZoneOverlay> {
   bool _asked = false;
 
-  /// The view shows no part of Germany. Zoomed out, only Germany's bounding
-  /// box is tested (a hint, and cheap for a whole continent in view).
-  static bool _outsideGermany(MapCamera camera, bool zoomedIn) {
-    final v = camera.visibleBounds;
-    if (zoomedIn) return !touchesGermany(v.south, v.west, v.north, v.east);
-    final g = germanyBounds;
-    return v.north < g.south ||
-        v.south > g.north ||
-        v.east < g.west ||
-        v.west > g.east;
-  }
-
   @override
   Widget build(BuildContext context) {
     final camera = MapCamera.of(context);
     // also while the layer is off: the button to turn it on hides abroad
     ref.read(zonesAbroadProvider.notifier).onCamera(camera);
     if (!ref.watch(zonesEnabledProvider)) return const SizedBox.shrink();
+    // no part of Germany on the screen: no zones, no hints (the buttons
+    // hide too, see zonesAbroadProvider)
+    if (outsideGermany(camera)) return const SizedBox.shrink();
     final zoomedIn = camera.zoom >= kZoneMinZoom;
-    if (_outsideGermany(camera, zoomedIn)) {
-      // zoomed in abroad the zone buttons hide too: nothing at all
-      if (zoomedIn) return const SizedBox.shrink();
-      // zoomed out: nothing to show or to agree to, so say why
-      final l = AppLocalizations.of(context);
-      final insets = MediaQuery.paddingOf(context);
-      return Stack(
-        children: [
-          Positioned(
-            top: insets.top + widget.top,
-            left: insets.left + 72,
-            right: insets.right + 72,
-            child: IgnorePointer(
-              child: Center(
-                child: _Pill(
-                  key: const Key('zoneOnlyGermany'),
-                  text: l.zonesOnlyGermany,
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
     final accepted = ref.watch(zonesAcceptedProvider);
     if (!accepted) {
       // first reach of street level with the layer on: the disclaimer first

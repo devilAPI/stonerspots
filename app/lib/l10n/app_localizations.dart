@@ -3050,12 +3050,6 @@ abstract class AppLocalizations {
   /// **'Reinzoomen, um Verbotszonen zu sehen'**
   String get zonesZoomHint;
 
-  /// No description provided for @zonesOnlyGermany.
-  ///
-  /// In de, this message translates to:
-  /// **'Verbotszonen gibt es nur in Deutschland'**
-  String get zonesOnlyGermany;
-
   /// No description provided for @zonesLoadFailed.
   ///
   /// In de, this message translates to:

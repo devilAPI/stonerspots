@@ -627,7 +627,6 @@
   "zonesHide": "Hide no-consumption zones",
   "zonesInfo": "About the zones",
   "zonesZoomHint": "Zoom in to see zones",
-  "zonesOnlyGermany": "Zones are only shown in Germany",
   "zonesLoadFailed": "Zones could not be loaded",
   "zonesAttribution": "Zones: © OpenStreetMap contributors",
   "zonesDisclaimerData": "Zones are computed from OpenStreetMap data, which can be incomplete or wrong, e.g. missing kindergartens or youth facilities, or facilities mapped only as a point.",

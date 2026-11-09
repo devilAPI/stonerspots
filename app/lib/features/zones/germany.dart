@@ -131,7 +131,3 @@ bool inGermany(LatLng p) => _germany.contains(p.latitude, p.longitude);
 /// Whether any part of the box lies in Germany.
 bool touchesGermany(double south, double west, double north, double east) =>
     _germany.touches(south, west, north, east);
-
-/// Germany's bounding box (south, west, north, east): a cheap first test.
-({double south, double west, double north, double east}) get germanyBounds =>
-    (south: _germany.s, west: _germany.w, north: _germany.n, east: _germany.e);

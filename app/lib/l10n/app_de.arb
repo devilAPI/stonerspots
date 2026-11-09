@@ -640,7 +640,6 @@
   "zonesHide": "Verbotszonen ausblenden",
   "zonesInfo": "Über die Verbotszonen",
   "zonesZoomHint": "Reinzoomen, um Verbotszonen zu sehen",
-  "zonesOnlyGermany": "Verbotszonen gibt es nur in Deutschland",
   "zonesLoadFailed": "Verbotszonen konnten nicht geladen werden",
   "zonesAttribution": "Zonen: © OpenStreetMap-Mitwirkende",
   "zonesDisclaimerData": "Die Zonen werden aus OpenStreetMap-Daten berechnet. Die können unvollständig oder falsch sein, z. B. fehlende Kitas oder Jugendeinrichtungen oder Einrichtungen, die nur als Punkt eingetragen sind.",
