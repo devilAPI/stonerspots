@@ -11,6 +11,7 @@ void main() {
   Future<(SettingsStore, List<Uri>)> pump(
     WidgetTester t, {
     bool dev = true,
+    bool here = true,
     SettingsStore? store,
     DateTime? at,
   }) async {
@@ -22,6 +23,7 @@ void main() {
         overrides: [
           settingsStoreProvider.overrideWithValue(s),
           isDevBuildProvider.overrideWithValue(dev),
+          devNoticeHereProvider.overrideWithValue(here),
           devNoticeClockProvider.overrideWithValue(() => at ?? now),
           devNoticeLauncherProvider.overrideWithValue((u) async {
             opened.add(u);
@@ -82,6 +84,11 @@ void main() {
     await t.pumpWidget(const SizedBox());
     await pump(t, store: store, at: now.add(const Duration(days: 31)));
     expect(find.byKey(const Key('devBuildNotice')), findsOneWidget);
+  });
+
+  testWidgets('a dev web build on the stable URL shows nothing', (t) async {
+    await pump(t, here: false);
+    expect(find.byKey(const Key('devBuildNotice')), findsNothing);
   });
 
   testWidgets('a release or local build shows nothing', (t) async {

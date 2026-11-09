@@ -64,7 +64,7 @@ printf 'release\n' > "$req"
 run_runner
 check "runner: release runs the installer with --release" ran --release
 check "runner: release request is removed" request_gone
-check "runner: release reports done" state_is done
+check "runner: release reports done" state_is 'done'
 
 runner_setup dev
 printf 'dev' > "$req"

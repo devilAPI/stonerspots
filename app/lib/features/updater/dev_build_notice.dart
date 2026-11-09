@@ -27,6 +27,14 @@ final isDevBuildProvider = Provider<bool>(
   (ref) => const String.fromEnvironment('UPDATE_CHANNEL') == 'dev',
 );
 
+/// Whether the notice belongs here. On the web the dev build lives under
+/// `/dev/`; before the first release the Pages workflow puts it on the
+/// stable URL too, where offering "open the stable version" would only
+/// reopen the same page. So on the web it shows under `/dev/` only.
+final devNoticeHereProvider = Provider<bool>(
+  (ref) => !kIsWeb || Uri.base.path.contains('/dev/'),
+);
+
 /// The clock for the snooze; tests replace it.
 final devNoticeClockProvider = Provider<DateTime Function()>(
   (ref) => DateTime.now,
@@ -66,7 +74,9 @@ class _DevBuildNoticeHostState extends ConsumerState<DevBuildNoticeHost> {
   @override
   void initState() {
     super.initState();
-    if (!ref.read(isDevBuildProvider)) return;
+    if (!ref.read(isDevBuildProvider) || !ref.read(devNoticeHereProvider)) {
+      return;
+    }
     final until = ref.read(settingsStoreProvider).getInt(_snoozedUntilKey);
     final now = ref.read(devNoticeClockProvider)();
     if (until != null && now.millisecondsSinceEpoch < until) return;

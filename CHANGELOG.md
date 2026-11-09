@@ -3,6 +3,14 @@
 Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 "Releasing 1.0". Development builds (`dev-<n>`) are not listed here.
 
+## 1.0.1
+
+- Backend built with Go 1.27.3: fixes in the standard library for TLS
+  certificate checks (GO-2026-6809) and an HTTP/2 server crash
+  (GO-2026-6617).
+- Web: the development-build notice shows only on the dev web app
+  (`/dev/`), never on the stable address.
+
 ## 1.0.0
 
 The first release: a community map of good places to smoke outdoors,
