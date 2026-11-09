@@ -228,7 +228,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
               SpotClusterLayer(markers: _markers),
               SafeArea(
                 top: false,
-                child: buildBaseAttribution(context, base: _base),
+                child: buildBaseAttribution(
+                  context,
+                  base: _base,
+                  transitKey: transitKey,
+                ),
               ),
               const ZoneOverlay(),
             ],
@@ -256,7 +260,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
                       MapLayerButton(
                         key: const Key('mapLayer'),
                         base: _base,
-                        transitKey: transitKey,
                         onChanged: (b) => setState(() => _base = b),
                       ),
                       const ZoneToggleButton(),

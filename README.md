@@ -631,11 +631,13 @@ Before launch:
   <https://carto.com/basemaps/apikey>, passed as `CARTO_KEY`. Without a key the
   app falls back to the OpenStreetMap tiles. The key is visible in the built app;
   restrict it in CARTO's dashboard.
-- Public transport map (lines and stops, switched on with the button on the
-  map): Thunderforest Transport, needs a key from
-  <https://manage.thunderforest.com> (free hobby plan: 150,000 tiles a month),
-  passed as `THUNDERFOREST_KEY`. Without a key the button is hidden. Like the
-  CARTO key it is visible in the built app.
+- Public transport map (lines and stops, worldwide, the third step of the
+  map-type button): with a key from <https://manage.thunderforest.com> (free
+  hobby plan: 150,000 tiles a month), passed as `THUNDERFOREST_KEY`,
+  Thunderforest Transport (dark or light like the theme; the key is visible
+  in the built app). Without a key the app uses ÖPNVKarte
+  (<https://www.öpnvkarte.de>, tiles by memomaps.de, CC BY-SA, light style
+  only, up to zoom 18), so the transport map is always there.
 - Satellite previews: Esri World Imagery. Check CARTO's and Esri's terms before
   a commercial launch.
 

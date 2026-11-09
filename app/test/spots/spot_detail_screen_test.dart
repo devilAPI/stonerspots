@@ -713,21 +713,27 @@ void main() {
     expect(page.position.pixels, greaterThan(scrolledBefore));
   });
 
-  testWidgets('the location map opens on satellite and switches to the map', (
+  testWidgets('the location map opens on satellite and cycles the maps', (
     tester,
   ) async {
     await _pump(tester, null);
     String url() =>
         tester.widget<TileLayer>(find.byType(TileLayer)).urlTemplate!;
+    Future<void> next() async {
+      await tester.tap(find.byKey(const Key('spotMapLayer')));
+      await tester.pumpAndSettle();
+    }
+
     // as close as the old top-down pictures
     expect(camera(tester).zoom, 19);
     expect(url(), contains('World_Imagery'));
     expect(find.text('Esri World Imagery'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('spotMapLayer')));
-    await tester.pumpAndSettle();
+    await next(); // public transport (no key in tests: ÖPNVKarte)
+    expect(url(), contains('memomaps'));
+    await next(); // street map
     expect(url(), isNot(contains('World_Imagery')));
-    await tester.tap(find.byKey(const Key('spotMapLayer')));
-    await tester.pumpAndSettle();
+    expect(url(), isNot(contains('memomaps')));
+    await next();
     expect(url(), contains('World_Imagery'));
   });
 

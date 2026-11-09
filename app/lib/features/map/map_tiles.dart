@@ -71,23 +71,35 @@ Widget buildMapAttribution(
 
 /// Thunderforest API key for the public transport map (lines and stops):
 /// `--dart-define=THUNDERFOREST_KEY=...`. Like the CARTO key it is public
-/// in every tile request; without one the transport map is not offered.
+/// in every tile request; without one the app uses ÖPNVKarte instead.
 const String kThunderforestKey = String.fromEnvironment('THUNDERFOREST_KEY');
 
 /// [kThunderforestKey], overridable in tests.
 final thunderforestKeyProvider = Provider<String>((ref) => kThunderforestKey);
 
-/// Whether the transport map can be offered.
-bool hasTransitMap({String key = kThunderforestKey}) =>
-    key.isNotEmpty && kTileUrlOverride.isEmpty;
+/// Whether the transport map can be offered: always, unless [kTileUrlOverride]
+/// replaces every map.
+bool hasTransitMap() => kTileUrlOverride.isEmpty;
 
-/// Thunderforest's Transport map, dark or light like the theme, with every
-/// line and stop drawn in. Its free plan counts tiles per month, so it is
-/// only loaded while switched on.
+/// ÖPNVKarte (memomaps.de): public transport for the whole world from
+/// OpenStreetMap, no key, light style only, tiles up to zoom 18.
+const _oepnvTiles = 'https://tileserver.memomaps.de/tilegen/{z}/{x}/{y}.png';
+
+/// The public transport map, with every line and stop drawn in. With a
+/// [key], Thunderforest's Transport map (dark or light like the theme; its
+/// free plan counts tiles per month, so it is only loaded while switched
+/// on); without one, ÖPNVKarte. Both cover the whole world.
 TileLayer buildTransitTileLayer(
   BuildContext context, {
   String key = kThunderforestKey,
 }) {
+  if (key.isEmpty) {
+    return TileLayer(
+      urlTemplate: _oepnvTiles,
+      userAgentPackageName: 'de.stonerspots.app',
+      maxNativeZoom: 18,
+    );
+  }
   final style = Theme.of(context).brightness == Brightness.dark
       ? 'transport-dark'
       : 'transport';
@@ -126,15 +138,13 @@ TileLayer buildSatelliteTileLayer() => TileLayer(
 /// The kinds of base map the map-type button cycles through.
 enum MapBase { streets, satellite, transit }
 
-/// The base map after [current]: street map, satellite, then the transport
-/// map (only with a key), then back to the street map.
-MapBase nextMapBase(MapBase current, {String transitKey = kThunderforestKey}) =>
-    switch (current) {
-      MapBase.streets => MapBase.satellite,
-      MapBase.satellite =>
-        hasTransitMap(key: transitKey) ? MapBase.transit : MapBase.streets,
-      MapBase.transit => MapBase.streets,
-    };
+/// The base map after [current]: street map, satellite, the transport map,
+/// then back to the street map.
+MapBase nextMapBase(MapBase current) => switch (current) {
+  MapBase.streets => MapBase.satellite,
+  MapBase.satellite => hasTransitMap() ? MapBase.transit : MapBase.streets,
+  MapBase.transit => MapBase.streets,
+};
 
 /// Base layer for a map that can switch to satellite imagery or the
 /// transport map.
@@ -149,31 +159,38 @@ TileLayer buildBaseLayer(
 };
 
 /// Credits for [buildBaseLayer]; Esri's stays visible, not behind a button.
-Widget buildBaseAttribution(BuildContext context, {required MapBase base}) =>
-    switch (base) {
-      MapBase.streets => buildMapAttribution(context),
-      MapBase.satellite => const Align(
-        alignment: Alignment.bottomRight,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(0, 0, 6, 4),
-          child: Text(
-            'Esri World Imagery',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 10,
-              shadows: [Shadow(blurRadius: 3, color: Colors.black)],
-            ),
-          ),
+Widget buildBaseAttribution(
+  BuildContext context, {
+  required MapBase base,
+  String transitKey = kThunderforestKey,
+}) => switch (base) {
+  MapBase.streets => buildMapAttribution(context),
+  MapBase.satellite => const Align(
+    alignment: Alignment.bottomRight,
+    child: Padding(
+      padding: EdgeInsets.fromLTRB(0, 0, 6, 4),
+      child: Text(
+        'Esri World Imagery',
+        style: TextStyle(
+          color: Colors.white70,
+          fontSize: 10,
+          shadows: [Shadow(blurRadius: 3, color: Colors.black)],
         ),
       ),
-      MapBase.transit => const RichAttributionWidget(
-        alignment: AttributionAlignment.bottomLeft,
-        attributions: [
-          TextSourceAttribution('Thunderforest'),
-          TextSourceAttribution('OpenStreetMap contributors'),
-        ],
+    ),
+  ),
+  MapBase.transit => RichAttributionWidget(
+    alignment: AttributionAlignment.bottomLeft,
+    attributions: [
+      TextSourceAttribution(
+        transitKey.isEmpty
+            ? 'ÖPNVKarte (memomaps.de, CC BY-SA)'
+            : 'Thunderforest',
       ),
-    };
+      const TextSourceAttribution('OpenStreetMap contributors'),
+    ],
+  ),
+};
 
 /// Round button showing the base map on screen; a tap switches to the next
 /// one ([nextMapBase]).
@@ -182,12 +199,10 @@ class MapLayerButton extends StatelessWidget {
     super.key,
     required this.base,
     required this.onChanged,
-    this.transitKey = kThunderforestKey,
   });
 
   final MapBase base;
   final ValueChanged<MapBase> onChanged;
-  final String transitKey;
 
   @override
   Widget build(BuildContext context) {
@@ -199,7 +214,7 @@ class MapLayerButton extends StatelessWidget {
     };
     return IconButton(
       tooltip: label,
-      onPressed: () => onChanged(nextMapBase(base, transitKey: transitKey)),
+      onPressed: () => onChanged(nextMapBase(base)),
       icon: Icon(icon),
     );
   }

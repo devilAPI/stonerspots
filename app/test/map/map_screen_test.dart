@@ -85,7 +85,7 @@ void main() {
     await t.pumpAndSettle();
   }
 
-  testWidgets('without a key the button skips the transport map', (t) async {
+  testWidgets('without a key the transport map is ÖPNVKarte', (t) async {
     await pumpMap(t, '');
     String url() => t.widget<TileLayer>(find.byType(TileLayer)).urlTemplate!;
     await t.tap(find.byKey(const Key('mapLayer')));
@@ -93,8 +93,13 @@ void main() {
     expect(url(), contains('World_Imagery'));
     await t.tap(find.byKey(const Key('mapLayer')));
     await t.pumpAndSettle();
+    expect(url(), contains('tileserver.memomaps.de/'));
+    expect(find.byTooltip('Public transport'), findsOneWidget);
+    expect(find.textContaining('ÖPNVKarte'), findsWidgets);
+    await t.tap(find.byKey(const Key('mapLayer')));
+    await t.pumpAndSettle();
+    expect(url(), isNot(contains('memomaps')));
     expect(url(), isNot(contains('World_Imagery')));
-    expect(url(), isNot(contains('thunderforest')));
   });
 
   testWidgets('one button cycles map, satellite and transport map', (t) async {

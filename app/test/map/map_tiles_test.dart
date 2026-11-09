@@ -90,7 +90,6 @@ void main() {
         'https://tile.thunderforest.com/$style/{z}/{x}/{y}{r}.png?apikey=tf1',
       );
     }
-    expect(hasTransitMap(key: ''), isFalse);
-    expect(hasTransitMap(key: 'tf1'), isTrue);
+    expect(hasTransitMap(), isTrue);
   });
 }
