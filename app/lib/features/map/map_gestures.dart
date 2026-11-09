@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'dart:async';
 
 import 'package:flutter/gestures.dart';
@@ -27,6 +29,16 @@ class MapPitch extends Notifier<double> {
 
 /// Degrees of tilt per pixel of a two-finger drag.
 const double _tiltPerPixel = 0.25;
+
+/// A two-finger gesture is a tilt once both fingers moved this far up or
+/// down together; it is a twist or a pinch (flutter_map's, never a tilt)
+/// once the line between them turned this much or their distance changed
+/// by this share - whichever comes first.
+const double _decideTiltPixels = 20;
+const double _decideTwistDegrees = 10;
+const double _decidePinch = 0.12;
+
+enum _TwoFingers { tilt, other }
 
 /// flutter_map's own scroll-wheel step (zoom levels per pixel of scroll).
 const double _wheelVelocity = 0.005;
@@ -88,6 +100,19 @@ class MapGestures extends ConsumerStatefulWidget {
 class _MapGesturesState extends ConsumerState<MapGestures> {
   /// Touch pointers down: their last position.
   final _touches = <int, Offset>{};
+
+  /// Where the two fingers of the current two-finger gesture started, and
+  /// what the gesture turned out to be (null: not decided yet).
+  final _starts = <int, Offset>{};
+  _TwoFingers? _kind;
+
+  /// The joint vertical movement already turned into tilt.
+  double _tiltedDy = 0;
+
+  /// The camera when the second finger came down: a tilt keeps the map
+  /// exactly there (flutter_map may have reacted to the first, undecided
+  /// pixels as a tiny pinch or twist).
+  MapCamera? _cameraAtStart;
 
   /// A tilt is going on (ends with the fingers, the pan gesture or a
   /// pause in Shift-scrolling).
@@ -181,23 +206,62 @@ class _MapGesturesState extends ConsumerState<MapGestures> {
 
   void _onMove(PointerMoveEvent e) {
     if (e.kind != PointerDeviceKind.touch) return;
-    final before = _touches[e.pointer];
+    if (!_touches.containsKey(e.pointer)) return;
     _touches[e.pointer] = e.localPosition;
-    if (_touches.length != 2 || before == null) return;
-    final other = _touches.entries.firstWhere((t) => t.key != e.pointer);
-    // both fingers moving up or down together, about as far apart as
-    // before: a tilt (a pinch or a twist is flutter_map's)
-    final d = e.localPosition - before;
-    if (d.dy.abs() < 0.5 || d.dy.abs() < d.dx.abs() * 1.5) return;
-    final apartBefore = (other.value - before).distance;
-    final apartNow = (other.value - e.localPosition).distance;
-    if ((apartNow - apartBefore).abs() > d.dy.abs() * 0.6) return;
-    // each finger reports its own move: half of the joint movement each
-    _tiltBy(d.dy / 2);
+    if (_touches.length != 2 || _starts.length != 2) return;
+    final ids = _starts.keys.toList();
+    final a0 = _starts[ids[0]]!, b0 = _starts[ids[1]]!;
+    final a = _touches[ids[0]]!, b = _touches[ids[1]]!;
+    final da = a - a0, db = b - b0;
+    if (_kind == null) {
+      // a twist or a pinch is flutter_map's: no tilt for this gesture
+      final turned = ((b - a).direction - (b0 - a0).direction).abs();
+      final twist = math.min(turned, 2 * math.pi - turned) * 180 / math.pi;
+      final apart = (b - a).distance / math.max((b0 - a0).distance, 1);
+      if (twist > _decideTwistDegrees || (apart - 1).abs() > _decidePinch) {
+        _kind = _TwoFingers.other;
+        return;
+      }
+      // both fingers up (or down) together, clearly more than sideways
+      final dy = (da.dy + db.dy) / 2, dx = (da.dx + db.dx) / 2;
+      final together =
+          da.dy.sign == db.dy.sign &&
+          da.dy.abs() > da.dx.abs() &&
+          db.dy.abs() > db.dx.abs();
+      if (!together ||
+          dy.abs() < _decideTiltPixels ||
+          dy.abs() < 2 * dx.abs()) {
+        return;
+      }
+      _kind = _TwoFingers.tilt;
+      _tiltedDy = 0;
+    }
+    if (_kind != _TwoFingers.tilt) return;
+    // the joint movement since the start, the part not applied yet
+    final dy = (da.dy + db.dy) / 2;
+    _tiltBy(dy - _tiltedDy);
+    _tiltedDy = dy;
+    final c = _cameraAtStart;
+    if (c != null) {
+      widget.controller.moveAndRotate(c.center, c.zoom, c.rotation);
+    }
+  }
+
+  void _onDown(PointerDownEvent e) {
+    if (e.kind != PointerDeviceKind.touch) return;
+    _touches[e.pointer] = e.localPosition;
+    _starts.clear();
+    _kind = null;
+    if (_touches.length == 2) {
+      _starts.addAll(_touches);
+      _cameraAtStart = widget.controller.camera;
+    }
   }
 
   void _onUp(PointerEvent e) {
     _touches.remove(e.pointer);
+    _starts.clear();
+    _kind = null;
     if (_touches.length < 2) _endTilt();
   }
 
@@ -206,11 +270,7 @@ class _MapGesturesState extends ConsumerState<MapGestures> {
     onPointerSignal: _onSignal,
     onPointerPanZoomUpdate: _onPanZoom,
     onPointerPanZoomEnd: (_) => _endTilt(),
-    onPointerDown: (e) {
-      if (e.kind == PointerDeviceKind.touch) {
-        _touches[e.pointer] = e.localPosition;
-      }
-    },
+    onPointerDown: _onDown,
     onPointerMove: _onMove,
     onPointerUp: _onUp,
     onPointerCancel: _onUp,

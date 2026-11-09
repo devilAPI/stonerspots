@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:app/core/location_service.dart';
 import 'package:app/core/models.dart';
 import 'package:app/core/settings.dart';
@@ -207,6 +209,40 @@ void main() {
     expect(tiltNow(t), isNull);
     expect(store.getBool('map_3d'), isFalse);
     expect(t.takeException(), isNull);
+  });
+
+  testWidgets('turning the map with two fingers never tilts', (t) async {
+    await pump(t, map3d: true);
+    final at = middle(t);
+    final a = await t.startGesture(at - const Offset(80, 0), pointer: 21);
+    final b = await t.startGesture(at + const Offset(80, 0), pointer: 22);
+    // a quarter turn: the left finger goes up, the right one down
+    for (var i = 1; i <= 12; i++) {
+      final angle = i * 7.5 * 3.14159265 / 180;
+      final off = Offset(80 * math.cos(angle), 80 * math.sin(angle));
+      await a.moveTo(at - off);
+      await b.moveTo(at + off);
+      await t.pump();
+    }
+    await a.up();
+    await b.up();
+    await t.pumpAndSettle();
+    expect(container.read(mapPitchProvider), kMapPitch);
+
+    // as hands often do: the thumb stays, the other finger turns around it
+    final thumb = await t.startGesture(at, pointer: 23);
+    final finger = await t.startGesture(at + const Offset(120, 0), pointer: 24);
+    for (var i = 1; i <= 10; i++) {
+      final angle = -i * 6 * 3.14159265 / 180; // upwards
+      await finger.moveTo(
+        at + Offset(120 * math.cos(angle), 120 * math.sin(angle)),
+      );
+      await t.pump();
+    }
+    await thumb.up();
+    await finger.up();
+    await t.pumpAndSettle();
+    expect(container.read(mapPitchProvider), kMapPitch);
   });
 
   testWidgets('let go nearly flat: it settles to 2D', (t) async {

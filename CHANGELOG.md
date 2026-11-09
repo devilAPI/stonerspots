@@ -11,6 +11,11 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 - Wide windows (navigation rail on the left): the rows of the profile's
   spots, the saved lists and the activity page start with their list again
   instead of a rail's width further right, cutting off their names.
+- Turning the map with two fingers no longer tilts it now and then. A
+  two-finger gesture is a tilt only when both fingers move up or down
+  together; once it turns or pinches, it stays a turn or zoom until the
+  fingers are lifted (as in the big map apps), and a tilt keeps the map
+  exactly in place.
 
 ## 1.0.4
 
