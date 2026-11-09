@@ -24,15 +24,27 @@ void main() {
     }
   });
 
-  test('the map covers the screen below a thin band of sky', () {
-    final top = tilt.toScreen(Offset(tilt.mapSize.width / 2, 0));
-    final bottom = tilt.toScreen(
-      Offset(tilt.mapSize.width / 2, tilt.mapSize.height),
-    );
-    expect(top.dy, inInclusiveRange(0, 0.15 * screen.height));
-    expect(bottom.dy, greaterThanOrEqualTo(screen.height));
-    // the far corners are still outside the screen's sides
-    expect(tilt.toScreen(Offset.zero).dx, lessThanOrEqualTo(0));
+  test('the map covers the whole screen at every tilt (no sky)', () {
+    for (final size in const [
+      Size(400, 800),
+      Size(1060, 900),
+      Size(1600, 700),
+    ]) {
+      for (final pitch in [10.0, 30.0, kMapPitch, kMaxPitch]) {
+        final t = MapTilt(screen: size, pitchDegrees: pitch);
+        // the far edge of the map is above the screen's top, all along it
+        for (final x in [0.0, size.width / 2, size.width]) {
+          final ground = t.toMap(Offset(x, 0));
+          expect(ground.dy, greaterThanOrEqualTo(0), reason: '$size $pitch');
+          expect(ground.dx, inInclusiveRange(0, t.mapSize.width));
+        }
+        // and the near edge below its bottom
+        final bottom = t.toScreen(
+          Offset(t.mapSize.width / 2, t.mapSize.height),
+        );
+        expect(bottom.dy, greaterThanOrEqualTo(size.height));
+      }
+    }
   });
 
   test('far things are smaller', () {

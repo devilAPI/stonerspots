@@ -120,12 +120,12 @@ void main() {
     final at = middle(t);
     await t.sendEventToBinding(pad.panZoomStart(at));
     await t.sendEventToBinding(
-      pad.panZoomUpdate(at, pan: const Offset(0, -40)),
+      pad.panZoomUpdate(at, pan: const Offset(0, -20)),
     );
     await t.sendEventToBinding(pad.panZoomEnd());
     await simulateKeyUpEvent(LogicalKeyboardKey.shiftLeft);
     await t.pump();
-    expect(container.read(mapPitchProvider), closeTo(kMapPitch + 10, 1e-6));
+    expect(container.read(mapPitchProvider), closeTo(kMapPitch + 5, 1e-6));
     expect(camera(t).center, before.center);
   });
 
@@ -143,7 +143,7 @@ void main() {
     await b.up();
     await t.pumpAndSettle();
     final tilted = container.read(mapPitchProvider);
-    expect(tilted, greaterThan(kMapPitch + 10));
+    expect(tilted, greaterThan(kMapPitch));
     expect(tilted, lessThanOrEqualTo(kMaxPitch));
 
     // spreading the fingers: a zoom, not a tilt

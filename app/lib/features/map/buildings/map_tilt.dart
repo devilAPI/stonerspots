@@ -12,7 +12,7 @@ import 'package:vector_math/vector_math_64.dart' show Matrix3, Matrix4, Vector3;
 /// to, and the steepest a two-finger drag can make it. A drag goes down to
 /// 0, the flat map; let go below [kExitPitch], it settles there.
 const double kMapPitch = 45;
-const double kMaxPitch = 60;
+const double kMaxPitch = 50;
 const double kExitPitch = 10;
 
 /// The closest zoom in 3D: further in, the buildings near the viewer would
@@ -23,22 +23,26 @@ const double kMap3dMaxZoom = 18.5;
 const double kBuildingsFadePitch = 15;
 
 /// Perspective strength: the eye is about this many screen heights away.
-const double _eyeDistance = 1.1;
-
-/// Above the far edge of the map a little sky stays visible; the map is at
-/// most this many screen heights tall.
-const double _heightFactor = 2.0;
+/// With [kMaxPitch] it decides how large the map must be to fill the screen
+/// up to its top edge (no sky): steeper or stronger, and the map (and the
+/// tiles it loads) would grow fast.
+const double _eyeDistance = 1.4;
 
 class MapTilt {
   MapTilt({required this.screen, required double pitchDegrees})
     : pitch = pitchDegrees * math.pi / 180 {
     final w = screen.width, h = screen.height;
     final k = 1 / (_eyeDistance * h);
-    // sized for the steepest pitch, so changing the angle never resizes
-    // the map (and never makes it load other tiles)
+    // Sized for the steepest pitch, so changing the angle never resizes the
+    // map (and never makes it load other tiles). A ground point `far`
+    // pixels beyond the middle shows `far * c / (1 + k * far * s)` above
+    // it: the far edge must reach the screen's top edge (h / 2) there.
     final s = math.sin(kMaxPitch * math.pi / 180);
-    final mapH = h * _heightFactor;
-    final farW = 1 + k * (mapH / 2) * s; // perspective divisor at the far edge
+    final c = math.cos(kMaxPitch * math.pi / 180);
+    final top = (h / 2) / (c - k * (h / 2) * s);
+    final far = top * 1.06 + 8; // a little beyond, against rounding
+    final mapH = 2 * far;
+    final farW = 1 + k * far * s; // perspective divisor at the far edge
     mapSize = Size(w * farW + 2, mapH);
     mapOffset = Offset((w - mapSize.width) / 2, (h - mapSize.height) / 2);
 

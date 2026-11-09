@@ -16,6 +16,9 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
   together; once it turns or pinches, it stays a turn or zoom until the
   fingers are lifted (as in the big map apps), and a tilt keeps the map
   exactly in place.
+- 3D tilted all the way: no more band of sky above the map's far edge. The
+  map is now sized so it reaches the top of the screen at every tilt; the
+  steepest tilt is 50 degrees (was 60), with a slightly gentler perspective.
 
 ## 1.0.4
 
