@@ -614,9 +614,6 @@
   "legalController": "Controller",
   "legalPrivacyContact": "Contact for privacy questions",
   "registerConsent": "By registering you accept the [community rules] and confirm that you have read the [privacy policy].",
-  "zoneNoticeTitle": "No-smoking zones without guarantee",
-  "zoneNoticeBody": "The map shows no-smoking zones from OpenStreetMap data, which can be incomplete or wrong: the map is no legal advice, and you remain responsible for following the law. In Germany smoking weed is not allowed within sight (up to 100 m) of schools, playgrounds, children's and youth facilities and sports grounds, next to minors, or in pedestrian zones from 7 am to 8 pm. Other countries have their own rules; zones are only shown in Germany.",
-  "zoneNoticeDismiss": "Got it",
   "exportData": "Download my data",
   "exportPreparing": "Putting your data together …",
   "exportSaved": "Saved to {path}",
@@ -663,5 +660,10 @@
   "addSpotZoneWarning": "This place is in a no-consumption zone ({reason}). Smoking weed there is banned by § 5 KCanG. Add it anyway?",
   "addSpotZonePedestrian": "This place is in a pedestrian zone ({reason}). Smoking weed there is banned from 7 am to 8 pm. Add it anyway?",
   "addSpotZoneExplicit": "This place is marked in OpenStreetMap as a place where cannabis is banned ({reason}). Add it anyway?",
-  "addSpotZoneNote": "The zones come from OpenStreetMap and can be wrong."
+  "addSpotZoneNote": "The zones come from OpenStreetMap and can be wrong.",
+  "devBuildTitle": "You are using a development build",
+  "devBuildBody": "This version is built from the newest, untested changes. Things can break, look different every day or lose data. For everyday use, take the stable version.",
+  "devBuildOpenStableWeb": "Open stable version",
+  "devBuildLatestRelease": "Latest stable release",
+  "devBuildSnooze": "Don't show again for 30 days"
 }

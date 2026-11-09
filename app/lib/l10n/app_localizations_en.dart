@@ -1735,16 +1735,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'By registering you accept the [community rules] and confirm that you have read the [privacy policy].';
 
   @override
-  String get zoneNoticeTitle => 'No-smoking zones without guarantee';
-
-  @override
-  String get zoneNoticeBody =>
-      'The map shows no-smoking zones from OpenStreetMap data, which can be incomplete or wrong: the map is no legal advice, and you remain responsible for following the law. In Germany smoking weed is not allowed within sight (up to 100 m) of schools, playgrounds, children\'s and youth facilities and sports grounds, next to minors, or in pedestrian zones from 7 am to 8 pm. Other countries have their own rules; zones are only shown in Germany.';
-
-  @override
-  String get zoneNoticeDismiss => 'Got it';
-
-  @override
   String get exportData => 'Download my data';
 
   @override
@@ -1911,4 +1901,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get addSpotZoneNote =>
       'The zones come from OpenStreetMap and can be wrong.';
+
+  @override
+  String get devBuildTitle => 'You are using a development build';
+
+  @override
+  String get devBuildBody =>
+      'This version is built from the newest, untested changes. Things can break, look different every day or lose data. For everyday use, take the stable version.';
+
+  @override
+  String get devBuildOpenStableWeb => 'Open stable version';
+
+  @override
+  String get devBuildLatestRelease => 'Latest stable release';
+
+  @override
+  String get devBuildSnooze => 'Don\'t show again for 30 days';
 }

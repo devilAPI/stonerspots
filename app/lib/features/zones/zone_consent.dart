@@ -9,15 +9,29 @@ import '../legal/legal_pages.dart' show kRulesPath;
 import 'zone_models.dart';
 
 /// The zone feature (map layer, spot status, add-spot check) is on. The
-/// map's zone button switches it; on by default.
+/// map's zone button switches it; off by default.
 final zonesEnabledProvider = NotifierProvider<BoolSetting, bool>(
-  () => BoolSetting('zones_enabled', defaultValue: true),
+  () => BoolSetting('zones_enabled'),
 );
 
-/// The user has read the zone disclaimer on this device.
-final zonesAcceptedProvider = NotifierProvider<BoolSetting, bool>(
-  () => BoolSetting('zones_disclaimer_accepted'),
+/// The user has read the zone disclaimer in this session (not stored: the
+/// first time zones are switched on or would show after a start, it comes
+/// again).
+final zonesAcceptedProvider = NotifierProvider<SessionFlag, bool>(
+  SessionFlag.new,
 );
+
+/// A yes/no that lives only as long as the app runs.
+class SessionFlag extends Notifier<bool> {
+  SessionFlag([this.initial = false]);
+
+  final bool initial;
+
+  @override
+  bool build() => initial;
+
+  void set(bool value) => state = value;
+}
 
 /// Zones may be fetched and shown: switched on and the disclaimer read.
 final zonesActiveProvider = Provider<bool>(
@@ -35,8 +49,8 @@ class _PendingConsent {
 }
 
 /// Makes sure the user has read the disclaimer before anything zone-related
-/// shows. Asks once per device: "Got it" stores that, "Cancel" (or closing
-/// the dialog) switches the zone feature off. True when zones may be shown.
+/// shows. Asks once per session: "Got it" remembers that until the app
+/// closes, "Cancel" (or closing the dialog) switches the zone feature off. True when zones may be shown.
 Future<bool> ensureZoneConsent(BuildContext context, WidgetRef ref) {
   if (!ref.read(zonesEnabledProvider)) return Future.value(false);
   if (ref.read(zonesAcceptedProvider)) return Future.value(true);

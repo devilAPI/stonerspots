@@ -627,9 +627,6 @@
   "legalController": "Verantwortlicher",
   "legalPrivacyContact": "Kontakt für Datenschutzfragen",
   "registerConsent": "Mit der Registrierung akzeptierst du die [Nutzungsregeln] und hast die [Datenschutzerklärung] gelesen.",
-  "zoneNoticeTitle": "Verbotszonen ohne Gewähr",
-  "zoneNoticeBody": "Die Karte zeigt Verbotszonen nach Daten von OpenStreetMap. Diese können unvollständig oder falsch sein: Die Karte ist keine Rechtsberatung, du bleibst selbst dafür verantwortlich, dich an das Gesetz zu halten. In Deutschland ist Kiffen in Sichtweite (bis 100 m) von Schulen, Spielplätzen, Kinder- und Jugendeinrichtungen und Sportstätten verboten, ebenso neben Minderjährigen und in Fußgängerzonen von 7 bis 20 Uhr. Andere Länder haben eigene Regeln; Verbotszonen gibt es nur in Deutschland.",
-  "zoneNoticeDismiss": "Verstanden",
   "exportData": "Meine Daten herunterladen",
   "exportPreparing": "Deine Daten werden zusammengestellt …",
   "exportSaved": "Gespeichert unter {path}",
@@ -686,5 +683,10 @@
   "@addSpotZonePedestrian": {"placeholders": {"reason": {"type": "String"}}},
   "addSpotZoneExplicit": "Dieser Ort ist in OpenStreetMap ausdrücklich mit Cannabis-Verbot eingetragen ({reason}). Trotzdem hinzufügen?",
   "@addSpotZoneExplicit": {"placeholders": {"reason": {"type": "String"}}},
-  "addSpotZoneNote": "Die Zonen stammen aus OpenStreetMap und können falsch sein."
+  "addSpotZoneNote": "Die Zonen stammen aus OpenStreetMap und können falsch sein.",
+  "devBuildTitle": "Du nutzt eine Entwicklerversion",
+  "devBuildBody": "Diese Version enthält die neuesten, ungetesteten Änderungen. Dinge können kaputtgehen, sich täglich ändern oder Daten verlieren. Für den Alltag nimm die stabile Version.",
+  "devBuildOpenStableWeb": "Stabile Version öffnen",
+  "devBuildLatestRelease": "Neueste stabile Version",
+  "devBuildSnooze": "30 Tage nicht mehr anzeigen"
 }

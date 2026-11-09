@@ -1750,16 +1750,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Mit der Registrierung akzeptierst du die [Nutzungsregeln] und hast die [Datenschutzerklärung] gelesen.';
 
   @override
-  String get zoneNoticeTitle => 'Verbotszonen ohne Gewähr';
-
-  @override
-  String get zoneNoticeBody =>
-      'Die Karte zeigt Verbotszonen nach Daten von OpenStreetMap. Diese können unvollständig oder falsch sein: Die Karte ist keine Rechtsberatung, du bleibst selbst dafür verantwortlich, dich an das Gesetz zu halten. In Deutschland ist Kiffen in Sichtweite (bis 100 m) von Schulen, Spielplätzen, Kinder- und Jugendeinrichtungen und Sportstätten verboten, ebenso neben Minderjährigen und in Fußgängerzonen von 7 bis 20 Uhr. Andere Länder haben eigene Regeln; Verbotszonen gibt es nur in Deutschland.';
-
-  @override
-  String get zoneNoticeDismiss => 'Verstanden';
-
-  @override
   String get exportData => 'Meine Daten herunterladen';
 
   @override
@@ -1926,4 +1916,20 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get addSpotZoneNote =>
       'Die Zonen stammen aus OpenStreetMap und können falsch sein.';
+
+  @override
+  String get devBuildTitle => 'Du nutzt eine Entwicklerversion';
+
+  @override
+  String get devBuildBody =>
+      'Diese Version enthält die neuesten, ungetesteten Änderungen. Dinge können kaputtgehen, sich täglich ändern oder Daten verlieren. Für den Alltag nimm die stabile Version.';
+
+  @override
+  String get devBuildOpenStableWeb => 'Stabile Version öffnen';
+
+  @override
+  String get devBuildLatestRelease => 'Neueste stabile Version';
+
+  @override
+  String get devBuildSnooze => '30 Tage nicht mehr anzeigen';
 }

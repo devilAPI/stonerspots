@@ -9,7 +9,6 @@ import '../../core/location_service.dart';
 import '../../core/models.dart';
 import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
-import '../legal/zone_notice.dart';
 import '../users/author_link.dart' show userPath;
 import '../zones/zone_layer.dart';
 import 'map_compass.dart';
@@ -315,16 +314,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
                 ),
               ),
             ),
-          // once, until closed: the zones are OSM data, no legal advice
-          Positioned(
-            left: insets.left + 12,
-            right: insets.right + 12,
-            bottom: insets.bottom + 84,
-            child: const Align(
-              alignment: Alignment.bottomCenter,
-              child: ZoneNotice(),
-            ),
-          ),
           const _LoadingBar(),
           const _ErrorBanner(),
         ],

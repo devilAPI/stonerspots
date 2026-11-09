@@ -2984,24 +2984,6 @@ abstract class AppLocalizations {
   /// **'Mit der Registrierung akzeptierst du die [Nutzungsregeln] und hast die [Datenschutzerklärung] gelesen.'**
   String get registerConsent;
 
-  /// No description provided for @zoneNoticeTitle.
-  ///
-  /// In de, this message translates to:
-  /// **'Verbotszonen ohne Gewähr'**
-  String get zoneNoticeTitle;
-
-  /// No description provided for @zoneNoticeBody.
-  ///
-  /// In de, this message translates to:
-  /// **'Die Karte zeigt Verbotszonen nach Daten von OpenStreetMap. Diese können unvollständig oder falsch sein: Die Karte ist keine Rechtsberatung, du bleibst selbst dafür verantwortlich, dich an das Gesetz zu halten. In Deutschland ist Kiffen in Sichtweite (bis 100 m) von Schulen, Spielplätzen, Kinder- und Jugendeinrichtungen und Sportstätten verboten, ebenso neben Minderjährigen und in Fußgängerzonen von 7 bis 20 Uhr. Andere Länder haben eigene Regeln; Verbotszonen gibt es nur in Deutschland.'**
-  String get zoneNoticeBody;
-
-  /// No description provided for @zoneNoticeDismiss.
-  ///
-  /// In de, this message translates to:
-  /// **'Verstanden'**
-  String get zoneNoticeDismiss;
-
   /// No description provided for @exportData.
   ///
   /// In de, this message translates to:
@@ -3271,6 +3253,36 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Die Zonen stammen aus OpenStreetMap und können falsch sein.'**
   String get addSpotZoneNote;
+
+  /// No description provided for @devBuildTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Du nutzt eine Entwicklerversion'**
+  String get devBuildTitle;
+
+  /// No description provided for @devBuildBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Diese Version enthält die neuesten, ungetesteten Änderungen. Dinge können kaputtgehen, sich täglich ändern oder Daten verlieren. Für den Alltag nimm die stabile Version.'**
+  String get devBuildBody;
+
+  /// No description provided for @devBuildOpenStableWeb.
+  ///
+  /// In de, this message translates to:
+  /// **'Stabile Version öffnen'**
+  String get devBuildOpenStableWeb;
+
+  /// No description provided for @devBuildLatestRelease.
+  ///
+  /// In de, this message translates to:
+  /// **'Neueste stabile Version'**
+  String get devBuildLatestRelease;
+
+  /// No description provided for @devBuildSnooze.
+  ///
+  /// In de, this message translates to:
+  /// **'30 Tage nicht mehr anzeigen'**
+  String get devBuildSnooze;
 }
 
 class _AppLocalizationsDelegate

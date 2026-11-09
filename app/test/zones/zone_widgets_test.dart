@@ -8,6 +8,7 @@ import 'package:app/features/map/spots_controller.dart';
 import 'package:app/features/spots/add_spot_screen.dart';
 import 'package:app/features/spots/spot_api.dart';
 import 'package:app/features/spots/spots_repository.dart';
+import 'package:app/features/zones/zone_consent.dart';
 import 'package:app/features/zones/zone_layer.dart';
 import 'package:app/features/zones/zone_models.dart';
 import 'package:app/features/zones/zone_status.dart';
@@ -337,9 +338,42 @@ void main() {
 
       await t.tap(find.byKey(const Key('zoneDisclaimerOk')));
       await t.pumpAndSettle();
-      expect(store.getBool('zones_disclaimer_accepted'), isTrue);
       expect(_painter(t), isNotNull);
       expect(repo.asked, hasLength(1));
+      // only for this session: nothing about it is stored
+      expect(store.getBool('zones_disclaimer_accepted'), isNull);
+    });
+
+    testWidgets('a new session asks again', (t) async {
+      final store = SettingsStore.memory();
+      final repo = repoWith([_playground]);
+      await _pumpMap(t, overridesFor(repo, accepted: false, store: store));
+      await t.tap(find.byKey(const Key('zoneDisclaimerOk')));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('zoneDisclaimer')), findsNothing);
+
+      // app restart: a fresh ProviderScope over the same stored settings
+      await t.pumpWidget(const SizedBox());
+      await t.pumpWidget(
+        _app([
+          settingsStoreProvider.overrideWithValue(store),
+          zonesRepositoryProvider.overrideWithValue(repo),
+          zoneDebounceProvider.overrideWithValue(Duration.zero),
+        ], const _ZoneMap(zoom: 16)),
+      );
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('zoneDisclaimer')), findsOneWidget);
+    });
+
+    testWidgets('zones are off by default', (t) async {
+      final container = ProviderContainer(
+        overrides: [
+          settingsStoreProvider.overrideWithValue(SettingsStore.memory()),
+        ],
+      );
+      addTearDown(container.dispose);
+      expect(container.read(zonesEnabledProvider), isFalse);
+      expect(container.read(zonesAcceptedProvider), isFalse);
     });
 
     testWidgets('cancel turns the zones off and shows nothing', (t) async {
@@ -349,7 +383,6 @@ void main() {
       await t.tap(find.byKey(const Key('zoneDisclaimerCancel')));
       await t.pumpAndSettle();
       expect(store.getBool('zones_enabled'), isFalse);
-      expect(store.getBool('zones_disclaimer_accepted'), isFalse);
       expect(_painter(t), isNull);
       expect(find.byKey(const Key('zoneZoomHint')), findsNothing);
       expect(repo.asked, isEmpty);

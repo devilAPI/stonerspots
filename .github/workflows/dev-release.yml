@@ -461,7 +461,8 @@ jobs:
             --build-number="$BUILD_NUMBER" \
             --dart-define=API_URL="$API_URL" \
             --dart-define=CARTO_KEY="$CARTO_KEY" \
-            --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY"
+            --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY" \
+            --dart-define=UPDATE_CHANNEL="$CHANNEL"
           tool/web_cache_bust.sh build/web "$BUILD_NUMBER"
           mkdir -p ../dist
           (cd build/web && zip -qr "../../../dist/stonerspots-${TAG}-web.zip" .)
@@ -498,7 +499,8 @@ jobs:
             --build-number="$BUILD_NUMBER" \
             --dart-define=API_URL="$API_URL" \
             --dart-define=CARTO_KEY="$CARTO_KEY" \
-            --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY"
+            --dart-define=THUNDERFOREST_KEY="$THUNDERFOREST_KEY" \
+            --dart-define=UPDATE_CHANNEL="$CHANNEL"
           mkdir -p Payload ../dist
           cp -R build/ios/iphoneos/Runner.app Payload/
           zip -qry "../dist/stonerspots-${TAG}-ios-unsigned.ipa" Payload

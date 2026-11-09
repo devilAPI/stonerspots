@@ -8,6 +8,7 @@ import 'core/settings.dart';
 import 'core/tag_catalog.dart';
 import 'core/theme.dart';
 import 'features/home_widgets/home_widget_sync.dart';
+import 'features/updater/dev_build_notice.dart';
 import 'features/updater/update_ui.dart';
 import 'l10n/app_localizations.dart';
 import 'router.dart';
@@ -52,7 +53,10 @@ class _StonerspotsAppState extends ConsumerState<StonerspotsApp> {
         // black on every frame.
         builder: (_, child) => AnnotatedRegion<SystemUiOverlayStyle>(
           value: kSystemBars,
-          child: UpdateBannerHost(child: child!),
+          child: DevBuildNoticeHost(
+            navigatorKey: ref.read(routerProvider).routerDelegate.navigatorKey,
+            child: UpdateBannerHost(child: child!),
+          ),
         ),
         onGenerateTitle: (c) => AppLocalizations.of(c).appTitle,
         routerConfig: ref.watch(routerProvider),
