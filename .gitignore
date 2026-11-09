@@ -17,3 +17,10 @@ build/
 .claude/
 app/env/local.json
 backend/config.yaml
+
+# Signing keys: never in git (keep them in a password manager)
+stonerspots-release
+stonerspots-release.pub
+allowed_signers
+*.jks
+*.keystore
