@@ -14,6 +14,7 @@ import '../users/author_link.dart' show userPath;
 import '../zones/zone_layer.dart';
 import 'buildings/building_layer.dart';
 import 'buildings/map_tilt.dart';
+import 'map_gestures.dart';
 import 'map_compass.dart';
 import 'map_controls_theme.dart';
 import 'map_filter_bar.dart';
@@ -208,45 +209,58 @@ class _MapScreenState extends ConsumerState<MapScreen>
         children: [
           // above the far edge of the tilted 3D map
           if (map3d) const Positioned.fill(child: _Sky()),
-          TiltedMap(
-            on: map3d,
-            child: FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                maxZoom: kMapMaxZoom,
-                initialCenter: kRegionCentre,
-                initialZoom: kRegionZoom,
-                onMapReady: _notifyBounds,
-                onTap: (_, p) =>
-                    showZonesAt(context, ref, p, _mapController.camera.zoom),
-                onPositionChanged: (camera, hasGesture) {
-                  if (hasGesture) {
-                    _userMoved = true;
-                    _flight.stop();
-                  }
-                  ref
-                      .read(spotsControllerProvider.notifier)
-                      .onCameraMoved(camera.visibleBounds);
-                },
-              ),
-              children: [
-                buildBaseLayer(context, base: _base, transitKey: transitKey),
-                const ZoneLayer(),
-                BuildingLayer(darkBase: isDarkBaseMap(context, _base)),
-                SpotClusterLayer(markers: _markers),
-                UntiltedMapChild(
-                  child: SafeArea(
-                    top: false,
-                    child: buildBaseAttribution(
-                      context,
-                      base: _base,
-                      transitKey: transitKey,
-                      buildings: map3d,
+          MapGestures(
+            controller: _mapController,
+            tilted: map3d,
+            child: TiltedMap(
+              on: map3d,
+              pitch: ref.watch(mapPitchProvider),
+              child: FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(
+                  interactionOptions: InteractionOptions(
+                    flags: mapInteractionFlags(tilted: map3d),
+                  ),
+                  maxZoom: kMapMaxZoom,
+                  initialCenter: kRegionCentre,
+                  initialZoom: kRegionZoom,
+                  onMapReady: _notifyBounds,
+                  onTap: (_, p) =>
+                      showZonesAt(context, ref, p, _mapController.camera.zoom),
+                  onPositionChanged: (camera, hasGesture) {
+                    if (hasGesture) {
+                      _userMoved = true;
+                      _flight.stop();
+                    }
+                    ref
+                        .read(spotsControllerProvider.notifier)
+                        .onCameraMoved(camera.visibleBounds);
+                  },
+                ),
+                children: [
+                  buildBaseLayer(
+                    context,
+                    base: _base,
+                    transitKey: transitKey,
+                    tilted: map3d,
+                  ),
+                  const ZoneLayer(),
+                  BuildingLayer(darkBase: isDarkBaseMap(context, _base)),
+                  SpotClusterLayer(markers: _markers),
+                  UntiltedMapChild(
+                    child: SafeArea(
+                      top: false,
+                      child: buildBaseAttribution(
+                        context,
+                        base: _base,
+                        transitKey: transitKey,
+                        buildings: map3d,
+                      ),
                     ),
                   ),
-                ),
-                const UntiltedMapChild(child: ZoneOverlay()),
-              ],
+                  const UntiltedMapChild(child: ZoneOverlay()),
+                ],
+              ),
             ),
           ),
           if (!_searchOpen)

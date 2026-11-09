@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -30,7 +31,7 @@ void main() {
 
   test('buildings: inside the tile, with heights', () {
     final list = parseBuildingTile(bytes, 8718, 5685);
-    expect(list.length, greaterThan(100));
+    expect(list.length, greaterThan(1000)); // one per footprint
     final n = math.pow(2, 14);
     for (final b in list) {
       expect(b.height, greaterThan(b.minHeight));
@@ -61,11 +62,14 @@ void main() {
 
     final x = mx(11.5757), y = my(48.1375);
     final list = parseBuildingTile(bytes, 8718, 5685);
+    // its parts are separate footprints now: the tower is among those
+    // within about 60 m
+    const near = 0.0000005;
     final here = list.where(
-      (b) => b.west <= x && x <= b.east && b.north <= y && y <= b.south,
+      (b) => (b.centerX - x).abs() < near && (b.centerY - y).abs() < near,
     );
-    expect(here, isNotEmpty);
-    expect(here.map((b) => b.height).reduce(math.max), greaterThan(30));
+    expect(here.length, greaterThan(1));
+    expect(here.map((b) => b.height).reduce(math.max), greaterThan(60));
   });
 
   test('the painter draws the buildings of Marienplatz in 3D', () {
@@ -101,5 +105,53 @@ void main() {
     empty.paint(Canvas(r2), tilt.mapSize);
     r2.endRecording().dispose();
     expect(empty.lastTriangles, 0);
+  });
+
+  test('only the walls facing the viewer are drawn', () {
+    const screen = Size(900, 500);
+    final tilt = MapTilt(screen: screen, pitchDegrees: kMapPitch);
+    const centre = LatLng(48.1372, 11.5755);
+    double mx(double lon) => (lon + 180) / 360;
+    double my(double lat) {
+      final s = math.sin(lat * math.pi / 180);
+      return 0.5 - math.log((1 + s) / (1 - s)) / (4 * math.pi);
+    }
+
+    // a 40 m square house right in the middle, ring as in MVT (y down,
+    // positive area: north-west, north-east, south-east, south-west)
+    final x = mx(centre.longitude), y = my(centre.latitude);
+    const d = 0.00000015; // ~20 m in world units at this latitude
+    final house = Building(
+      points: Float64List.fromList([
+        x - d, y - d, x + d, y - d, x + d, y + d, x - d, y + d, //
+      ]),
+      ringEnds: Int32List.fromList([4]),
+      roof: Int32List.fromList([0, 1, 2, 0, 2, 3]),
+      height: 30,
+      minHeight: 0,
+    );
+    final camera = MapCamera(
+      crs: const Epsg3857(),
+      center: centre,
+      zoom: 18,
+      rotation: 0,
+      nonRotatedSize: tilt.mapSize,
+    );
+    final p = BuildingPainter(
+      camera: camera,
+      tilt: tilt,
+      buildings: [house],
+      palette: BuildingPalette.light,
+    );
+    final rec = ui.PictureRecorder();
+    p.paint(Canvas(rec), tilt.mapSize);
+    rec.endRecording().dispose();
+    expect(p.lastBuildings, 1);
+    // looking north from the middle: the south wall only (its foot is
+    // nearer, i.e. lower on the map than the house's middle); the side
+    // walls are edge-on, the north wall is behind the house
+    final middle = camera.latLngToScreenOffset(centre).dy;
+    expect(p.debugWallFeet, hasLength(1));
+    expect(p.debugWallFeet.single, greaterThan(middle));
   });
 }

@@ -33,11 +33,16 @@ bool _usesCartoDark(BuildContext context, String cartoKey) =>
 
 /// Tile layer matching the current theme: the dark CARTO map in dark mode
 /// (with a key), otherwise standard OpenStreetMap.
-TileLayer buildTileLayer(BuildContext context, {String cartoKey = kCartoKey}) {
+TileLayer buildTileLayer(
+  BuildContext context, {
+  String cartoKey = kCartoKey,
+  int panBuffer = 1,
+}) {
   if (kTileUrlOverride.isNotEmpty) {
     return TileLayer(
       urlTemplate: kTileUrlOverride,
       userAgentPackageName: 'de.stonerspots.app',
+      panBuffer: panBuffer,
     );
   }
   if (_usesCartoDark(context, cartoKey)) {
@@ -45,12 +50,14 @@ TileLayer buildTileLayer(BuildContext context, {String cartoKey = kCartoKey}) {
       urlTemplate: _cartoDarkUrl(cartoKey),
       retinaMode: RetinaMode.isHighDensity(context),
       userAgentPackageName: 'de.stonerspots.app',
+      panBuffer: panBuffer,
       maxNativeZoom: 18,
     );
   }
   return TileLayer(
     urlTemplate: _osmTiles,
     userAgentPackageName: 'de.stonerspots.app',
+    panBuffer: panBuffer,
     maxNativeZoom: 19,
   );
 }
@@ -95,11 +102,13 @@ const _oepnvTiles = 'https://tileserver.memomaps.de/tilegen/{z}/{x}/{y}.png';
 TileLayer buildTransitTileLayer(
   BuildContext context, {
   String key = kThunderforestKey,
+  int panBuffer = 1,
 }) {
   if (key.isEmpty) {
     return TileLayer(
       urlTemplate: _oepnvTiles,
       userAgentPackageName: 'de.stonerspots.app',
+      panBuffer: panBuffer,
       maxNativeZoom: 18,
     );
   }
@@ -111,6 +120,7 @@ TileLayer buildTransitTileLayer(
         'https://tile.thunderforest.com/$style/{z}/{x}/{y}{r}.png?apikey=$key',
     retinaMode: RetinaMode.isHighDensity(context),
     userAgentPackageName: 'de.stonerspots.app',
+    panBuffer: panBuffer,
     maxNativeZoom: 20,
   );
 }
@@ -132,9 +142,10 @@ String satelliteTileUrl(int z, int x, int y) => _satelliteTiles
     .replaceFirst('{y}', '$y');
 
 /// Satellite layer for interactive maps.
-TileLayer buildSatelliteTileLayer() => TileLayer(
+TileLayer buildSatelliteTileLayer({int panBuffer = 1}) => TileLayer(
   urlTemplate: _satelliteTiles,
   userAgentPackageName: 'de.stonerspots.app',
+  panBuffer: panBuffer,
   maxNativeZoom: kSatelliteMaxNativeZoom,
 );
 
@@ -160,11 +171,21 @@ TileLayer buildBaseLayer(
   BuildContext context, {
   required MapBase base,
   String transitKey = kThunderforestKey,
-}) => switch (base) {
-  MapBase.streets => buildTileLayer(context),
-  MapBase.satellite => buildSatelliteTileLayer(),
-  MapBase.transit => buildTransitTileLayer(context, key: transitKey),
-};
+  // the tilted 3D map is already larger than the screen: no extra ring of
+  // tiles around it
+  bool tilted = false,
+}) {
+  final buffer = tilted ? 0 : 1;
+  return switch (base) {
+    MapBase.streets => buildTileLayer(context, panBuffer: buffer),
+    MapBase.satellite => buildSatelliteTileLayer(panBuffer: buffer),
+    MapBase.transit => buildTransitTileLayer(
+      context,
+      key: transitKey,
+      panBuffer: buffer,
+    ),
+  };
+}
 
 /// Credits for [buildBaseLayer]; Esri's stays visible, not behind a button.
 Widget buildBaseAttribution(

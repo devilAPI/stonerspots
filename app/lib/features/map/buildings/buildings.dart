@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:dart_earcut/dart_earcut.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'mvt.dart';
@@ -102,9 +103,12 @@ Int32List _triangulate(List<Int32List> rings) {
   return Int32List.fromList(out);
 }
 
-/// The buildings of tile [x]/[y] at [kBuildingTileZoom] in [bytes]. Each
-/// building is kept only by the tile its centre is in, so one crossing a
-/// tile edge (it is in both tiles, cut at the tile's buffer) is drawn once.
+/// The buildings of tile [x]/[y] at [kBuildingTileZoom] in [bytes]: one
+/// [Building] per footprint (OpenMapTiles merges neighbouring buildings of
+/// the same height into one feature; split again, each house is culled and
+/// sorted on its own). Each is kept only by the tile its centre is in, so
+/// one crossing a tile edge (it is in both tiles, cut at the tile's
+/// buffer) is drawn once.
 List<Building> parseBuildingTile(Uint8List bytes, int x, int y) {
   final layer = readMvtLayer(bytes, 'building');
   if (layer == null) return const [];
@@ -116,34 +120,49 @@ List<Building> parseBuildingTile(Uint8List bytes, int x, int y) {
     final height = _num(f.properties['render_height'], 5);
     final minHeight = _num(f.properties['render_min_height'], 0);
     if (height <= minHeight) continue;
-    // a hole before any outline would be garbage
-    final rings = f.rings.skipWhile((r) => _area(r) <= 0).toList();
-    if (rings.isEmpty) continue;
-    final count = rings.fold<int>(0, (s, r) => s + r.length);
-    final points = Float64List(count);
-    final ends = Int32List(rings.length);
-    var o = 0;
-    for (var k = 0; k < rings.length; k++) {
-      final r = rings[k];
-      for (var i = 0; i < r.length; i += 2) {
-        points[o++] = (x + r[i] / ext) / n;
-        points[o++] = (y + r[i + 1] / ext) / n;
+    // outlines with the holes after them; a hole before any outline is
+    // garbage
+    var i = 0;
+    while (i < f.rings.length) {
+      if (_area(f.rings[i]) <= 0) {
+        i++;
+        continue;
       }
-      ends[k] = o ~/ 2;
+      var j = i + 1;
+      while (j < f.rings.length && _area(f.rings[j]) < 0) {
+        j++;
+      }
+      final rings = f.rings.sublist(i, j);
+      i = j;
+      final count = rings.fold<int>(0, (s, r) => s + r.length);
+      final points = Float64List(count);
+      final ends = Int32List(rings.length);
+      var o = 0;
+      for (var k = 0; k < rings.length; k++) {
+        final r = rings[k];
+        for (var q = 0; q < r.length; q += 2) {
+          points[o++] = (x + r[q] / ext) / n;
+          points[o++] = (y + r[q + 1] / ext) / n;
+        }
+        ends[k] = o ~/ 2;
+      }
+      final b = Building(
+        points: points,
+        ringEnds: ends,
+        roof: _triangulate(rings),
+        height: height,
+        minHeight: minHeight,
+      );
+      final cx = b.centerX * n - x, cy = b.centerY * n - y;
+      if (cx < 0 || cx >= 1 || cy < 0 || cy >= 1) continue;
+      out.add(b);
     }
-    final b = Building(
-      points: points,
-      ringEnds: ends,
-      roof: _triangulate(rings),
-      height: height,
-      minHeight: minHeight,
-    );
-    final cx = b.centerX * n - x, cy = b.centerY * n - y;
-    if (cx < 0 || cx >= 1 || cy < 0 || cy >= 1) continue;
-    out.add(b);
   }
   return out;
 }
+
+List<Building> _parseInBackground((Uint8List, int, int) a) =>
+    parseBuildingTile(a.$1, a.$2, a.$3);
 
 /// Loads building tiles (deduplicated, the last [maxTiles] kept in memory).
 class BuildingTileSource {
@@ -193,9 +212,15 @@ class BuildingTileSource {
           options: Options(responseType: ResponseType.bytes),
         );
         final data = r.data;
+        // reading and triangulating a tile takes tens of milliseconds: off
+        // the UI thread (on the web, compute runs it in place)
         final list = data == null
             ? const <Building>[]
-            : parseBuildingTile(Uint8List.fromList(data), x, y);
+            : await compute(_parseInBackground, (
+                Uint8List.fromList(data),
+                x,
+                y,
+              ));
         _tiles[key] = list;
         while (_tiles.length > maxTiles) {
           _tiles.remove(_tiles.keys.first);

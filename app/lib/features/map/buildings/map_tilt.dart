@@ -8,8 +8,11 @@ import 'package:vector_math/vector_math_64.dart' show Matrix3, Matrix4, Vector3;
 /// far side still fills it; the point in the middle of the screen stays the
 /// map's centre, so "fly to", "locate me" and the spot list work unchanged.
 
-/// How far the map leans back in 3D, in degrees.
+/// How far the map leans back in 3D, in degrees: at first, and the range
+/// a two-finger drag can change it in.
 const double kMapPitch = 45;
+const double kMinPitch = 20;
+const double kMaxPitch = 60;
 
 /// Perspective strength: the eye is about this many screen heights away.
 const double _eyeDistance = 1.1;
@@ -23,8 +26,9 @@ class MapTilt {
     : pitch = pitchDegrees * math.pi / 180 {
     final w = screen.width, h = screen.height;
     final k = 1 / (_eyeDistance * h);
-    // sized for the full pitch, so animating the angle never resizes the map
-    final s = math.sin(kMapPitch * math.pi / 180);
+    // sized for the steepest pitch, so changing the angle never resizes
+    // the map (and never makes it load other tiles)
+    final s = math.sin(kMaxPitch * math.pi / 180);
     final mapH = h * _heightFactor;
     final farW = 1 + k * (mapH / 2) * s; // perspective divisor at the far edge
     mapSize = Size(w * farW + 2, mapH);
@@ -112,6 +116,22 @@ class MapTilt {
     return out;
   }();
 
+  /// Rows x, y, w of the map-local (x, y, z, 1) to screen projection, for
+  /// tight loops (divide x and y by w).
+  late final List<double> screenRows = [
+    for (final r in const [0, 1, 3])
+      for (var c = 0; c < 4; c++) _local.entry(r, c),
+  ];
+
+  /// The ground (map-local) points under the screen's four corners: what
+  /// the screen shows of the map, a trapezoid.
+  late final List<Offset> visibleGround = [
+    toMap(Offset.zero),
+    toMap(Offset(screen.width, 0)),
+    toMap(Offset(screen.width, screen.height)),
+    toMap(Offset(0, screen.height)),
+  ];
+
   /// For a child of the tilted map: undoes the tilt, so the child is drawn
   /// (and hit) flat in screen coordinates. Only the ground plane is
   /// inverted, which is what painting and hit testing of a flat child use.
@@ -152,22 +172,30 @@ class MapTiltScope extends InheritedWidget {
   bool updateShouldNotify(MapTiltScope old) => old.tilt != tilt;
 }
 
-/// The map, tilted back while [on] (animated). Off and flat, the map is
-/// laid out exactly as before.
+/// The map, tilted back by [pitch] degrees while [on] (switching animates;
+/// a changed [pitch] applies at once). Off and flat, the map is laid out
+/// exactly as before.
 class TiltedMap extends StatelessWidget {
-  const TiltedMap({super.key, required this.on, required this.child});
+  const TiltedMap({
+    super.key,
+    required this.on,
+    this.pitch = kMapPitch,
+    required this.child,
+  });
 
   final bool on;
+  final double pitch;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
-      tween: Tween(end: on ? kMapPitch : 0),
+      tween: Tween(end: on ? 1 : 0),
       duration: const Duration(milliseconds: 350),
       curve: Curves.easeInOut,
       child: child,
-      builder: (context, pitch, child) {
+      builder: (context, t, child) {
+        final pitch = t * this.pitch;
         if (pitch == 0 && !on) {
           return MapTiltScope(tilt: null, child: child!);
         }

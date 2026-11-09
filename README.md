@@ -681,7 +681,7 @@ Map data © OpenStreetMap contributors.
 ### 3D view
 
 The cube button on the map tilts it back 45° with perspective and, from zoom
-15 on, draws every building as a block with its height from OpenStreetMap
+16 on, draws every building as a block with its height from OpenStreetMap
 (`render_height` / `render_min_height` of the OpenMapTiles schema), over any
 of the three base maps. It runs on every platform, Linux and Windows
 included, because it is not a separate 3D engine:
@@ -697,10 +697,25 @@ included, because it is not a separate 3D engine:
   TileJSON names the current tile URL). `buildings/mvt.dart` reads only the
   `building` layer; roofs are triangulated once per tile (earcut).
 - `BuildingLayer` sits between the base map and the spot markers and draws
-  all walls and roofs far to near in one batch of triangles, solid into a
-  layer that is then faded to 65 %, so the map stays readable and walls
-  behind a roof never shine through. Dark buildings on the dark street map,
-  light ones on satellite and the transport map.
+  the walls that face the viewer and the roofs, far to near, as indexed
+  triangles (batches of up to 65,000 vertices), solid into a layer that is
+  then faded to 65 %, so the map stays readable and walls behind a roof
+  never shine through. Dark buildings on the dark street map, light ones on
+  satellite and the transport map.
+- Speed: OpenMapTiles merges neighbouring buildings of one height into one
+  feature; they are split into single footprints again, so every house is
+  culled and sorted on its own. Only buildings on the screen (not the whole,
+  larger, tilted map) and at least about a pixel and a half in size are
+  drawn; each corner is projected once; tiles are read and triangulated in
+  a background isolate (`compute`); the base map loads no extra ring of
+  tiles while tilted. Panning central Munich at zoom 16.5 in profile mode on
+  a laptop: 5.5 ms average build time, no missed frame (before: 26 ms,
+  75 of 182 frames missed).
+- Gestures (`map_gestures.dart`): a mouse wheel zooms towards the cursor; a
+  two-finger touchpad swipe moves the map, a pinch zooms. In 3D two fingers
+  dragged up or down on a touchscreen change the tilt (20°-60°), and on a
+  touchpad Shift + an up/down swipe does (three-finger touchpad gestures
+  never reach apps: the operating systems keep them).
 - Credit while it is on: "OpenFreeMap © OpenMapTiles" next to the map's own.
 
 ## Verbotszonen
