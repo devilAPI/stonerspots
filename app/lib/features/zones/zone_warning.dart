@@ -24,13 +24,20 @@ Future<ZoneHit?> zoneForNewSpot(
   WidgetRef ref,
   LatLng p,
 ) async {
-  if (!inGermany(p)) return null;
-  if (!await ensureZoneConsent(context, ref)) return null;
-  final status = await checkZones(
-    ref.read(zoneTileCacheProvider),
-    p,
-  ).timeout(kZoneCheckTimeout, onTimeout: () => ZoneStatus.unknown);
-  return status.hit;
+  // only ever a warning: whatever goes wrong here, the spot is saved
+  try {
+    if (!inGermany(p)) return null;
+    if (!context.mounted || !await ensureZoneConsent(context, ref)) {
+      return null;
+    }
+    final status = await checkZones(
+      ref.read(zoneTileCacheProvider),
+      p,
+    ).timeout(kZoneCheckTimeout, onTimeout: () => ZoneStatus.unknown);
+    return status.hit;
+  } catch (_) {
+    return null;
+  }
 }
 
 /// Asks whether to add a spot in [hit]'s zone anyway. Only warns, never

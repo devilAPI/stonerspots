@@ -9,6 +9,7 @@ import '../../core/responsive.dart';
 import '../../core/spot_tag_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
+import '../zones/zone_geo.dart' show ZoneHit;
 import '../zones/zone_warning.dart';
 import 'add_spot_controller.dart';
 import 'add_spot_errors.dart';
@@ -33,9 +34,15 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
     final point = ref.read(addSpotControllerProvider).point;
     if (point != null) {
       setState(() => _checkingZones = true);
-      final hit = await zoneForNewSpot(context, ref, point);
+      ZoneHit? hit;
+      try {
+        hit = await zoneForNewSpot(context, ref, point);
+      } catch (_) {
+        hit = null; // the zone check only warns: never block saving
+      } finally {
+        if (mounted) setState(() => _checkingZones = false);
+      }
       if (!mounted) return;
-      setState(() => _checkingZones = false);
       if (hit != null && !await confirmZoneWarning(context, hit)) return;
       if (!mounted) return;
     }

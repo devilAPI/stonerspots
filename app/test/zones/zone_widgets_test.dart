@@ -638,6 +638,36 @@ void main() {
       expect(repo.asked, isEmpty);
     });
 
+    testWidgets('the zone check itself failing: saved anyway, no spinner', (
+      t,
+    ) async {
+      t.view.physicalSize = const Size(500, 2000);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      final api = _Api();
+      await t.pumpWidget(
+        _app([
+          ...overridesFor(repoWith([_playground])),
+          // e.g. the border data failing to load (as on the 1.0.1 web app)
+          zoneTileCacheProvider.overrideWith(
+            (ref) => throw StateError('zone check broken'),
+          ),
+          locationServiceProvider.overrideWithValue(_Location(base)),
+          authControllerProvider.overrideWith(_Auth.new),
+          spotApiProvider.overrideWithValue(api),
+        ], const AddSpotScreen()),
+      );
+      await t.pumpAndSettle();
+      await t.enterText(find.byKey(const Key('title')), 'Bench');
+      await t.pump();
+      final save = find.byKey(const Key('save'));
+      await t.ensureVisible(save);
+      await t.tap(save);
+      await t.pumpAndSettle();
+      expect(api.created, hasLength(1));
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+    });
+
     testWidgets('zone data unavailable: saved without asking', (t) async {
       final api = await pumpAdd(t, FakeZonesRepository()..fail = true);
       expect(find.byKey(const Key('addSpotZoneWarning')), findsNothing);
