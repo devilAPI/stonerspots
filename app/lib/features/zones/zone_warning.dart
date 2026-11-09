@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../core/glass.dart';
 import '../../l10n/app_localizations.dart';
+import 'germany.dart';
 import 'zone_consent.dart';
 import 'zone_geo.dart';
 import 'zone_models.dart';
@@ -15,13 +16,15 @@ import 'zones_repository.dart';
 const Duration kZoneCheckTimeout = Duration(seconds: 8);
 
 /// Before a new spot is saved: the zone [p] lies in, if any (after the
-/// first-use disclaimer). Null also when the zone feature is off, the
-/// disclaimer was cancelled or no data came in time.
+/// first-use disclaimer). Null also outside Germany (no zones there), when
+/// the zone feature is off, the disclaimer was cancelled or no data came in
+/// time.
 Future<ZoneHit?> zoneForNewSpot(
   BuildContext context,
   WidgetRef ref,
   LatLng p,
 ) async {
+  if (!inGermany(p)) return null;
   if (!await ensureZoneConsent(context, ref)) return null;
   final status = await checkZones(
     ref.read(zoneTileCacheProvider),

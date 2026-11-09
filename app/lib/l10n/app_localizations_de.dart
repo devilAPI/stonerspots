@@ -1754,7 +1754,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get zoneNoticeBody =>
-      'Die Karte zeigt Verbotszonen nach Daten von OpenStreetMap. Diese können unvollständig oder falsch sein: Die Karte ist keine Rechtsberatung, du bleibst selbst dafür verantwortlich, dich an das Gesetz zu halten. In Deutschland ist Kiffen in Sichtweite (bis 100 m) von Schulen, Spielplätzen, Kinder- und Jugendeinrichtungen und Sportstätten verboten, ebenso neben Minderjährigen und in Fußgängerzonen von 7 bis 20 Uhr. In Österreich, der Schweiz und Liechtenstein gelten eigene Regeln; Cannabis ist dort nicht legal.';
+      'Die Karte zeigt Verbotszonen nach Daten von OpenStreetMap. Diese können unvollständig oder falsch sein: Die Karte ist keine Rechtsberatung, du bleibst selbst dafür verantwortlich, dich an das Gesetz zu halten. In Deutschland ist Kiffen in Sichtweite (bis 100 m) von Schulen, Spielplätzen, Kinder- und Jugendeinrichtungen und Sportstätten verboten, ebenso neben Minderjährigen und in Fußgängerzonen von 7 bis 20 Uhr. Andere Länder haben eigene Regeln; Verbotszonen gibt es nur in Deutschland.';
 
   @override
   String get zoneNoticeDismiss => 'Verstanden';
@@ -1799,6 +1799,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get zonesZoomHint => 'Reinzoomen, um Verbotszonen zu sehen';
 
   @override
+  String get zonesOnlyGermany => 'Verbotszonen gibt es nur in Deutschland';
+
+  @override
   String get zonesLoadFailed => 'Verbotszonen konnten nicht geladen werden';
 
   @override
@@ -1814,7 +1817,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get zonesDisclaimerMissing =>
-      'Nicht enthalten: Anbauvereinigungen, die Anwesenheit von Minderjährigen, Verbote von Ländern oder Gemeinden (z. B. Bayern: Volksfeste, Biergärten, Parks) und die Regeln in Österreich, der Schweiz und Liechtenstein. Gezeigt wird nur die deutsche Regel (§ 5 KCanG).';
+      'Nicht enthalten: Anbauvereinigungen, die Anwesenheit von Minderjährigen, Verbote von Ländern oder Gemeinden (z. B. Bayern: Volksfeste, Biergärten, Parks) und die Regeln anderer Länder. Gezeigt wird nur die deutsche Regel (§ 5 KCanG), und nur in Deutschland.';
 
   @override
   String get zonesDisclaimerLaw =>

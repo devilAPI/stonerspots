@@ -1739,7 +1739,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get zoneNoticeBody =>
-      'The map shows no-smoking zones from OpenStreetMap data, which can be incomplete or wrong: the map is no legal advice, and you remain responsible for following the law. In Germany smoking weed is not allowed within sight (up to 100 m) of schools, playgrounds, children\'s and youth facilities and sports grounds, next to minors, or in pedestrian zones from 7 am to 8 pm. Austria, Switzerland and Liechtenstein have their own rules; cannabis is not legal there.';
+      'The map shows no-smoking zones from OpenStreetMap data, which can be incomplete or wrong: the map is no legal advice, and you remain responsible for following the law. In Germany smoking weed is not allowed within sight (up to 100 m) of schools, playgrounds, children\'s and youth facilities and sports grounds, next to minors, or in pedestrian zones from 7 am to 8 pm. Other countries have their own rules; zones are only shown in Germany.';
 
   @override
   String get zoneNoticeDismiss => 'Got it';
@@ -1783,6 +1783,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get zonesZoomHint => 'Zoom in to see zones';
 
   @override
+  String get zonesOnlyGermany => 'Zones are only shown in Germany';
+
+  @override
   String get zonesLoadFailed => 'Zones could not be loaded';
 
   @override
@@ -1798,7 +1801,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get zonesDisclaimerMissing =>
-      'Not shown: cannabis clubs (Anbauvereinigungen), presence of minors, state or municipal bans (e.g. Bavaria: festivals, beer gardens, parks), and the rules of Austria, Switzerland and Liechtenstein. Only the German rule (§ 5 KCanG) is shown.';
+      'Not shown: cannabis clubs (Anbauvereinigungen), presence of minors, state or municipal bans (e.g. Bavaria: festivals, beer gardens, parks), and the rules of other countries. Only the German rule (§ 5 KCanG) is shown, and only in Germany.';
 
   @override
   String get zonesDisclaimerLaw =>

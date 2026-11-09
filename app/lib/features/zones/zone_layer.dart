@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 
 import '../../l10n/app_localizations.dart';
+import 'germany.dart';
 import 'zone_consent.dart';
 import 'zone_geo.dart';
 import 'zone_models.dart';
@@ -186,7 +187,13 @@ class ZoneLayerController extends Notifier<ZoneLayerState> {
   void onCamera(MapCamera camera) {
     if (camera.zoom < kZoneMinZoom) return;
     final b = camera.visibleBounds;
-    var tiles = tilesCovering(b.south, b.west, b.north, b.east);
+    // no zones outside Germany: those tiles are never asked for
+    var tiles = tilesCovering(
+      b.south,
+      b.west,
+      b.north,
+      b.east,
+    ).where((t) => touchesGermany(t.south, t.west, t.north, t.east)).toList();
     if (tiles.length > _maxViewTiles) {
       final c = ZoneTileId.at(camera.center.latitude, camera.center.longitude);
       tiles = [...tiles]
@@ -394,11 +401,45 @@ class ZoneOverlay extends ConsumerStatefulWidget {
 class _ZoneOverlayState extends ConsumerState<ZoneOverlay> {
   bool _asked = false;
 
+  /// The view shows no part of Germany. Zoomed out, only Germany's bounding
+  /// box is tested (a hint, and cheap for a whole continent in view).
+  static bool _outsideGermany(MapCamera camera, bool zoomedIn) {
+    final v = camera.visibleBounds;
+    if (zoomedIn) return !touchesGermany(v.south, v.west, v.north, v.east);
+    final g = germanyBounds;
+    return v.north < g.south ||
+        v.south > g.north ||
+        v.east < g.west ||
+        v.west > g.east;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!ref.watch(zonesEnabledProvider)) return const SizedBox.shrink();
     final camera = MapCamera.of(context);
     final zoomedIn = camera.zoom >= kZoneMinZoom;
+    if (_outsideGermany(camera, zoomedIn)) {
+      // nothing to show or to agree to: say why instead
+      final l = AppLocalizations.of(context);
+      final insets = MediaQuery.paddingOf(context);
+      return Stack(
+        children: [
+          Positioned(
+            top: insets.top + widget.top,
+            left: insets.left + 72,
+            right: insets.right + 72,
+            child: IgnorePointer(
+              child: Center(
+                child: _Pill(
+                  key: const Key('zoneOnlyGermany'),
+                  text: l.zonesOnlyGermany,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
     final accepted = ref.watch(zonesAcceptedProvider);
     if (!accepted) {
       // first reach of street level with the layer on: the disclaimer first

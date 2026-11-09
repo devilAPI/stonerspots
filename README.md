@@ -644,7 +644,9 @@ Map data © OpenStreetMap contributors.
 ## Verbotszonen
 
 The map can show where § 5 KCanG (Germany) forbids consuming cannabis, and
-spots say whether they lie in such a zone:
+spots say whether they lie in such a zone. Zones exist only in Germany:
+elsewhere the map says so, spots have no zone status and adding one gives no
+warning (see "Germany only" below).
 
 - within sight of schools, children's and youth facilities, public
   playgrounds and public sports facilities. The law takes "within sight" as
@@ -680,11 +682,19 @@ How it works:
   in (plus a neighbour near a tile edge).
 - The first time zones would show, the app explains their limits (OSM data
   can be incomplete or wrong; 100 m around the whole site is only an
-  approximation; clubs, minors, state and municipal bans and the law of
-  Austria, Switzerland and Liechtenstein are not covered; no legal advice).
+  approximation; clubs, minors, state and municipal bans and other
+  countries' laws are not covered; no legal advice).
   Cancelling turns the zones off; the button on the map turns them on again.
 - Adding a spot in a zone shows a warning first, but never blocks (OSM can be
   wrong).
+- Germany only: backend and app share Germany's border (OSM relation 51477,
+  simplified to 20 m, about 58 kB as encoded polylines), embedded in
+  `backend/internal/zones/germany_border.txt` and
+  `app/lib/features/zones/germany_border.g.dart`. The server never asks
+  Overpass for a tile outside Germany and drops places outside Germany from
+  tiles the border runs through (a site that crosses it counts); the app
+  does not request those tiles. Both files come from `backend/cmd/germanyborder`
+  (usage in its header), and a backend test fails when they differ.
 
 Config (`config.yaml`, env in brackets):
 

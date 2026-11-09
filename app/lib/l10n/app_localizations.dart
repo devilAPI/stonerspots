@@ -2993,7 +2993,7 @@ abstract class AppLocalizations {
   /// No description provided for @zoneNoticeBody.
   ///
   /// In de, this message translates to:
-  /// **'Die Karte zeigt Verbotszonen nach Daten von OpenStreetMap. Diese können unvollständig oder falsch sein: Die Karte ist keine Rechtsberatung, du bleibst selbst dafür verantwortlich, dich an das Gesetz zu halten. In Deutschland ist Kiffen in Sichtweite (bis 100 m) von Schulen, Spielplätzen, Kinder- und Jugendeinrichtungen und Sportstätten verboten, ebenso neben Minderjährigen und in Fußgängerzonen von 7 bis 20 Uhr. In Österreich, der Schweiz und Liechtenstein gelten eigene Regeln; Cannabis ist dort nicht legal.'**
+  /// **'Die Karte zeigt Verbotszonen nach Daten von OpenStreetMap. Diese können unvollständig oder falsch sein: Die Karte ist keine Rechtsberatung, du bleibst selbst dafür verantwortlich, dich an das Gesetz zu halten. In Deutschland ist Kiffen in Sichtweite (bis 100 m) von Schulen, Spielplätzen, Kinder- und Jugendeinrichtungen und Sportstätten verboten, ebenso neben Minderjährigen und in Fußgängerzonen von 7 bis 20 Uhr. Andere Länder haben eigene Regeln; Verbotszonen gibt es nur in Deutschland.'**
   String get zoneNoticeBody;
 
   /// No description provided for @zoneNoticeDismiss.
@@ -3068,6 +3068,12 @@ abstract class AppLocalizations {
   /// **'Reinzoomen, um Verbotszonen zu sehen'**
   String get zonesZoomHint;
 
+  /// No description provided for @zonesOnlyGermany.
+  ///
+  /// In de, this message translates to:
+  /// **'Verbotszonen gibt es nur in Deutschland'**
+  String get zonesOnlyGermany;
+
   /// No description provided for @zonesLoadFailed.
   ///
   /// In de, this message translates to:
@@ -3095,7 +3101,7 @@ abstract class AppLocalizations {
   /// No description provided for @zonesDisclaimerMissing.
   ///
   /// In de, this message translates to:
-  /// **'Nicht enthalten: Anbauvereinigungen, die Anwesenheit von Minderjährigen, Verbote von Ländern oder Gemeinden (z. B. Bayern: Volksfeste, Biergärten, Parks) und die Regeln in Österreich, der Schweiz und Liechtenstein. Gezeigt wird nur die deutsche Regel (§ 5 KCanG).'**
+  /// **'Nicht enthalten: Anbauvereinigungen, die Anwesenheit von Minderjährigen, Verbote von Ländern oder Gemeinden (z. B. Bayern: Volksfeste, Biergärten, Parks) und die Regeln anderer Länder. Gezeigt wird nur die deutsche Regel (§ 5 KCanG), und nur in Deutschland.'**
   String get zonesDisclaimerMissing;
 
   /// No description provided for @zonesDisclaimerLaw.

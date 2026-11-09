@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../l10n/app_localizations.dart';
+import 'germany.dart';
 import 'zone_consent.dart';
 import 'zone_geo.dart';
 import 'zone_models.dart';
@@ -113,8 +114,8 @@ String zoneStatusText(AppLocalizations l, ZoneStatus s) {
 
 /// Whether a spot lies in a no-consumption zone, as a small coloured chip.
 /// Tapping it explains the result and where the data comes from. Nothing
-/// shows while the zone feature is off; the first time, it asks for the
-/// disclaimer.
+/// shows while the zone feature is off or outside Germany (§ 5 KCanG is
+/// German law); the first time, it asks for the disclaimer.
 class ZoneStatusChip extends ConsumerStatefulWidget {
   const ZoneStatusChip({
     super.key,
@@ -147,6 +148,9 @@ class _ZoneStatusChipState extends ConsumerState<ZoneStatusChip> {
   @override
   Widget build(BuildContext context) {
     if (!ref.watch(zonesEnabledProvider)) return const SizedBox.shrink();
+    if (!inGermany(LatLng(widget.lat, widget.lon))) {
+      return const SizedBox.shrink();
+    }
     if (!ref.watch(zonesAcceptedProvider)) {
       _ask();
       return const SizedBox.shrink();

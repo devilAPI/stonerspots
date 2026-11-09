@@ -35,8 +35,9 @@ Widget _app(List<Override> overrides, Widget home) => ProviderScope(
 
 /// A map with the zone layer and its two buttons, as on the map page.
 class _ZoneMap extends ConsumerWidget {
-  const _ZoneMap({required this.zoom});
+  const _ZoneMap({required this.zoom, this.center = base});
   final double zoom;
+  final LatLng center;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Scaffold(
@@ -45,7 +46,7 @@ class _ZoneMap extends ConsumerWidget {
       children: [
         FlutterMap(
           options: MapOptions(
-            initialCenter: base,
+            initialCenter: center,
             initialZoom: zoom,
             onTap: (_, p) => showZonesAt(context, ref, p, zoom),
           ),
@@ -78,11 +79,12 @@ Future<void> _pumpMap(
   WidgetTester t,
   List<Override> overrides, {
   double zoom = 16,
+  LatLng center = base,
 }) async {
   t.view.physicalSize = const Size(400, 800);
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
-  await t.pumpWidget(_app(overrides, _ZoneMap(zoom: zoom)));
+  await t.pumpWidget(_app(overrides, _ZoneMap(zoom: zoom, center: center)));
   await t.pumpAndSettle();
 }
 
@@ -133,7 +135,45 @@ class _Api implements SpotApi {
   Future<void> report(String t, int id, String r) async {}
 }
 
+const _vienna = LatLng(48.2082, 16.3738);
+
 void main() {
+  group('outside Germany (§ 5 KCanG is German law)', () {
+    testWidgets('street level: a hint, no disclaimer, no requests', (t) async {
+      final repo = repoWith([_playground]);
+      await _pumpMap(t, overridesFor(repo, accepted: false), center: _vienna);
+      expect(find.text('Zones are only shown in Germany'), findsOneWidget);
+      expect(find.byKey(const Key('zoneDisclaimer')), findsNothing);
+      expect(_painter(t)?.tiles ?? const [], isEmpty);
+      expect(repo.asked, isEmpty);
+    });
+
+    testWidgets('zoomed out away from Germany: the same hint', (t) async {
+      await _pumpMap(
+        t,
+        overridesFor(repoWith([])),
+        zoom: 10,
+        center: const LatLng(41.1373, -8.6094),
+      );
+      expect(find.byKey(const Key('zoneOnlyGermany')), findsOneWidget);
+      expect(find.byKey(const Key('zoneZoomHint')), findsNothing);
+    });
+
+    testWidgets('a spot there has no zone chip and asks nothing', (t) async {
+      final repo = repoWith([_playground]);
+      await t.pumpWidget(
+        _app(
+          overridesFor(repo, accepted: false),
+          const Scaffold(body: ZoneStatusChip(lat: 48.2082, lon: 16.3738)),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('zoneDisclaimer')), findsNothing);
+      expect(find.textContaining('zone'), findsNothing);
+      expect(repo.asked, isEmpty);
+    });
+  });
+
   group('map layer', () {
     testWidgets('zoomed out: a hint, no zones and no requests', (t) async {
       final repo = repoWith([_playground]);
@@ -391,7 +431,11 @@ void main() {
   });
 
   group('adding a spot', () {
-    Future<_Api> pumpAdd(WidgetTester t, ZonesRepository repo) async {
+    Future<_Api> pumpAdd(
+      WidgetTester t,
+      ZonesRepository repo, {
+      LatLng at = base,
+    }) async {
       t.view.physicalSize = const Size(500, 2000);
       t.view.devicePixelRatio = 1;
       addTearDown(t.view.reset);
@@ -399,7 +443,7 @@ void main() {
       await t.pumpWidget(
         _app([
           ...overridesFor(repo),
-          locationServiceProvider.overrideWithValue(_Location(base)),
+          locationServiceProvider.overrideWithValue(_Location(at)),
           authControllerProvider.overrideWith(_Auth.new),
           spotApiProvider.overrideWithValue(api),
         ], const AddSpotScreen()),
@@ -446,6 +490,16 @@ void main() {
       final api = await pumpAdd(t, FakeZonesRepository());
       expect(find.byKey(const Key('addSpotZoneWarning')), findsNothing);
       expect(api.created, hasLength(1));
+    });
+
+    testWidgets('outside Germany: saved without asking or loading zones', (
+      t,
+    ) async {
+      final repo = repoWith([_playground]);
+      final api = await pumpAdd(t, repo, at: _vienna);
+      expect(find.byKey(const Key('addSpotZoneWarning')), findsNothing);
+      expect(api.created, hasLength(1));
+      expect(repo.asked, isEmpty);
     });
 
     testWidgets('zone data unavailable: saved without asking', (t) async {

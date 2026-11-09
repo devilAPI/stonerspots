@@ -83,7 +83,16 @@ func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid_bbox", err.Error())
 		return
 	}
-	tiles := b.tiles()
+	// § 5 KCanG is German law: tiles outside Germany are not fetched, and
+	// places outside it are dropped from tiles the border runs through.
+	var tiles []Tile
+	var partly []bool
+	for _, t := range b.tiles() {
+		if o := GermanyOverlap(t.Bounds()); o != Outside {
+			tiles = append(tiles, t)
+			partly = append(partly, o == Partly)
+		}
+	}
 	type result struct {
 		zones []Zone
 		stale bool
@@ -105,7 +114,7 @@ func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 
 	out := response{Zones: []Zone{}, Attribution: Attribution}
 	seen := map[string]bool{}
-	for _, res := range results {
+	for i, res := range results {
 		if res.err != nil {
 			if r.Context().Err() != nil {
 				return // the client left
@@ -122,6 +131,9 @@ func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 		}
 		out.Stale = out.Stale || res.stale
 		for _, z := range res.zones {
+			if partly[i] && !zoneInGermany(z) {
+				continue
+			}
 			// a place across a tile edge is in both tiles
 			if !seen[z.ID] {
 				seen[z.ID] = true

@@ -424,3 +424,31 @@ func TestZonesDBStore(t *testing.T) {
 		t.Fatalf("prune left %d rows (%v)", n, err)
 	}
 }
+
+func TestZonesOnlyInGermany(t *testing.T) {
+	// one playground on each side of the Konstanz/Kreuzlingen border, both
+	// in tile 2382/458 (47.64-47.66, 9.16-9.18)
+	const border = `{"elements":[
+	 {"type":"node","id":1,"lat":47.6595,"lon":9.1755,"tags":{"leisure":"playground","name":"Konstanz"}},
+	 {"type":"node","id":2,"lat":47.6500,"lon":9.1700,"tags":{"leisure":"playground","name":"Kreuzlingen"}}]}`
+	if !InGermany(47.6595, 9.1755) || InGermany(47.65, 9.17) {
+		t.Fatal("fixture points are not on the expected sides")
+	}
+	f := newFakeOverpass(t, border)
+	h := router(testDeps(ratelimit.Rule{}, true), NewService(f.srv.URL, testBase, &memStore{m: map[string]tileData{}}))
+
+	// Vienna: answered without asking Overpass
+	rec, body := get(t, h, 48.20, 16.36, 48.22, 16.38)
+	if rec.Code != 200 || len(body.Zones) != 0 || f.hits.Load() != 0 {
+		t.Fatalf("Vienna: %d, %d zones, %d upstream hits", rec.Code, len(body.Zones), f.hits.Load())
+	}
+
+	// border tile: fetched, the Swiss place dropped
+	rec, body = get(t, h, 47.64, 9.16, 47.66, 9.18)
+	if rec.Code != 200 || f.hits.Load() != 1 {
+		t.Fatalf("border: %d, %d upstream hits", rec.Code, f.hits.Load())
+	}
+	if len(body.Zones) != 1 || body.Zones[0].Name != "Konstanz" {
+		t.Fatalf("border zones = %+v", body.Zones)
+	}
+}
