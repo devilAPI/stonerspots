@@ -218,6 +218,12 @@ jobs:
           flutter pub get
           flutter analyze
           flutter test
+      # Numbers behave differently on the web (bitwise operators are unsigned
+      # 32-bit there): code that decodes data bit by bit is tested in Chrome
+      # too. A ~ in the border decoder broke the 1.0.1 web app.
+      - name: Web-specific tests (Chrome)
+        working-directory: app
+        run: flutter test --platform chrome test/zones/germany_test.dart
 
   build-android:
     name: Build Android

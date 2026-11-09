@@ -3,6 +3,14 @@
 Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 "Releasing 1.0". Development builds (`dev-<n>`) are not listed here.
 
+## 1.0.2
+
+- Web: the map no longer shows a grey overlay and the 3D view loads. The
+  Germany border used for the zone buttons was decoded wrongly on the web
+  (bitwise operators are unsigned 32-bit there), which made the zone layer
+  fail on every frame and cover the map.
+- CI also runs the border tests in Chrome.
+
 ## 1.0.1
 
 - Backend built with Go 1.27.3: fixes in the standard library for TLS

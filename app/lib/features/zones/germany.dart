@@ -198,7 +198,10 @@ List<LatLng> decodePolyline(String s) {
       shift += 5;
       if (c < 0x20) break;
     }
-    return (v & 1) != 0 ? ~(v >> 1) : v >> 1;
+    // not ~(v >> 1): on the web bitwise operators give unsigned 32-bit
+    // results, so ~ would turn every negative value into a huge positive
+    // one (west of Greenwich, and every step south or west)
+    return (v & 1) != 0 ? -(v >> 1) - 1 : v >> 1;
   }
 
   while (i < s.length) {
