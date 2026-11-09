@@ -33,9 +33,14 @@ func tileAt(lat, lon float64) Tile {
 	return Tile{Y: int(math.Floor(lat/TileSize + gridEps)), X: int(math.Floor(lon/TileSize + gridEps))}
 }
 
-// Key names the tile in the cache. The grid size is part of it, so changing
-// TileSize never serves tiles cut for another grid.
-func (t Tile) Key() string { return fmt.Sprintf("g2:%d:%d", t.Y, t.X) }
+// queryVersion changes whenever buildQuery or kindOf select other places,
+// so tiles cached under the old rules are fetched again instead of being
+// served for up to cacheTTL (q2: private playgrounds count).
+const queryVersion = "q2"
+
+// Key names the tile in the cache. The grid size and the query version are
+// part of it, so changing either never serves tiles made under other rules.
+func (t Tile) Key() string { return fmt.Sprintf("g2%s:%d:%d", queryVersion, t.Y, t.X) }
 
 // Bounds returns south, west, north, east.
 func (t Tile) Bounds() (s, w, n, e float64) {

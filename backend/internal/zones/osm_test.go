@@ -34,7 +34,7 @@ func TestTileSnapping(t *testing.T) {
 	if len(got) != 6 || got[0] != (Tile{2406, 578}) || got[5] != (Tile{2407, 580}) {
 		t.Fatalf("crossing box -> %+v", got)
 	}
-	if k := (Tile{Y: 2406, X: 578}).Key(); k != "g2:2406:578" {
+	if k := (Tile{Y: 2406, X: 578}).Key(); k != "g2q2:2406:578" {
 		t.Fatalf("key %q", k)
 	}
 }
@@ -80,7 +80,7 @@ func TestBuildQuery(t *testing.T) {
 		`nwr["building"="kindergarten"]`,
 		`["social_facility:for"~"(^|;)(child|juvenile|childcare)(;|$)"]`,
 		`["community_centre"="youth_centre"]`,
-		`nwr["leisure"="playground"]["access"!~"^(private|no)$"]`,
+		`nwr["leisure"="playground"]` + "(48.120000",
 		"pitch|sports_centre|sports_hall|stadium|track|swimming_pool|water_park|horse_riding|golf_course",
 		`nwr["smoking:cannabis"="no"]`,
 		`way["highway"="pedestrian"]`,
@@ -110,7 +110,10 @@ func TestKindOf(t *testing.T) {
 		{map[string]string{"amenity": "community_centre", "community_centre": "youth_centre"}, KindYouth},
 		{map[string]string{"amenity": "community_centre"}, ""},
 		{map[string]string{"leisure": "playground"}, KindPlayground},
-		{map[string]string{"leisure": "playground", "access": "private"}, ""},
+		// § 5 Abs. 2 Nr. 2 KCanG: every playground, also a private one
+		// (only sports facilities must be publicly accessible, Nr. 4)
+		{map[string]string{"leisure": "playground", "access": "private"}, KindPlayground},
+		{map[string]string{"leisure": "playground", "access": "no"}, KindPlayground},
 		{map[string]string{"leisure": "pitch"}, KindSports},
 		{map[string]string{"leisure": "golf_course", "access": "customers"}, KindSports},
 		{map[string]string{"leisure": "swimming_pool", "access": "private"}, ""},

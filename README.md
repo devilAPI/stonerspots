@@ -650,8 +650,10 @@ spots say whether they lie in such a zone. Zones exist only in Germany:
 elsewhere the map says so, spots have no zone status and adding one gives no
 warning (see "Germany only" below).
 
-- within sight of schools, children's and youth facilities, public
-  playgrounds and public sports facilities. The law takes "within sight" as
+- within sight of schools, children's and youth facilities, playgrounds
+  (all of them, also the private playground of a block of flats: the law
+  limits only sports facilities to publicly accessible ones) and publicly
+  accessible sports facilities. The law takes "within sight" as
   given within 100 m of the entrance area; like bubatzkarte, the app draws
   100 m around the whole site (red);
 - pedestrian zones between 7 and 20 h German time (yellow while forbidden,
@@ -669,11 +671,14 @@ How it works:
   `amenity=school|kindergarten|childcare`, `building=kindergarten`,
   `amenity=social_facility` + `social_facility:for=child|juvenile|childcare`,
   `amenity=community_centre` + `community_centre=youth_centre`,
-  `leisure=playground`, `leisure=pitch|sports_centre|sports_hall|stadium|track|
-  swimming_pool|water_park|horse_riding|golf_course` (not `access=private|no`),
+  `leisure=playground` (also `access=private`), `leisure=pitch|sports_centre|
+  sports_hall|stadium|track|swimming_pool|water_park|horse_riding|golf_course`
+  (not `access=private|no`),
   `smoking:cannabis=no`, `highway=pedestrian` ways and areas). At most two
   queries run at once; each tile is cached for 7 days in memory and in the
-  `zone_tiles` table, so a restart does not refetch. When Overpass fails, the
+  `zone_tiles` table, so a restart does not refetch. The cache key carries a
+  query version (`queryVersion` in `tiles.go`): bump it when the selection
+  changes, so old tiles are fetched again. When Overpass fails, the
   last copy is served with `"stale": true`. A tile that is still being
   fetched, or waits for one of the two slots, is answered with 503
   `zones_pending` (the app asks again every 10 s); one that failed upstream is

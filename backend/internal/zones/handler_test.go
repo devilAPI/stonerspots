@@ -158,7 +158,7 @@ func TestZonesEndpoint(t *testing.T) {
 	if f.hits.Load() != 1 {
 		t.Fatalf("cache missed: %d hits", f.hits.Load())
 	}
-	if _, ok := st.m["g2:2406:578"]; !ok {
+	if _, ok := st.m["g2q2:2406:578"]; !ok {
 		t.Fatalf("tile not stored: %v", st.m)
 	}
 
@@ -331,7 +331,7 @@ func TestZonesFetchOutlivesClient(t *testing.T) {
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		svc.mu.Lock()
-		_, ok := svc.mem["g2:2406:578"]
+		_, ok := svc.mem["g2q2:2406:578"]
 		svc.mu.Unlock()
 		if ok {
 			break

@@ -57,13 +57,16 @@ var youthFor = []string{"child", "juvenile", "childcare"}
 func buildQuery(t Tile) string {
 	s, w, n, e := t.Bounds()
 	bb := fmt.Sprintf("(%.6f,%.6f,%.6f,%.6f)", s, w, n, e)
+	// § 5 Abs. 2 KCanG: sports facilities count only when publicly
+	// accessible (Nr. 4); playgrounds always (Nr. 2), also the private one
+	// of a block of flats
 	notPrivate := `["access"!~"^(private|no)$"]`
 	lines := []string{
 		`nwr["amenity"~"^(school|kindergarten|childcare)$"]` + bb + `;`,
 		`nwr["building"="kindergarten"]` + bb + `;`,
 		`nwr["amenity"="social_facility"]["social_facility:for"~"(^|;)(` + strings.Join(youthFor, "|") + `)(;|$)"]` + bb + `;`,
 		`nwr["amenity"="community_centre"]["community_centre"="youth_centre"]` + bb + `;`,
-		`nwr["leisure"="playground"]` + notPrivate + bb + `;`,
+		`nwr["leisure"="playground"]` + bb + `;`,
 		`nwr["leisure"~"^(` + strings.Join(sportsLeisure, "|") + `)$"]` + notPrivate + bb + `;`,
 		`nwr["smoking:cannabis"="no"]` + bb + `;`,
 		`way["highway"="pedestrian"]` + bb + `;`,
@@ -116,10 +119,10 @@ func kindOf(tags map[string]string) string {
 	if tags["building"] == "kindergarten" {
 		return KindKindergarten
 	}
+	if tags["leisure"] == "playground" {
+		return KindPlayground
+	}
 	if l := tags["leisure"]; l != "" && publicAccess(tags) {
-		if l == "playground" {
-			return KindPlayground
-		}
 		for _, s := range sportsLeisure {
 			if l == s {
 				return KindSports
