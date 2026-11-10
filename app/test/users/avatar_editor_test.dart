@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:app/core/api_client.dart';
 import 'package:app/core/models.dart';
 import 'package:app/features/auth/auth_controller.dart';
+import 'package:app/features/spots/photo_viewer.dart';
 import 'package:app/features/users/author_link.dart';
 import 'package:app/features/users/avatar_crop.dart';
 import 'package:app/features/users/avatar_repository.dart';
@@ -111,8 +112,9 @@ void main() {
     await t.tap(find.byKey(const Key('ownAvatar')));
     await t.pumpAndSettle();
     expect(find.text('Choose photo'), findsOneWidget);
-    // nothing to remove yet
+    // nothing to remove or show yet
     expect(find.byKey(const Key('avatarRemove')), findsNothing);
+    expect(find.byKey(const Key('avatarView')), findsNothing);
     await t.tap(find.byKey(const Key('avatarChoose')));
     await t.pump();
     await t.pump();
@@ -155,6 +157,26 @@ void main() {
     expect(avatars.calls, ['remove']);
     expect(_photo, findsNothing);
     expect(c.read(authControllerProvider).value?.avatarUrl, isNull);
+  });
+
+  testWidgets('your picture: "Show picture" opens it full screen', (t) async {
+    await _pump(
+      t,
+      _Avatars(),
+      FakeUsers(profiles: {1: _profile(1, avatar: _url)}),
+      user: const User(
+        id: 1,
+        email: 'me@x.de',
+        displayName: 'Me',
+        avatarUrl: _url,
+      ),
+    );
+    await t.tap(find.byKey(const Key('ownAvatar')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('avatarView')));
+    await t.pumpAndSettle();
+    final viewer = t.widget<PhotoViewer>(find.byType(PhotoViewer));
+    expect(viewer.urls, [_url]);
   });
 
   testWidgets('a failed upload says why and keeps the old picture', (t) async {
@@ -210,6 +232,24 @@ void main() {
           .imageUrl,
       _url,
     );
+    // a tap shows it full screen
+    await t.tap(avatar);
+    await t.pumpAndSettle();
+    expect(t.widget<PhotoViewer>(find.byType(PhotoViewer)).urls, [_url]);
+  });
+
+  testWidgets('without a picture, a tap on someone\'s initial does nothing', (
+    t,
+  ) async {
+    await _pump(
+      t,
+      _Avatars(),
+      FakeUsers(profiles: {7: _profile(7, isMe: false)}),
+      userId: 7,
+    );
+    await t.tap(find.byKey(const Key('authorAvatar-7')));
+    await t.pumpAndSettle();
+    expect(find.byType(PhotoViewer), findsNothing);
   });
 
   testWidgets('an admin changes someone else\'s picture, not their own', (

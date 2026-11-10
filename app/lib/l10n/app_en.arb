@@ -538,6 +538,7 @@
   "avatarCropUse": "Use",
   "avatarCropZoom": "Zoom",
   "avatarChoose": "Choose photo",
+  "avatarView": "Show picture",
   "avatarRemove": "Remove photo",
   "adminRemoveAvatar": "Remove profile picture",
   "adminRemoveAvatarBody": "The profile picture of {name} will be deleted.",

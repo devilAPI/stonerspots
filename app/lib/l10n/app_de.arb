@@ -550,6 +550,7 @@
   "avatarCropUse": "Übernehmen",
   "avatarCropZoom": "Zoom",
   "avatarChoose": "Foto auswählen",
+  "avatarView": "Bild ansehen",
   "avatarRemove": "Foto entfernen",
   "adminRemoveAvatar": "Profilbild entfernen",
   "adminRemoveAvatarBody": "Das Profilbild von {name} wird gelöscht.",

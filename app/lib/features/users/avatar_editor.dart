@@ -11,7 +11,7 @@ import 'avatar_crop.dart';
 import 'avatar_repository.dart';
 import 'users_controller.dart';
 
-enum _AvatarAction { choose, remove }
+enum _AvatarAction { view, choose, remove }
 
 /// Your own profile picture with a camera badge: tapping it offers to choose
 /// a new one or remove it. While it uploads, a spinner sits on it. With
@@ -73,6 +73,13 @@ class _OwnAvatarEditorState extends ConsumerState<OwnAvatarEditor> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (hasPhoto)
+                ListTile(
+                  key: const Key('avatarView'),
+                  leading: const Icon(Icons.zoom_out_map),
+                  title: Text(l.avatarView),
+                  onTap: () => Navigator.pop(sheet, _AvatarAction.view),
+                ),
               ListTile(
                 key: const Key('avatarChoose'),
                 leading: const Icon(Icons.photo_library_outlined),
@@ -93,6 +100,9 @@ class _OwnAvatarEditorState extends ConsumerState<OwnAvatarEditor> {
     );
     if (!mounted || action == null) return;
     switch (action) {
+      case _AvatarAction.view:
+        final url = _current;
+        if (url != null) await showAvatarViewer(context, url);
       case _AvatarAction.choose:
         await _choose();
       case _AvatarAction.remove:

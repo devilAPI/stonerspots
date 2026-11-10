@@ -340,6 +340,7 @@ class _Header extends StatelessWidget {
                     avatarUrl: p.avatarUrl,
                   ),
                   radius: 28,
+                  enlarge: true,
                 ),
               const SizedBox(width: 16),
               Expanded(

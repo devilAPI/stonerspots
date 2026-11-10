@@ -2570,6 +2570,12 @@ abstract class AppLocalizations {
   /// **'Foto auswählen'**
   String get avatarChoose;
 
+  /// No description provided for @avatarView.
+  ///
+  /// In de, this message translates to:
+  /// **'Bild ansehen'**
+  String get avatarView;
+
   /// No description provided for @avatarRemove.
   ///
   /// In de, this message translates to:

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../spots/photo_viewer.dart';
 import '../../core/models.dart';
 import '../../core/user_avatar.dart';
 import '../../l10n/app_localizations.dart';
@@ -62,6 +63,7 @@ class AuthorAvatar extends ConsumerWidget {
     required this.author,
     this.radius = 16,
     this.onTap,
+    this.enlarge = false,
   });
 
   final Author author;
@@ -69,6 +71,10 @@ class AuthorAvatar extends ConsumerWidget {
 
   /// Replaces opening the profile.
   final void Function(int userId)? onTap;
+
+  /// A tap shows the picture full size instead (on the profile itself);
+  /// without a picture it does nothing.
+  final bool enlarge;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -83,7 +89,9 @@ class AuthorAvatar extends ConsumerWidget {
       name: author.displayName,
       url: url,
       radius: radius,
-      onTap: _profileTap(context, author.id, onTap),
+      onTap: enlarge
+          ? (url == null ? null : () => showAvatarViewer(context, url))
+          : _profileTap(context, author.id, onTap),
     );
   }
 }
@@ -208,3 +216,8 @@ class SpotOwnerLine extends StatelessWidget {
     );
   }
 }
+
+/// [url], a profile picture, full screen: pinch to zoom, Esc or swipe down
+/// to close.
+Future<void> showAvatarViewer(BuildContext context, String url) =>
+    showPhotoViewer(context, [url], 0);

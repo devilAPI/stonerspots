@@ -1498,6 +1498,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get avatarChoose => 'Foto auswählen';
 
   @override
+  String get avatarView => 'Bild ansehen';
+
+  @override
   String get avatarRemove => 'Foto entfernen';
 
   @override

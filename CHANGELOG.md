@@ -3,6 +3,12 @@
 Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 "Releasing 1.0". Development builds (`dev-<n>`) are not listed here.
 
+## 1.0.10
+
+- Profile pictures can be seen full size: a tap on someone's picture on
+  their profile opens it (pinch to zoom); for your own, "Show picture" is
+  the first entry of the sheet that changes it.
+
 ## 1.0.9
 
 - iPhone home-screen app (installed from Safari): the tabs work again. The
