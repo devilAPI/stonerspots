@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/device_insets.dart';
 import 'core/glass.dart';
 import 'core/settings.dart';
 import 'core/tag_catalog.dart';
@@ -53,9 +54,15 @@ class _StonerspotsAppState extends ConsumerState<StonerspotsApp> {
         // black on every frame.
         builder: (_, child) => AnnotatedRegion<SystemUiOverlayStyle>(
           value: kSystemBars,
-          child: DevBuildNoticeHost(
-            navigatorKey: ref.read(routerProvider).routerDelegate.navigatorKey,
-            child: UpdateBannerHost(child: child!),
+          // the web reports no safe area itself (iOS home-screen app)
+          child: DeviceInsets(
+            child: DevBuildNoticeHost(
+              navigatorKey: ref
+                  .read(routerProvider)
+                  .routerDelegate
+                  .navigatorKey,
+              child: UpdateBannerHost(child: child!),
+            ),
           ),
         ),
         onGenerateTitle: (c) => AppLocalizations.of(c).appTitle,

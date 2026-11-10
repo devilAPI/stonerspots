@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 
+import 'device_insets.dart';
 import 'flutter_gpu_check.dart';
 
 export 'glass_sheet.dart';
@@ -257,9 +258,7 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   static double contentTop(BuildContext context) =>
       // From the view: a Scaffold takes the top padding out of its body's
       // MediaQuery, and this is called from inside bodies as well.
-      MediaQueryData.fromView(View.of(context)).viewPadding.top +
-      kGlassAppBarHeight +
-      2 * _margin;
+      DeviceInsets.of(context).top + kGlassAppBarHeight + 2 * _margin;
 
   @override
   Size get preferredSize =>
