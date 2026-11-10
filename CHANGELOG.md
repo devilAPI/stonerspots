@@ -3,6 +3,11 @@
 Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 "Releasing 1.0". Development builds (`dev-<n>`) are not listed here.
 
+## 1.0.11
+
+- Zone status without a zone nearby says just "Keine Verbotszone" ("No
+  zone") instead of "Keine Verbotszone in OSM-Daten gefunden".
+
 ## 1.0.10
 
 - Profile pictures can be seen full size: a tap on someone's picture on

@@ -687,7 +687,7 @@
   "zoneStatusForbiddenIn": "In einer Verbotszone ({kind})",
   "@zoneStatusForbiddenIn": {"placeholders": {"kind": {"type": "String"}}},
   "zoneStatusPedestrian": "Fußgängerzone: Konsum 7–20 Uhr verboten",
-  "zoneStatusClear": "Keine Verbotszone in OSM-Daten gefunden",
+  "zoneStatusClear": "Keine Verbotszone",
   "zoneStatusUnknown": "Zonen konnten nicht geprüft werden",
   "zoneStatusChecking": "Verbotszonen werden geprüft …",
   "addSpotZoneTitle": "Verbotszone",

@@ -1918,7 +1918,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Pedestrian zone: no consumption 7 am–8 pm';
 
   @override
-  String get zoneStatusClear => 'No zone found in OSM data';
+  String get zoneStatusClear => 'No zone';
 
   @override
   String get zoneStatusUnknown => 'Zones could not be checked';

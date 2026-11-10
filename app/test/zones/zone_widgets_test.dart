@@ -655,7 +655,7 @@ void main() {
         base,
       );
       expect(find.byKey(const Key('zoneStatus-clear')), findsOneWidget);
-      expect(find.text('No zone found in OSM data'), findsOneWidget);
+      expect(find.text('No zone'), findsOneWidget);
     });
 
     testWidgets('grey: the data could not be loaded', (t) async {

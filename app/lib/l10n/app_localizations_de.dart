@@ -1933,7 +1933,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get zoneStatusPedestrian => 'Fußgängerzone: Konsum 7–20 Uhr verboten';
 
   @override
-  String get zoneStatusClear => 'Keine Verbotszone in OSM-Daten gefunden';
+  String get zoneStatusClear => 'Keine Verbotszone';
 
   @override
   String get zoneStatusUnknown => 'Zonen konnten nicht geprüft werden';

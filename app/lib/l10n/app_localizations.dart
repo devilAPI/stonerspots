@@ -3293,7 +3293,7 @@ abstract class AppLocalizations {
   /// No description provided for @zoneStatusClear.
   ///
   /// In de, this message translates to:
-  /// **'Keine Verbotszone in OSM-Daten gefunden'**
+  /// **'Keine Verbotszone'**
   String get zoneStatusClear;
 
   /// No description provided for @zoneStatusUnknown.

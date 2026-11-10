@@ -667,7 +667,7 @@
   "zoneStatusForbiddenAt": "In a no-consumption zone ({kind}, {metres} m)",
   "zoneStatusForbiddenIn": "In a no-consumption zone ({kind})",
   "zoneStatusPedestrian": "Pedestrian zone: no consumption 7 am–8 pm",
-  "zoneStatusClear": "No zone found in OSM data",
+  "zoneStatusClear": "No zone",
   "zoneStatusUnknown": "Zones could not be checked",
   "zoneStatusChecking": "Checking zones …",
   "addSpotZoneTitle": "No-consumption zone",
