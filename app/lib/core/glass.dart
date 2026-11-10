@@ -338,6 +338,45 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
+/// Tabs as one row of glass (iOS 27's segmented control): the selected one
+/// on a soft pill, no ripple. Needs a [TabController] ([controller] or a
+/// DefaultTabController above); scrolls sideways when they do not fit.
+class GlassTabs extends StatelessWidget {
+  const GlassTabs({super.key, required this.tabs, this.controller, this.onTap});
+
+  final List<Widget> tabs;
+  final TabController? controller;
+  final ValueChanged<int>? onTap;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: GlassControls(
+      children: [
+        Flexible(
+          child: TabBar(
+            controller: controller,
+            onTap: onTap,
+            isScrollable: true,
+            tabAlignment: TabAlignment.center,
+            dividerColor: Colors.transparent,
+            labelColor: kOnGlass,
+            unselectedLabelColor: kOnGlass.withValues(alpha: 0.7),
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicator: const ShapeDecoration(
+              color: Color(0x2EAEAEB2),
+              shape: StadiumBorder(),
+            ),
+            // glass, not Material: no ink ripple, no hover or press tint
+            splashFactory: NoSplash.splashFactory,
+            overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+            tabs: tabs,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 /// Height of a floating control; one icon button in it is a circle.
 const double kGlassControlSize = 48;
 

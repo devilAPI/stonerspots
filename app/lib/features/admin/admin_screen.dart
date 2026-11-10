@@ -49,35 +49,14 @@ class AdminScreen extends ConsumerWidget {
                   // the sections as one row of glass, under the controls
                   Padding(
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                    child: Center(
-                      child: GlassControls(
-                        children: [
-                          Flexible(
-                            child: TabBar(
-                              isScrollable: true,
-                              tabAlignment: TabAlignment.center,
-                              dividerColor: Colors.transparent,
-                              labelColor: kOnGlass,
-                              unselectedLabelColor: kOnGlass.withValues(
-                                alpha: 0.7,
-                              ),
-                              indicatorSize: TabBarIndicatorSize.tab,
-                              indicator: const ShapeDecoration(
-                                color: Color(0x2EAEAEB2),
-                                shape: StadiumBorder(),
-                              ),
-                              splashBorderRadius: BorderRadius.circular(24),
-                              tabs: [
-                                Tab(text: l10n.adminReports),
-                                Tab(text: l10n.adminUsers),
-                                Tab(text: l10n.adminSpots),
-                                Tab(text: l10n.adminTags),
-                                Tab(text: l10n.adminActions),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                    child: GlassTabs(
+                      tabs: [
+                        Tab(text: l10n.adminReports),
+                        Tab(text: l10n.adminUsers),
+                        Tab(text: l10n.adminSpots),
+                        Tab(text: l10n.adminTags),
+                        Tab(text: l10n.adminActions),
+                      ],
                     ),
                   ),
                   const Expanded(

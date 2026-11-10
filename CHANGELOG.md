@@ -7,6 +7,11 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 
 - Zone status without a zone nearby says just "Keine Verbotszone" ("No
   zone") instead of "Keine Verbotszone in OSM-Daten gefunden".
+- A zone status that could not be checked (the server could not reach any
+  Overpass server yet for that area, mostly countryside) is checked again
+  every 30 seconds while it is shown, instead of staying an error.
+- The profile's Spots / Updates switcher is the same glass row as the
+  admin's sections; neither shows Material's ink ripple anymore.
 
 ## 1.0.10
 

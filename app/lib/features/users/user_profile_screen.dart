@@ -189,23 +189,35 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: SegmentedButton<_Tab>(
-                key: const Key('userTabs'),
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(
-                    value: _Tab.spots,
-                    label: Text(l.userTabSpots),
-                    icon: const Icon(Icons.place_outlined),
-                  ),
-                  ButtonSegment(
-                    value: _Tab.updates,
-                    label: Text(l.userTabUpdates),
-                    icon: const Icon(Icons.dynamic_feed_outlined),
-                  ),
-                ],
-                selected: {_tab},
-                onSelectionChanged: (s) => setState(() => _tab = s.first),
+              // the same glass row as the admin's sections
+              child: DefaultTabController(
+                length: _Tab.values.length,
+                initialIndex: _tab.index,
+                child: GlassTabs(
+                  key: const Key('userTabs'),
+                  onTap: (i) => setState(() => _tab = _Tab.values[i]),
+                  tabs: [
+                    for (final (tab, icon, label) in [
+                      (_Tab.spots, Icons.place_outlined, l.userTabSpots),
+                      (
+                        _Tab.updates,
+                        Icons.dynamic_feed_outlined,
+                        l.userTabUpdates,
+                      ),
+                    ])
+                      Tab(
+                        key: Key('userTab-${tab.name}'),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(icon, size: 18),
+                            const SizedBox(width: 6),
+                            Text(label),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
             ...switch (_tab) {
