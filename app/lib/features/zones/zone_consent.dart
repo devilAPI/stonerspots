@@ -14,24 +14,15 @@ final zonesEnabledProvider = NotifierProvider<BoolSetting, bool>(
   () => BoolSetting('zones_enabled'),
 );
 
-/// The user has read the zone disclaimer in this session (not stored: the
-/// first time zones are switched on or would show after a start, it comes
-/// again).
-final zonesAcceptedProvider = NotifierProvider<SessionFlag, bool>(
-  SessionFlag.new,
+/// The setting that remembers the disclaimer was read; a new name for a
+/// changed text asks again.
+const kZoneDisclaimerKey = 'zones_disclaimer_v1';
+
+/// The user has read the zone disclaimer (stored: it is asked when zones
+/// are switched on, never again by itself; the info button shows it).
+final zonesAcceptedProvider = NotifierProvider<BoolSetting, bool>(
+  () => BoolSetting(kZoneDisclaimerKey),
 );
-
-/// A yes/no that lives only as long as the app runs.
-class SessionFlag extends Notifier<bool> {
-  SessionFlag([this.initial = false]);
-
-  final bool initial;
-
-  @override
-  bool build() => initial;
-
-  void set(bool value) => state = value;
-}
 
 /// Zones may be fetched and shown: switched on and the disclaimer read.
 final zonesActiveProvider = Provider<bool>(

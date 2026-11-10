@@ -24,8 +24,6 @@ class ZoneOverlay extends ConsumerStatefulWidget {
 }
 
 class _ZoneOverlayState extends ConsumerState<ZoneOverlay> {
-  bool _asked = false;
-
   @override
   Widget build(BuildContext context) {
     final camera = MapCamera.of(context);
@@ -37,17 +35,9 @@ class _ZoneOverlayState extends ConsumerState<ZoneOverlay> {
     // hide too, see zonesAbroadProvider)
     if (outsideGermany(camera, tilt)) return const SizedBox.shrink();
     final zoomedIn = camera.zoom >= kZoneMinZoom;
-    final accepted = ref.watch(zonesAcceptedProvider);
-    if (!accepted) {
-      // first reach of street level with the layer on: the disclaimer first
-      if (zoomedIn && !_asked) {
-        _asked = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) ensureZoneConsent(context, ref);
-        });
-      }
-      return const SizedBox.shrink();
-    }
+    // not read yet: nothing (the zone button asks; never a dialog in the
+    // middle of moving the map)
+    if (!ref.watch(zonesAcceptedProvider)) return const SizedBox.shrink();
     final l = AppLocalizations.of(context);
     final failed =
         zoomedIn &&
@@ -127,7 +117,9 @@ class ZoneToggleButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (ref.watch(zonesAbroadProvider)) return const SizedBox.shrink();
     final l = AppLocalizations.of(context);
-    final on = ref.watch(zonesEnabledProvider);
+    // on only once the disclaimer is read; switched on but not read yet,
+    // a press asks for it
+    final on = ref.watch(zonesActiveProvider);
     return IconButton(
       key: const Key('mapZones'),
       tooltip: on ? l.zonesHide : l.zonesShow,

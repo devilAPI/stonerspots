@@ -38,7 +38,7 @@ void main() {
     t.view.physicalSize = const Size(800, 1000);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
-    final store = SettingsStore.memory()..setBool('map_3d', map3d);
+    final store = SettingsStore.memory();
     await t.pumpWidget(
       ProviderScope(
         overrides: [
@@ -57,6 +57,11 @@ void main() {
     );
     await t.pumpAndSettle();
     container = ProviderScope.containerOf(t.element(find.byType(MapScreen)));
+    if (map3d) {
+      // it always opens flat: tilt it with the 3D button
+      await t.tap(find.byKey(const Key('map3d')));
+      await t.pumpAndSettle();
+    }
   }
 
   MapCamera camera(WidgetTester t) =>
@@ -187,7 +192,6 @@ void main() {
   testWidgets('2D: two fingers up go into 3D, down back to flat 2D', (t) async {
     await pump(t);
     expect(tiltNow(t), isNull);
-    final store = container.read(settingsStoreProvider);
 
     var f = await twoFingers(t);
     await drag(t, f, -10, 8); // 80 px up: 20 degrees
@@ -196,7 +200,6 @@ void main() {
     await f.$2.up();
     await t.pumpAndSettle();
     expect(container.read(mapPitchProvider), closeTo(20, 1e-6));
-    expect(store.getBool('map_3d'), isTrue);
 
     // down again: flat while the fingers are still on the screen
     f = await twoFingers(t);
@@ -207,7 +210,6 @@ void main() {
     await f.$2.up();
     await t.pumpAndSettle();
     expect(tiltNow(t), isNull);
-    expect(store.getBool('map_3d'), isFalse);
     expect(t.takeException(), isNull);
   });
 

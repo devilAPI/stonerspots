@@ -282,19 +282,33 @@ void main() {
   });
 
   group('map layer', () {
-    testWidgets('a tile that failed is tried again while in view', (t) async {
+    testWidgets('a tile that failed is tried again while in view; "could not '
+        'be loaded" only after three failures in a row', (t) async {
       final repo = repoWith([_playground])..fail = true;
       await _pumpMap(t, [
         ...overridesFor(repo),
-        zoneRetryProvider.overrideWithValue(const Duration(seconds: 5)),
+        zoneQuickRetryProvider.overrideWithValue(const Duration(seconds: 5)),
+        zoneRetryProvider.overrideWithValue(const Duration(seconds: 30)),
       ]);
-      expect(find.byKey(const Key('zoneLoadFailed')), findsOneWidget);
       expect(repo.asked, hasLength(1));
+      // one failure: still "loading", no error
+      expect(find.byKey(const Key('zoneLoadFailed')), findsNothing);
+      await t.pump(const Duration(seconds: 2));
+      expect(find.byKey(const Key('zoneLoading')), findsOneWidget);
+      // two quick retries, both failing: now it says so
+      await t.pump(const Duration(seconds: 5));
+      await t.pump(const Duration(seconds: 5));
+      await t.pump();
+      expect(repo.asked, hasLength(3));
+      expect(find.byKey(const Key('zoneLoadFailed')), findsOneWidget);
+      // and keeps trying, less often
+      await t.pump(const Duration(seconds: 5));
+      expect(repo.asked, hasLength(3));
 
       repo.fail = false; // Overpass is back
-      await t.pump(const Duration(seconds: 5));
+      await t.pump(const Duration(seconds: 30));
       await t.pumpAndSettle();
-      expect(repo.asked, hasLength(2));
+      expect(repo.asked, hasLength(4));
       expect(find.byKey(const Key('zoneLoadFailed')), findsNothing);
       expect(_painter(t)!.tiles.single.zones.single.id, 'way/1');
     });
@@ -353,6 +367,31 @@ void main() {
         );
       },
     );
+
+    testWidgets('zooming in does not tell what zone is there', (t) async {
+      final repo = repoWith([_playground]);
+      await _pumpMap(t, overridesFor(repo));
+      final centre = t.getCenter(find.byType(FlutterMap));
+      // a double tap zooms in
+      await t.tapAt(centre);
+      await t.pump(const Duration(milliseconds: 80));
+      await t.tapAt(centre);
+      await t.pump(const Duration(milliseconds: 500));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('zoneTapInfo')), findsNothing);
+      // two fingers: pinch
+      final a = await t.startGesture(centre - const Offset(30, 0));
+      final b = await t.startGesture(centre + const Offset(30, 0), pointer: 7);
+      await t.pump(const Duration(milliseconds: 50));
+      await a.moveBy(const Offset(-40, 0));
+      await b.moveBy(const Offset(40, 0));
+      await t.pump(const Duration(milliseconds: 50));
+      await a.up();
+      await b.up();
+      await t.pump(const Duration(milliseconds: 500));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('zoneTapInfo')), findsNothing);
+    });
 
     testWidgets('the zone notice goes away: by itself, ✕, or a tap outside', (
       t,
@@ -446,10 +485,19 @@ void main() {
   });
 
   group('first-use disclaimer', () {
-    testWidgets('reaching street level: the disclaimer comes first', (t) async {
+    testWidgets('never asked by zooming in: the zone button asks', (t) async {
       final store = SettingsStore.memory();
       final repo = repoWith([_playground]);
+      // on, not read yet (e.g. from before it was remembered), at street
+      // level: no dialog by itself, nothing loaded, the button is "off"
       await _pumpMap(t, overridesFor(repo, accepted: false, store: store));
+      expect(find.byKey(const Key('zoneDisclaimer')), findsNothing);
+      expect(_painter(t), isNull);
+      expect(repo.asked, isEmpty);
+      expect(find.byTooltip('Show no-consumption zones'), findsOneWidget);
+
+      await t.tap(find.byKey(const Key('mapZones')));
+      await t.pumpAndSettle();
       expect(find.byKey(const Key('zoneDisclaimer')), findsOneWidget);
       expect(find.textContaining('OpenStreetMap data'), findsOneWidget);
       expect(find.textContaining('Anbauvereinigungen'), findsOneWidget);
@@ -461,14 +509,15 @@ void main() {
       await t.pumpAndSettle();
       expect(_painter(t), isNotNull);
       expect(repo.asked, hasLength(1));
-      // only for this session: nothing about it is stored
-      expect(store.getBool('zones_disclaimer_accepted'), isNull);
+      expect(store.getBool(kZoneDisclaimerKey), isTrue);
     });
 
-    testWidgets('a new session asks again', (t) async {
+    testWidgets('once read, a restart does not ask again', (t) async {
       final store = SettingsStore.memory();
       final repo = repoWith([_playground]);
       await _pumpMap(t, overridesFor(repo, accepted: false, store: store));
+      await t.tap(find.byKey(const Key('mapZones')));
+      await t.pumpAndSettle();
       await t.tap(find.byKey(const Key('zoneDisclaimerOk')));
       await t.pumpAndSettle();
       expect(find.byKey(const Key('zoneDisclaimer')), findsNothing);
@@ -483,7 +532,8 @@ void main() {
         ], const _ZoneMap(zoom: 16)),
       );
       await t.pumpAndSettle();
-      expect(find.byKey(const Key('zoneDisclaimer')), findsOneWidget);
+      expect(find.byKey(const Key('zoneDisclaimer')), findsNothing);
+      expect(_painter(t), isNotNull);
     });
 
     testWidgets('zones are off by default', (t) async {
@@ -501,6 +551,8 @@ void main() {
       final store = SettingsStore.memory();
       final repo = repoWith([_playground]);
       await _pumpMap(t, overridesFor(repo, accepted: false, store: store));
+      await t.tap(find.byKey(const Key('mapZones')));
+      await t.pumpAndSettle();
       await t.tap(find.byKey(const Key('zoneDisclaimerCancel')));
       await t.pumpAndSettle();
       expect(store.getBool('zones_enabled'), isFalse);
@@ -621,15 +673,12 @@ void main() {
       expect(find.textContaining('OpenStreetMap contributors'), findsWidgets);
     });
 
-    testWidgets('first use: the disclaimer before the chip', (t) async {
+    testWidgets('disclaimer not read: no chip and no dialog', (t) async {
       final repo = repoWith([_playground]);
       await pumpChip(t, overridesFor(repo, accepted: false), base);
-      expect(find.byKey(const Key('zoneDisclaimer')), findsOneWidget);
+      expect(find.byKey(const Key('zoneDisclaimer')), findsNothing);
       expect(find.byKey(const Key('zoneStatus-forbidden')), findsNothing);
       expect(repo.asked, isEmpty);
-      await t.tap(find.byKey(const Key('zoneDisclaimerOk')));
-      await t.pumpAndSettle();
-      expect(find.byKey(const Key('zoneStatus-forbidden')), findsOneWidget);
     });
 
     testWidgets('zones off: no chip, no request', (t) async {

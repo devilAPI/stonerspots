@@ -3,6 +3,21 @@
 Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 "Releasing 1.0". Development builds (`dev-<n>`) are not listed here.
 
+## 1.0.8
+
+- Zones load reliably and fast. The server asks OpenStreetMap's Overpass
+  for a block of 4 × 4 tiles at once (one to four queries for a screen
+  instead of up to 48), tries other public Overpass servers when one is
+  down or overloaded (as overpass-api.de often was), answers old data at
+  once while it refreshes it, and keeps all of Germany cached in the
+  background, areas with spots first. (Needs the 1.0.8 backend.)
+- The app retries a zone tile that failed quietly and says "could not be
+  loaded" only after three failures in a row, instead of at the first.
+- The zone disclaimer no longer pops up while zooming in after every app
+  start: confirming it is remembered, and it is asked only when you turn
+  zones on (the ⓘ button shows it any time).
+- The map always opens in 2D; 3D is no longer remembered.
+
 ## 1.0.7
 
 - Glass: bars, buttons, sheets and the tab bar use liquid_glass_renderer

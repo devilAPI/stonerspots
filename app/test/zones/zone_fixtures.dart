@@ -87,9 +87,9 @@ List<Override> overridesFor(
 }) {
   final s = store ?? SettingsStore.memory();
   s.setBool('zones_enabled', enabled);
+  s.setBool(kZoneDisclaimerKey, accepted);
   return [
     settingsStoreProvider.overrideWithValue(s),
-    zonesAcceptedProvider.overrideWith(() => SessionFlag(accepted)),
     zonesRepositoryProvider.overrideWithValue(repo),
     zoneDebounceProvider.overrideWithValue(Duration.zero),
     if (now != null) zoneClockProvider.overrideWithValue(now),

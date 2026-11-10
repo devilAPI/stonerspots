@@ -135,26 +135,14 @@ class ZoneStatusChip extends ConsumerStatefulWidget {
 }
 
 class _ZoneStatusChipState extends ConsumerState<ZoneStatusChip> {
-  bool _asked = false;
-
-  void _ask() {
-    if (_asked) return;
-    _asked = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) ensureZoneConsent(context, ref);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!ref.watch(zonesEnabledProvider)) return const SizedBox.shrink();
     if (!inGermany(LatLng(widget.lat, widget.lon))) {
       return const SizedBox.shrink();
     }
-    if (!ref.watch(zonesAcceptedProvider)) {
-      _ask();
-      return const SizedBox.shrink();
-    }
+    // not read yet: nothing; the map's zone button asks
+    if (!ref.watch(zonesAcceptedProvider)) return const SizedBox.shrink();
     final l = AppLocalizations.of(context);
     final status = ref.watch(
       zoneStatusProvider((lat: widget.lat, lon: widget.lon)),

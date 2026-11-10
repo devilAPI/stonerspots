@@ -8,21 +8,16 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/settings.dart';
 import 'buildings/map_tilt.dart';
 
-/// The main map was left in 3D: it opens tilted next time. Off by default.
-final map3dProvider = NotifierProvider<BoolSetting, bool>(
-  () => BoolSetting('map_3d'),
-);
-
 /// The map's tilt in degrees: 0 is the flat 2D map, up to [kMaxPitch].
-/// Two fingers change it continuously; the 3D button animates it.
+/// Two fingers change it continuously; the 3D button animates it. The map
+/// always opens flat; 3D is a choice for the moment, not remembered.
 final mapPitchProvider = NotifierProvider<MapPitch, double>(MapPitch.new);
 
 class MapPitch extends Notifier<double> {
   @override
-  double build() => ref.read(map3dProvider) ? kMapPitch : 0;
+  double build() => 0;
 
   void set(double degrees) => state = degrees.clamp(0.0, kMaxPitch);
 }

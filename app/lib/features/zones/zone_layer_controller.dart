@@ -87,6 +87,16 @@ final zoneRetryProvider = Provider<Duration>(
   (ref) => const Duration(seconds: 60),
 );
 
+/// The first retries of a failed tile come sooner: Overpass is often down
+/// only for a moment, and the server tries other Overpass servers.
+final zoneQuickRetryProvider = Provider<Duration>(
+  (ref) => const Duration(seconds: 5),
+);
+
+/// A tile counts as failed, with the "could not be loaded" note, only after
+/// this many failures in a row; before that it is still "loading".
+const int kZoneFailuresShown = 3;
+
 /// The clock for the pedestrian-zone hours; tests replace it.
 final zoneClockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 
@@ -137,7 +147,10 @@ class ZoneLayerController extends Notifier<ZoneLayerState> {
   List<ZoneTileId> _wanted = const [];
   final _graphics = <ZoneTileId, ZoneTileGraphics>{}; // insertion order
   final _loading = <ZoneTileId>{};
-  final _failed = <ZoneTileId>{};
+
+  /// Failures in a row of each tile that has not loaded yet.
+  final _failures = <ZoneTileId, int>{};
+  bool _shownFailed(ZoneTileId t) => (_failures[t] ?? 0) >= kZoneFailuresShown;
 
   /// Tiles the server is still fetching: asked for again soon, never shown
   /// as failed.
@@ -211,12 +224,17 @@ class ZoneLayerController extends Notifier<ZoneLayerState> {
   }
 
   /// Overpass is often only briefly overloaded: failed tiles still in view
-  /// are asked for again after [zoneRetryProvider].
+  /// are asked for again, soon ([zoneQuickRetryProvider]) until they count
+  /// as failed, then every [zoneRetryProvider].
   void _scheduleRetry() {
-    _retry ??= Timer(ref.read(zoneRetryProvider), () {
-      _retry = null;
-      if (_wanted.any(_failed.contains)) _load();
-    });
+    final quick = !_wanted.any(_shownFailed);
+    _retry ??= Timer(
+      ref.read(quick ? zoneQuickRetryProvider : zoneRetryProvider),
+      () {
+        _retry = null;
+        if (_wanted.any(_failures.containsKey)) _load();
+      },
+    );
   }
 
   static bool _sameTiles(List<ZoneTileId> a, List<ZoneTileId> b) {
@@ -237,7 +255,7 @@ class ZoneLayerController extends Notifier<ZoneLayerState> {
           .then(
             (data) {
               _loading.remove(t);
-              _failed.remove(t);
+              _failures.remove(t);
               _waiting.remove(t);
               _graphics[t] = ZoneTileGraphics.build(t, data.zones);
               _publish();
@@ -249,7 +267,7 @@ class ZoneLayerController extends Notifier<ZoneLayerState> {
                 _waiting.add(t);
                 _schedulePendingRetry();
               } else {
-                _failed.add(t);
+                _failures[t] = (_failures[t] ?? 0) + 1;
                 _scheduleRetry();
               }
               _publish();
@@ -269,8 +287,12 @@ class ZoneLayerController extends Notifier<ZoneLayerState> {
       );
       _graphics.remove(old);
     }
+    // a tile that failed, but not often enough to say so, is still coming
     final busy = _wanted.any(
-      (t) => _loading.contains(t) || _waiting.contains(t),
+      (t) =>
+          _loading.contains(t) ||
+          _waiting.contains(t) ||
+          (_failures.containsKey(t) && !_shownFailed(t)),
     );
     if (!busy) {
       _slow?.cancel();
@@ -285,7 +307,7 @@ class ZoneLayerController extends Notifier<ZoneLayerState> {
     }
     state = state.copyWith(
       tiles: {for (final t in _wanted) t: ?_graphics[t]},
-      failed: _wanted.any(_failed.contains),
+      failed: _wanted.any(_shownFailed),
       loading: busy && _slowLoad,
     );
   }

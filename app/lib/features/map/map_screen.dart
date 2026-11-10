@@ -83,11 +83,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
     super.dispose();
   }
 
-  /// Tilts the map to [target] degrees (0: flat 2D), animated, and
-  /// remembers whether the map is left in 3D.
+  /// Tilts the map to [target] degrees (0: flat 2D), animated.
   void _tiltTo(double target) {
     final from = ref.read(mapPitchProvider);
-    ref.read(map3dProvider.notifier).set(target > 0);
     if (from == target) return;
     _tiltTween?.removeListener(_applyTilt);
     _tiltTween = Tween<double>(begin: from, end: target).animate(

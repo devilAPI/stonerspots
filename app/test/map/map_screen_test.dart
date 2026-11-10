@@ -161,7 +161,6 @@ void main() {
     await t.tap(find.byKey(const Key('map3d')));
     await t.pumpAndSettle();
     expect(tilt()?.pitch, closeTo(kMapPitch * 3.14159265 / 180, 1e-6));
-    expect(store.getBool('map_3d'), isTrue);
     // the map is bigger than the screen, the middle stays the middle
     final screen = t.getSize(find.byType(MapScreen));
     expect(tilt()!.mapSize.height, greaterThan(screen.height));
@@ -170,6 +169,41 @@ void main() {
     await t.pumpAndSettle();
     expect(tilt(), isNull);
     expect(t.takeException(), isNull);
+  });
+
+  testWidgets('the map opens in 2D, also after being left in 3D', (t) async {
+    final store = SettingsStore.memory();
+    Future<void> open() async {
+      await t.pumpWidget(const SizedBox());
+      await t.pumpWidget(
+        ProviderScope(
+          overrides: [
+            settingsStoreProvider.overrideWithValue(store),
+            mapSpotsRepositoryProvider.overrideWithValue(_Repo()),
+            locationServiceProvider.overrideWithValue(_Location()),
+            mapDebounceProvider.overrideWithValue(Duration.zero),
+          ],
+          child: const MaterialApp(
+            locale: Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: MapScreen(),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+    }
+
+    MapTilt? tilt() =>
+        MapTiltScope.of(t.element(find.byType(SpotClusterLayer)));
+    await open();
+    expect(tilt(), isNull);
+    await t.tap(find.byKey(const Key('map3d')));
+    await t.pumpAndSettle();
+    expect(tilt(), isNotNull);
+    // app restart, same stored settings
+    await open();
+    expect(tilt(), isNull);
   });
 
   testWidgets('3D never zooms closer than 18.5', (t) async {
@@ -233,13 +267,16 @@ void main() {
       t,
     ) async {
       final store = SettingsStore.memory();
-      await store.setBool('map_3d', true);
       await pump(t, store: store);
+      await t.tap(find.byKey(const Key('map3d')));
+      await t.pumpAndSettle();
       expect(find.byType(BuildingLayer), findsOneWidget);
 
       await store.setBool('map_3d_buildings', false);
       await t.pumpWidget(const SizedBox());
       await pump(t, store: store);
+      await t.tap(find.byKey(const Key('map3d')));
+      await t.pumpAndSettle();
       expect(find.byType(BuildingLayer), findsNothing);
       // still tilted, only without buildings
       expect(
