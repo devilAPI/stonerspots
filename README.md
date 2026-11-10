@@ -797,12 +797,25 @@ How it works:
   does not request those tiles. Both files come from `backend/cmd/germanyborder`
   (usage in its header), and a backend test fails when they differ.
 
+- Loading: the server asks Overpass for a block of 4 × 4 tiles (0.08°,
+  about 9 × 6 km) at a time and caches each tile for 7 days (memory and the
+  `zone_tiles` table). Public Overpass servers are often overloaded, each
+  at other times, so several are tried in turn; a tile past its 7 days is
+  answered from the cache at once and refreshed in the background. With
+  the database, a background prefetch walks Germany (blocks with spots
+  first), one query at a time with 20 s pauses, so the map is nearly always
+  answered from the cache.
+
 Config (`config.yaml`, env in brackets):
 
 ```yaml
 zones:
   enabled: true        # [ZONES_ENABLED]; false: GET /zones answers 404
-  overpass_url: "https://overpass-api.de/api/interpreter"   # [ZONES_OVERPASS_URL]
+  # one URL or several, comma-separated, tried in turn [ZONES_OVERPASS_URL];
+  # empty: overpass-api.de, maps.mail.ru, overpass.private.coffee,
+  # overpass.kumi.systems
+  overpass_url: ""
+  prefetch: true       # [ZONES_PREFETCH] keep Germany cached in the background
 limits:
   zones: { n: 120, per: "1m" }   # per client IP
 ```

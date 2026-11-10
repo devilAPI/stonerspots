@@ -102,12 +102,39 @@ type Config struct {
 type ZonesConfig struct {
 	// Enabled turns the endpoint on (default true).
 	Enabled bool
-	// OverpassURL is the Overpass API interpreter endpoint.
-	OverpassURL string
+	// OverpassURLs are Overpass API interpreter endpoints, tried in turn
+	// when one fails (config overpass_url / ZONES_OVERPASS_URL: one URL or
+	// several, comma-separated).
+	OverpassURLs []string
+	// Prefetch walks Germany in the background and keeps every block's
+	// zones cached, so the map rarely waits for Overpass (default true;
+	// needs the database).
+	Prefetch bool
 }
 
-// DefaultOverpassURL is the public Overpass instance.
-const DefaultOverpassURL = "https://overpass-api.de/api/interpreter"
+// DefaultOverpassURLs are public Overpass instances (wiki.openstreetmap.org
+// /wiki/Overpass_API#Public_Overpass_API_instances). They are often slow or
+// overloaded, each at other times.
+var DefaultOverpassURLs = []string{
+	"https://overpass-api.de/api/interpreter",
+	"https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+	"https://overpass.private.coffee/api/interpreter",
+	"https://overpass.kumi.systems/api/interpreter",
+}
+
+// urlList splits a comma-separated list of URLs, or returns def for "".
+func urlList(v string, def []string) []string {
+	var out []string
+	for _, u := range strings.Split(v, ",") {
+		if u = strings.TrimSpace(u); u != "" {
+			out = append(out, u)
+		}
+	}
+	if len(out) == 0 {
+		return def
+	}
+	return out
+}
 
 // LegalConfig is the operator of this server as the app's legal notice
 // (§ 5 DDG, § 18 MStV) and privacy policy name them.
@@ -264,6 +291,7 @@ type file struct {
 type fileZones struct {
 	Enabled     *bool  `yaml:"enabled"`
 	OverpassURL string `yaml:"overpass_url"`
+	Prefetch    *bool  `yaml:"prefetch"`
 }
 
 type fileLegal struct {
@@ -526,8 +554,9 @@ func Read() (Config, error) {
 		PowDifficulty:    getenvInt("POW_DIFFICULTY", f.PowDifficulty, DefaultPowDifficulty),
 		RequireAdminTOTP: getenvBool("REQUIRE_ADMIN_TOTP", f.RequireAdminTOTP),
 		Zones: ZonesConfig{
-			Enabled:     getenvBool("ZONES_ENABLED", f.Zones.Enabled == nil || *f.Zones.Enabled),
-			OverpassURL: getenv("ZONES_OVERPASS_URL", or(f.Zones.OverpassURL, DefaultOverpassURL)),
+			Enabled:      getenvBool("ZONES_ENABLED", f.Zones.Enabled == nil || *f.Zones.Enabled),
+			OverpassURLs: urlList(getenv("ZONES_OVERPASS_URL", f.Zones.OverpassURL), DefaultOverpassURLs),
+			Prefetch:     getenvBool("ZONES_PREFETCH", f.Zones.Prefetch == nil || *f.Zones.Prefetch),
 		},
 		Legal: LegalConfig{
 			OperatorName:        strings.TrimSpace(getenv("LEGAL_OPERATOR_NAME", f.Legal.OperatorName)),

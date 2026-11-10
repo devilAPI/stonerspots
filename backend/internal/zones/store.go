@@ -56,3 +56,13 @@ func (s dbStore) save(ctx context.Context, key string, d tileData) error {
 		key, buf.Bytes(), d.FetchedAt.UTC())
 	return err
 }
+
+func (s dbStore) fetchedAt(ctx context.Context, key string) (time.Time, bool, error) {
+	var at time.Time
+	err := s.db.QueryRowContext(ctx,
+		`SELECT fetched_at FROM zone_tiles WHERE tile_key = ?`, key).Scan(&at)
+	if errors.Is(err, sql.ErrNoRows) {
+		return time.Time{}, false, nil
+	}
+	return at, err == nil, err
+}

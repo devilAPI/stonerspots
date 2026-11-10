@@ -71,7 +71,32 @@ func (s *memStore) save(_ context.Context, key string, d tileData) error {
 	return nil
 }
 
+func (s *memStore) fetchedAt(_ context.Context, key string) (time.Time, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, ok := s.m[key]
+	return d.FetchedAt, ok, nil
+}
+
 const testBase = "https://spots.example.org"
+
+// waitIdle waits until no block fetch is running.
+func waitIdle(t *testing.T, s *Service) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		s.mu.Lock()
+		n := len(s.inflight)
+		s.mu.Unlock()
+		if n == 0 {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("fetch still running")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
 
 func testDeps(limit ratelimit.Rule, enabled bool) app.Deps {
 	cfg := config.Config{PublicBaseURL: testBase, Zones: config.ZonesConfig{Enabled: enabled}}
@@ -116,14 +141,16 @@ func get(t *testing.T, h http.Handler, s, w, n, e float64) (*httptest.ResponseRe
 func TestZonesEndpoint(t *testing.T) {
 	f := newFakeOverpass(t, overpassFixture)
 	st := &memStore{m: map[string]tileData{}}
-	svc := NewService(f.srv.URL, testBase, st)
+	svc := NewService([]string{f.srv.URL}, testBase, st)
 	h := router(testDeps(ratelimit.Rule{}, true), svc)
 
 	rec, body := get(t, h, 48.12, 11.56, 48.14, 11.58)
 	if rec.Code != 200 {
 		t.Fatalf("status %d: %s", rec.Code, rec.Body)
 	}
-	if len(body.Zones) != 7 || body.Stale || body.Attribution != Attribution {
+	// the fixture's seven places, without the bar at 48.1/11.5: that is
+	// outside the tile's block, so it is in none of its tiles
+	if len(body.Zones) != 6 || body.Stale || body.Attribution != Attribution {
 		t.Fatalf("body = %+v", body)
 	}
 	if !strings.Contains(rec.Body.String(), `"access_hours":"7-20"`) {
@@ -138,8 +165,9 @@ func TestZonesEndpoint(t *testing.T) {
 	f.mu.Lock()
 	query, hdr := f.query, f.hdr
 	f.mu.Unlock()
-	if !strings.Contains(query, "(48.120000,11.560000,48.140000,11.580000)") {
-		t.Errorf("query for wrong tile:\n%s", query)
+	// the whole block of the tile: 4 × 4 tiles
+	if !strings.Contains(query, "(48.080000,11.520000,48.160000,11.600000)") {
+		t.Errorf("query for wrong block:\n%s", query)
 	}
 	ua := hdr.Get("User-Agent")
 	if !strings.Contains(ua, "Stonerspots") || !strings.Contains(ua, testBase) || strings.Contains(ua, "@") {
@@ -152,7 +180,7 @@ func TestZonesEndpoint(t *testing.T) {
 	}
 
 	// cached: a box inside the same tile does not go upstream again
-	if rec, body := get(t, h, 48.125, 11.565, 48.13, 11.57); rec.Code != 200 || len(body.Zones) != 7 {
+	if rec, body := get(t, h, 48.125, 11.565, 48.13, 11.57); rec.Code != 200 || len(body.Zones) != 6 {
 		t.Fatalf("cached: %d %+v", rec.Code, body)
 	}
 	if f.hits.Load() != 1 {
@@ -162,32 +190,42 @@ func TestZonesEndpoint(t *testing.T) {
 		t.Fatalf("tile not stored: %v", st.m)
 	}
 
-	// two tiles: one more fetch, zones in both are listed once
+	// the block's other tiles came with it: no fetch, zones in both tiles
+	// are listed once
 	rec, body = get(t, h, 48.12, 11.56, 48.14, 11.60)
-	if rec.Code != 200 || len(body.Zones) != 7 || f.hits.Load() != 2 {
+	if rec.Code != 200 || len(body.Zones) != 6 || f.hits.Load() != 1 {
 		t.Fatalf("two tiles: %d, %d zones, %d hits", rec.Code, len(body.Zones), f.hits.Load())
+	}
+	if _, ok := st.m["g2q2:2407:579"]; !ok {
+		t.Fatalf("the block's other tiles were not stored")
+	}
+	// a tile of the next block: one more fetch
+	if rec, _ := get(t, h, 48.16, 11.56, 48.18, 11.58); rec.Code != 200 || f.hits.Load() != 2 {
+		t.Fatalf("next block: %d, %d hits", rec.Code, f.hits.Load())
 	}
 }
 
 func TestZonesStaleOnUpstreamFailure(t *testing.T) {
 	f := newFakeOverpass(t, overpassFixture)
-	svc := NewService(f.srv.URL, testBase, &memStore{m: map[string]tileData{}})
+	svc := NewService([]string{f.srv.URL}, testBase, &memStore{m: map[string]tileData{}})
 	h := router(testDeps(ratelimit.Rule{}, true), svc)
 	if rec, _ := get(t, h, 48.12, 11.56, 48.14, 11.58); rec.Code != 200 {
 		t.Fatal(rec.Body)
 	}
 
-	// a week later Overpass is down: the old copy, marked stale
+	// a week later Overpass is down: the old copy at once, marked stale,
+	// while the refresh fails in the background
 	start := time.Now()
 	svc.now = func() time.Time { return start.Add(cacheTTL + time.Hour) }
 	f.code.Store(http.StatusGatewayTimeout)
 	rec, body := get(t, h, 48.12, 11.56, 48.14, 11.58)
-	if rec.Code != 200 || !body.Stale || len(body.Zones) != 7 {
+	if rec.Code != 200 || !body.Stale || len(body.Zones) != 6 {
 		t.Fatalf("stale: %d %+v", rec.Code, body)
 	}
 	if rec.Header().Get("Cache-Control") != "" {
 		t.Errorf("stale answers must not be cached by clients")
 	}
+	waitIdle(t, svc)
 	hits := f.hits.Load()
 	// right after the failure it is not asked again (retryAfter)
 	get(t, h, 48.12, 11.56, 48.14, 11.58)
@@ -199,8 +237,12 @@ func TestZonesStaleOnUpstreamFailure(t *testing.T) {
 	f.code.Store(200)
 	cut := `{"elements":[],"remark":"runtime error: Query timed out"}`
 	f.body.Store(&cut)
-	if rec, body := get(t, h, 48.12, 11.56, 48.14, 11.58); rec.Code != 200 || !body.Stale || len(body.Zones) != 7 {
+	if rec, body := get(t, h, 48.12, 11.56, 48.14, 11.58); rec.Code != 200 || !body.Stale || len(body.Zones) != 6 {
 		t.Fatalf("remark: %d %+v", rec.Code, body)
+	}
+	waitIdle(t, svc)
+	if svc.mem["g2q2:2406:578"].FetchedAt.After(start.Add(time.Minute)) {
+		t.Errorf("a cut-short answer replaced the cached tile")
 	}
 
 	// no copy at all: 503
@@ -211,7 +253,7 @@ func TestZonesStaleOnUpstreamFailure(t *testing.T) {
 
 func TestZonesValidation(t *testing.T) {
 	f := newFakeOverpass(t, overpassFixture)
-	h := router(testDeps(ratelimit.Rule{}, true), NewService(f.srv.URL, testBase, nil))
+	h := router(testDeps(ratelimit.Rule{}, true), NewService([]string{f.srv.URL}, testBase, nil))
 	for _, b := range [][4]float64{
 		{48.10, 11.50, 48.20, 11.52}, // too tall
 		{48.10, 11.50, 48.12, 11.70}, // too wide
@@ -234,7 +276,7 @@ func TestZonesValidation(t *testing.T) {
 
 func TestZonesDisabled(t *testing.T) {
 	f := newFakeOverpass(t, overpassFixture)
-	h := router(testDeps(ratelimit.Rule{}, false), NewService(f.srv.URL, testBase, nil))
+	h := router(testDeps(ratelimit.Rule{}, false), NewService([]string{f.srv.URL}, testBase, nil))
 	rec, _ := get(t, h, 48.12, 11.56, 48.14, 11.58)
 	if rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), "zones_disabled") || f.hits.Load() != 0 {
 		t.Fatalf("disabled: %d %s", rec.Code, rec.Body)
@@ -243,7 +285,7 @@ func TestZonesDisabled(t *testing.T) {
 
 func TestZonesRateLimit(t *testing.T) {
 	f := newFakeOverpass(t, overpassFixture)
-	h := router(testDeps(ratelimit.Rule{N: 2, Per: time.Minute}, true), NewService(f.srv.URL, testBase, nil))
+	h := router(testDeps(ratelimit.Rule{N: 2, Per: time.Minute}, true), NewService([]string{f.srv.URL}, testBase, nil))
 	for i := 0; i < 2; i++ {
 		if rec, _ := get(t, h, 48.12, 11.56, 48.14, 11.58); rec.Code != 200 {
 			t.Fatalf("request %d: %d", i, rec.Code)
@@ -274,14 +316,14 @@ func TestZonesConcurrencyCap(t *testing.T) {
 		fmt.Fprint(w, `{"elements":[]}`)
 	}))
 	defer srv.Close()
-	svc := NewService(srv.URL, testBase, nil)
+	svc := NewService([]string{srv.URL}, testBase, nil)
 
 	var wg sync.WaitGroup
 	errs := make(chan error, 12)
 	for i := 0; i < 6; i++ {
 		for j := 0; j < 2; j++ { // two callers per tile
 			wg.Go(func() {
-				_, _, err := svc.Tile(context.Background(), Tile{Y: 2400 + i, X: 578})
+				_, _, err := svc.Tile(context.Background(), Tile{Y: 2400 + BlockTiles*i, X: 578})
 				errs <- err
 			})
 		}
@@ -306,7 +348,7 @@ func TestZonesConcurrencyCap(t *testing.T) {
 		t.Errorf("peak %d", peak.Load())
 	}
 	if hits.Load() != 6 {
-		t.Errorf("%d upstream queries for 6 tiles", hits.Load())
+		t.Errorf("%d upstream queries for 6 blocks", hits.Load())
 	}
 }
 
@@ -321,7 +363,7 @@ func TestZonesFetchOutlivesClient(t *testing.T) {
 		fmt.Fprint(w, overpassFixture)
 	}))
 	defer srv.Close()
-	svc := NewService(srv.URL, testBase, nil)
+	svc := NewService([]string{srv.URL}, testBase, nil)
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 	if _, _, err := svc.Tile(ctx, Tile{2406, 578}); err == nil {
@@ -339,7 +381,7 @@ func TestZonesFetchOutlivesClient(t *testing.T) {
 		time.Sleep(5 * time.Millisecond)
 	}
 	z, stale, err := svc.Tile(context.Background(), Tile{2406, 578})
-	if err != nil || stale || len(z) != 7 || hits.Load() != 1 {
+	if err != nil || stale || len(z) != 6 || hits.Load() != 1 {
 		t.Fatalf("after: %d zones, stale %v, err %v, hits %d", len(z), stale, err, hits.Load())
 	}
 }
@@ -357,7 +399,7 @@ func TestZonesPendingWhileFetching(t *testing.T) {
 		fmt.Fprint(w, overpassFixture)
 	}))
 	defer srv.Close()
-	svc := NewService(srv.URL, testBase, nil)
+	svc := NewService([]string{srv.URL}, testBase, nil)
 	h := router(testDeps(ratelimit.Rule{N: 100, Per: time.Minute}, true), svc)
 	rec, _ := get(t, h, 48.121, 11.561, 48.125, 11.565)
 	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "zones_pending") {
@@ -387,31 +429,40 @@ func TestZonesPendingWhileFetching(t *testing.T) {
 func TestZonesDBStore(t *testing.T) {
 	d := testutil.NewDB(t)
 	f := newFakeOverpass(t, overpassFixture)
-	first := NewService(f.srv.URL, testBase, dbStore{db: d})
+	first := NewService([]string{f.srv.URL}, testBase, dbStore{db: d})
 	z, _, err := first.Tile(context.Background(), Tile{2406, 578})
-	if err != nil || len(z) != 7 {
+	if err != nil || len(z) != 6 {
 		t.Fatalf("first: %v %d", err, len(z))
 	}
 
 	// "restart": a new service, same database, Overpass down
 	f.code.Store(500)
-	second := NewService(f.srv.URL, testBase, dbStore{db: d})
+	second := NewService([]string{f.srv.URL}, testBase, dbStore{db: d})
 	z, stale, err := second.Tile(context.Background(), Tile{2406, 578})
-	if err != nil || stale || len(z) != 7 || f.hits.Load() != 1 {
+	if err != nil || stale || len(z) != 6 || f.hits.Load() != 1 {
 		t.Fatalf("after restart: %v stale=%v %d zones, %d hits", err, stale, len(z), f.hits.Load())
 	}
 	if z[1].Name != "Spielplatz Musterweg" || z[1].Geometry.Type != "Polygon" {
 		t.Errorf("round trip changed the data: %+v", z[1])
 	}
 
-	// eight days old: refetch; upstream fails, so stale
+	// eight days old: answered at once, stale, and fetched again (which
+	// fails upstream)
 	if _, err := d.Exec(`UPDATE zone_tiles SET fetched_at = ?`, time.Now().Add(-8*24*time.Hour).UTC()); err != nil {
 		t.Fatal(err)
 	}
-	third := NewService(f.srv.URL, testBase, dbStore{db: d})
+	third := NewService([]string{f.srv.URL}, testBase, dbStore{db: d})
 	z, stale, err = third.Tile(context.Background(), Tile{2406, 578})
-	if err != nil || !stale || len(z) != 7 || f.hits.Load() != 2 {
-		t.Fatalf("expired: %v stale=%v %d zones, %d hits", err, stale, len(z), f.hits.Load())
+	if err != nil || !stale || len(z) != 6 {
+		t.Fatalf("expired: %v stale=%v %d zones", err, stale, len(z))
+	}
+	waitIdle(t, third)
+	if f.hits.Load() != 2 {
+		t.Fatalf("expired tile not refreshed: %d hits", f.hits.Load())
+	}
+	if at, ok, err := (dbStore{db: d}).fetchedAt(context.Background(), "g2q2:2406:578"); err != nil || !ok ||
+		time.Since(at) < 7*24*time.Hour {
+		t.Fatalf("fetchedAt = %v %v %v", at, ok, err)
 	}
 
 	// Mount prunes long-unused tiles
@@ -435,7 +486,7 @@ func TestZonesOnlyInGermany(t *testing.T) {
 		t.Fatal("fixture points are not on the expected sides")
 	}
 	f := newFakeOverpass(t, border)
-	h := router(testDeps(ratelimit.Rule{}, true), NewService(f.srv.URL, testBase, &memStore{m: map[string]tileData{}}))
+	h := router(testDeps(ratelimit.Rule{}, true), NewService([]string{f.srv.URL}, testBase, &memStore{m: map[string]tileData{}}))
 
 	// Vienna: answered without asking Overpass
 	rec, body := get(t, h, 48.20, 16.36, 48.22, 16.38)
@@ -469,13 +520,13 @@ func TestZonesBusyIsPending(t *testing.T) {
 	var once sync.Once
 	free := func() { once.Do(func() { busy.Store(false); close(release) }) }
 	defer free() // before srv.Close, also when the test fails
-	svc := NewService(srv.URL, testBase, nil)
+	svc := NewService([]string{srv.URL}, testBase, nil)
 	svc.slotWait = 20 * time.Millisecond
 	h := router(testDeps(ratelimit.Rule{}, true), svc)
 
 	// fill every slot with other tiles
 	for i := 0; i < maxUpstream; i++ {
-		go func() { _, _, _ = svc.Tile(context.Background(), Tile{Y: 2300 + i, X: 578}) }()
+		go func() { _, _, _ = svc.Tile(context.Background(), Tile{Y: 2300 + BlockTiles*i, X: 578}) }()
 	}
 	deadline := time.Now().Add(5 * time.Second)
 	for len(svc.sem) < maxUpstream && time.Now().Before(deadline) {

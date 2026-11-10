@@ -1,6 +1,7 @@
 package zones
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -88,4 +89,100 @@ func (b bbox) tiles() []Tile {
 		}
 	}
 	return out
+}
+
+// BlockTiles is the edge of a block in tiles: Overpass is asked for a block
+// at a time (0.08° × 0.08°, about 9 × 6 km in Germany), and its zones are
+// cached per tile.
+const BlockTiles = 4
+
+// block is one cell of the coarser grid that tiles are fetched by.
+type block struct{ Y, X int }
+
+func floorDiv(a, b int) int {
+	q := a / b
+	if a%b != 0 && (a < 0) != (b < 0) {
+		q--
+	}
+	return q
+}
+
+// blockOf is the block that t is in.
+func blockOf(t Tile) block { return block{Y: floorDiv(t.Y, BlockTiles), X: floorDiv(t.X, BlockTiles)} }
+
+// Key names the block for fetches in flight and failed ones.
+func (b block) Key() string { return fmt.Sprintf("b%s:%d:%d", queryVersion, b.Y, b.X) }
+
+// Tiles are the BlockTiles × BlockTiles tiles of b.
+func (b block) Tiles() []Tile {
+	out := make([]Tile, 0, BlockTiles*BlockTiles)
+	for y := 0; y < BlockTiles; y++ {
+		for x := 0; x < BlockTiles; x++ {
+			out = append(out, Tile{Y: b.Y*BlockTiles + y, X: b.X*BlockTiles + x})
+		}
+	}
+	return out
+}
+
+// Bounds returns south, west, north, east.
+func (b block) Bounds() (s, w, n, e float64) {
+	s, w, _, _ = b.Tiles()[0].Bounds()
+	_, _, n, e = b.Tiles()[BlockTiles*BlockTiles-1].Bounds()
+	return s, w, n, e
+}
+
+// splitBlock sorts the zones of b into its tiles: each zone goes to every
+// tile its bounding box touches, like Overpass would have returned it for
+// that tile alone (a little more at most, never less). Every tile of b is
+// in the result, the empty ones too.
+func splitBlock(b block, zones []Zone) map[Tile][]Zone {
+	out := map[Tile][]Zone{}
+	tiles := b.Tiles()
+	for _, t := range tiles {
+		out[t] = []Zone{}
+	}
+	for _, z := range zones {
+		zs, zw, zn, ze, ok := geometryBounds(z.Geometry)
+		if !ok {
+			continue
+		}
+		for _, t := range tiles {
+			s, w, n, e := t.Bounds()
+			if zs <= n+gridEps && zn >= s-gridEps && zw <= e+gridEps && ze >= w-gridEps {
+				out[t] = append(out[t], z)
+			}
+		}
+	}
+	return out
+}
+
+// geometryBounds is the bounding box of g's [lat, lon] pairs.
+func geometryBounds(g Geometry) (s, w, n, e float64, ok bool) {
+	var coords any
+	if err := json.Unmarshal(g.Coordinates, &coords); err != nil {
+		return 0, 0, 0, 0, false
+	}
+	s, w = math.Inf(1), math.Inf(1)
+	n, e = math.Inf(-1), math.Inf(-1)
+	var walk func(v any)
+	walk = func(v any) {
+		list, isList := v.([]any)
+		if !isList {
+			return
+		}
+		if len(list) == 2 {
+			lat, ok1 := list[0].(float64)
+			lon, ok2 := list[1].(float64)
+			if ok1 && ok2 {
+				s, n = math.Min(s, lat), math.Max(n, lat)
+				w, e = math.Min(w, lon), math.Max(e, lon)
+				return
+			}
+		}
+		for _, item := range list {
+			walk(item)
+		}
+	}
+	walk(coords)
+	return s, w, n, e, !math.IsInf(s, 1)
 }

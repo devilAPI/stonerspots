@@ -2,9 +2,11 @@
 // KCanG (Germany) forbids consuming cannabis - schools, children's and youth
 // facilities, playgrounds, public sports facilities, explicit
 // smoking:cannabis=no - and pedestrian zones (7-20 h). The data comes from
-// OpenStreetMap through Overpass, fetched by grid tile and cached for a
-// week in memory and in the zone_tiles table. Clients get the places; the
-// 100 m buffer is drawn and checked by the app.
+// OpenStreetMap through Overpass (several public servers, tried in turn),
+// fetched by block of 4 × 4 grid tiles, cached per tile in memory and in
+// the zone_tiles table, and refreshed weekly; a background prefetch keeps
+// all of Germany cached. Clients get the places; the 100 m buffer is drawn
+// and checked by the app.
 package zones
 
 import (
@@ -34,11 +36,21 @@ func Mount(r chi.Router, d app.Deps) {
 	var st store
 	if d.DB != nil {
 		st = dbStore{db: d.DB}
-		if d.Cfg.Zones.Enabled {
-			go prune(d)
+	}
+	s := NewService(d.Cfg.Zones.OverpassURLs, d.Cfg.PublicBaseURL, st)
+	if d.DB != nil && d.Cfg.Zones.Enabled {
+		go prune(d)
+		if d.Cfg.Zones.Prefetch {
+			go s.Prefetch(context.Background(), func(ctx context.Context) []block {
+				spots, err := spotLocations(ctx, d.DB)
+				if err != nil {
+					log.Printf("zones: prefetch: spots: %v", err) // Germany in grid order
+				}
+				return prefetchOrder(spots)
+			})
 		}
 	}
-	mount(r, d, NewService(d.Cfg.Zones.OverpassURL, d.Cfg.PublicBaseURL, st))
+	mount(r, d, s)
 }
 
 func mount(r chi.Router, d app.Deps, s *Service) {

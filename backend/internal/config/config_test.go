@@ -261,16 +261,19 @@ func TestZonesConfig(t *testing.T) {
 	clearEnv(t)
 	t.Setenv("ZONES_ENABLED", "")
 	t.Setenv("ZONES_OVERPASS_URL", "")
+	t.Setenv("ZONES_PREFETCH", "")
 	t.Chdir(t.TempDir())
 	c, err := Read()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !c.Zones.Enabled || c.Zones.OverpassURL != DefaultOverpassURL || c.Limits.Zones.N != 120 {
+	if !c.Zones.Enabled || !c.Zones.Prefetch || len(c.Zones.OverpassURLs) != len(DefaultOverpassURLs) ||
+		c.Zones.OverpassURLs[0] != DefaultOverpassURLs[0] || c.Limits.Zones.N != 120 {
 		t.Fatalf("defaults: %+v %+v", c.Zones, c.Limits.Zones)
 	}
-	t.Setenv("CONFIG_FILE", writeFile(t, "zones:\n  enabled: false\n  overpass_url: \"https://overpass.example.net/api/interpreter\"\nlimits:\n  zones: { n: 5, per: \"1m\" }\n"))
-	if c, _ = Read(); c.Zones.Enabled || c.Zones.OverpassURL != "https://overpass.example.net/api/interpreter" || c.Limits.Zones.N != 5 {
+	t.Setenv("CONFIG_FILE", writeFile(t, "zones:\n  enabled: false\n  prefetch: false\n  overpass_url: \"https://overpass.example.net/api/interpreter, https://two.example.net/api\"\nlimits:\n  zones: { n: 5, per: \"1m\" }\n"))
+	if c, _ = Read(); c.Zones.Enabled || c.Zones.Prefetch || len(c.Zones.OverpassURLs) != 2 ||
+		c.Zones.OverpassURLs[1] != "https://two.example.net/api" || c.Limits.Zones.N != 5 {
 		t.Fatalf("file: %+v %+v", c.Zones, c.Limits.Zones)
 	}
 	t.Setenv("ZONES_ENABLED", "true")

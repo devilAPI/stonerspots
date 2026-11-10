@@ -72,9 +72,9 @@ func TestParseBBox(t *testing.T) {
 }
 
 func TestBuildQuery(t *testing.T) {
-	q := buildQuery(Tile{Y: 2406, X: 578})
+	q := buildQuery(Tile{Y: 2406, X: 578}.Bounds())
 	for _, want := range []string{
-		"[out:json][timeout:25]",
+		"[out:json][timeout:60]",
 		"(48.120000,11.560000,48.140000,11.580000)",
 		`nwr["amenity"~"^(school|kindergarten|childcare)$"]`,
 		`nwr["building"="kindergarten"]`,

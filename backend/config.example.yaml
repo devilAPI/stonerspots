@@ -142,13 +142,20 @@ legal:
   extra: ""
 # No-consumption zone layer (KCanG § 5, Germany): GET /zones answers with
 # schools, playgrounds, sports grounds, pedestrian zones ... from
-# OpenStreetMap, fetched from Overpass by 0.02° tile and cached for 7 days
-# (memory and the zone_tiles table). Only the query goes to Overpass, with a
-# User-Agent naming this project and public_base_url; never client data.
-# Data © OpenStreetMap contributors (ODbL) [ZONES_ENABLED, ZONES_OVERPASS_URL]
+# OpenStreetMap, fetched from Overpass by block of 4 × 4 tiles of 0.02° and
+# cached per tile for 7 days (memory and the zone_tiles table). Only the
+# query goes to Overpass, with a User-Agent naming this project and
+# public_base_url; never client data.
+# Data © OpenStreetMap contributors (ODbL)
+# [ZONES_ENABLED, ZONES_OVERPASS_URL, ZONES_PREFETCH]
 zones:
   enabled: true
-  overpass_url: "https://overpass-api.de/api/interpreter"
+  # one Overpass URL or several, comma-separated, tried in turn when one
+  # fails; empty uses four public instances (overpass-api.de first)
+  overpass_url: ""
+  # keep all of Germany cached in the background (blocks with spots first,
+  # one query every 20 s at most); needs the database
+  prefetch: true
 
 # MariaDB 11.4 (see schema.example.sql for the table layout).
 database:

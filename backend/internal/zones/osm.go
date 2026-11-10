@@ -51,11 +51,10 @@ var sportsLeisure = []string{"pitch", "sports_centre", "sports_hall", "stadium",
 // youthFor are social_facility:for values meaning children or young people.
 var youthFor = []string{"child", "juvenile", "childcare"}
 
-// buildQuery is the Overpass QL for one tile. `out geom` returns the
-// coordinates with every way and relation member, so no node lookups are
-// needed.
-func buildQuery(t Tile) string {
-	s, w, n, e := t.Bounds()
+// buildQuery is the Overpass QL for the box s, w, n, e (a block). `out
+// geom` returns the coordinates with every way and relation member, so no
+// node lookups are needed.
+func buildQuery(s, w, n, e float64) string {
 	bb := fmt.Sprintf("(%.6f,%.6f,%.6f,%.6f)", s, w, n, e)
 	// § 5 Abs. 2 KCanG: sports facilities count only when publicly
 	// accessible (Nr. 4); playgrounds always (Nr. 2), also the private one
