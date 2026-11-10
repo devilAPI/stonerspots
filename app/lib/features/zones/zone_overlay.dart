@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 
+import '../../core/glass.dart';
 import '../../l10n/app_localizations.dart';
 import '../map/buildings/map_tilt.dart';
 import 'zone_consent.dart';
@@ -47,11 +48,23 @@ class _ZoneOverlayState extends ConsumerState<ZoneOverlay> {
         ref.watch(zoneLayerControllerProvider.select((s) => s.loading));
     final insets = MediaQuery.paddingOf(context);
     final pill = !zoomedIn
-        ? _Pill(key: const Key('zoneZoomHint'), text: l.zonesZoomHint)
+        ? _Pill(
+            key: const Key('zoneZoomHint'),
+            text: l.zonesZoomHint,
+            icon: Icons.zoom_in,
+          )
         : failed
-        ? _Pill(key: const Key('zoneLoadFailed'), text: l.zonesLoadFailed)
+        ? _Pill(
+            key: const Key('zoneLoadFailed'),
+            text: l.zonesLoadFailed,
+            icon: Icons.cloud_off_outlined,
+          )
         : loading
-        ? _Pill(key: const Key('zoneLoading'), text: l.zonesLoading)
+        ? _Pill(
+            key: const Key('zoneLoading'),
+            text: l.zonesLoading,
+            loading: true,
+          )
         : null;
     return Stack(
       children: [
@@ -86,23 +99,39 @@ class _ZoneOverlayState extends ConsumerState<ZoneOverlay> {
   }
 }
 
+/// A short note on glass over the map, with an icon (a spinner while
+/// [loading]).
 class _Pill extends StatelessWidget {
-  const _Pill({super.key, required this.text});
+  const _Pill({super.key, required this.text, this.icon, this.loading = false});
 
   final String text;
+  final IconData? icon;
+  final bool loading;
 
   @override
-  Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(
-      color: const Color(0xB3000000),
-      borderRadius: BorderRadius.circular(14),
-    ),
+  Widget build(BuildContext context) => GlassSurface(
+    radius: 18,
     child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: const TextStyle(color: Colors.white, fontSize: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (loading)
+            const SizedBox.square(
+              dimension: 14,
+              child: CircularProgressIndicator(strokeWidth: 2, color: kOnGlass),
+            )
+          else if (icon != null)
+            Icon(icon, size: 16, color: kOnGlass),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
       ),
     ),
   );
