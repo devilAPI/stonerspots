@@ -55,13 +55,10 @@ dependencies:
   web: ^1.1.1
   crypto: ^3.0.8
   share_plus: ^13.3.1
-  # Fork with the fake-glass ring fix (whynotmake-it/flutter_liquid_glass#266)
-  # until it is released.
+  # Vendored: 1.0.0-dev.2 plus the fake-glass web fix (upstream PR #266),
+  # see third_party/liquid_glass_renderer/VENDORED.md.
   liquid_glass_renderer:
-    git:
-      url: https://github.com/devilAPI/flutter_liquid_glass.git
-      ref: fc00500898d35a09bb1f5423df87e2d512025cfa
-      path: packages/liquid_glass_renderer
+    path: third_party/liquid_glass_renderer
   motor: ^1.1.0
   flutter_gpu:
     sdk: flutter

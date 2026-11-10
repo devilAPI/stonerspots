@@ -17,6 +17,7 @@ analyzer:
     - web/**
     - linux/**
     - windows/**
+    - third_party/**
     - macos/**
 
 linter:

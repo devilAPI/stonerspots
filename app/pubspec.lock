@@ -652,11 +652,9 @@ packages:
   liquid_glass_renderer:
     dependency: "direct main"
     description:
-      path: "packages/liquid_glass_renderer"
-      ref: fc00500898d35a09bb1f5423df87e2d512025cfa
-      resolved-ref: fc00500898d35a09bb1f5423df87e2d512025cfa
-      url: "https://github.com/devilAPI/flutter_liquid_glass.git"
-    source: git
+      path: "third_party/liquid_glass_renderer"
+      relative: true
+    source: path
     version: "1.0.0-dev.2"
   listen:
     dependency: transitive
