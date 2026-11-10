@@ -6,8 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/glass.dart';
 import '../../core/back_or_home.dart';
 import '../../core/models.dart';
-import '../../core/responsive.dart';
-import '../../core/spot_tag_widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../admin/admin_bulk.dart';
 import '../admin/admin_edit_dialogs.dart';
@@ -16,22 +14,17 @@ import '../admin/admin_repository.dart';
 import '../auth/auth_controller.dart';
 import '../comments/spot_comments.dart';
 import '../map/spots_controller.dart';
-import '../reviews/rating_widgets.dart';
 import '../reviews/reviews_section.dart';
-import '../saved/save_spot_button.dart';
-import '../users/author_link.dart';
 import '../weather/spot_weather_section.dart';
-import '../zones/zone_status.dart';
 import 'edit_tags_dialog.dart';
 import 'maps_link.dart';
 import 'photo_viewer.dart';
 import 'spot_api.dart';
+import 'spot_detail_sections.dart';
 import 'spot_link.dart';
-import 'spot_location_map.dart';
 import 'spot_media.dart';
 import 'update_actions.dart';
 import 'update_composer.dart';
-import 'update_tile.dart';
 import 'updates_repository.dart';
 
 final spotDetailProvider = FutureProvider.autoDispose.family<Spot, int>(
@@ -270,8 +263,10 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
               onPressed: () => _share(button, spotAsync.value?.title),
             ),
           ),
-          PopupMenuButton<String>(
-            key: const Key('menu'),
+          SpotDetailMenu(
+            spot: loaded,
+            isAdmin: isAdmin,
+            hasUpdates: updates.value?.isNotEmpty ?? false,
             onSelected: (v) {
               switch (v) {
                 case 'report':
@@ -286,62 +281,6 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   if (loaded != null) _adminDeleteSpot(loaded);
               }
             },
-            itemBuilder: (_) => [
-              if (isAdmin && loaded != null) ...[
-                PopupMenuItem(
-                  key: const Key('adminEditSpot'),
-                  value: 'admin-edit',
-                  child: ListTile(
-                    leading: const Icon(Icons.edit_note),
-                    title: Text(l.adminEditSpotHere),
-                  ),
-                ),
-                PopupMenuItem(
-                  key: const Key('adminLockSpot'),
-                  value: 'admin-lock',
-                  child: ListTile(
-                    leading: Icon(
-                      loaded.locked ? Icons.lock_open : Icons.lock_outline,
-                    ),
-                    title: Text(loaded.locked ? l.adminUnlock : l.adminLock),
-                  ),
-                ),
-                if (updates.value?.isNotEmpty ?? false)
-                  PopupMenuItem(
-                    key: const Key('adminEditUpdates'),
-                    value: 'admin-updates',
-                    child: ListTile(
-                      leading: const Icon(Icons.edit_outlined),
-                      title: Text(l.adminEditUpdates),
-                    ),
-                  ),
-                PopupMenuItem(
-                  key: const Key('adminDeleteSpot'),
-                  value: 'admin-delete',
-                  child: ListTile(
-                    leading: Icon(
-                      Icons.delete_forever_outlined,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    title: Text(
-                      l.adminDeleteSpot,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  ),
-                ),
-                const PopupMenuDivider(),
-              ],
-              PopupMenuItem(
-                key: const Key('reportSpot'),
-                value: 'report',
-                child: ListTile(
-                  leading: const Icon(Icons.flag_outlined),
-                  title: Text(l.report),
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -375,116 +314,16 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
               canChange &&
               me != null &&
               (me.isAdmin || (spot.author != null && spot.author!.id == me.id));
-          final info = Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  spot.title,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 6),
-                SpotOwnerLine(author: spot.author),
-                if (spot.locked)
-                  Padding(
-                    key: const Key('spotLockedNotice'),
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.lock,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.tertiary,
-                        ),
-                        const SizedBox(width: 6),
-                        Flexible(child: Text(l.spotLockedNotice)),
-                      ],
-                    ),
-                  ),
-                const SizedBox(height: 6),
-                Wrap(
-                  key: const Key('spotStats'),
-                  spacing: 12,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _liked ? Icons.favorite : Icons.favorite_border,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          l.likesCount(_likeCount ?? spot.likeCount),
-                          key: const Key('spotLikeCount'),
-                        ),
-                      ],
-                    ),
-                    RatingBadge(
-                      key: const Key('spotRating'),
-                      avg: spot.ratingAvg,
-                      count: spot.ratingCount,
-                    ),
-                    ZoneStatusChip(lat: spot.lat, lon: spot.lon),
-                  ],
-                ),
-                if (spot.tags.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  SpotTagChips(tags: spot.tags),
-                ],
-                if (canEditTags)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      key: const Key('editTags'),
-                      onPressed: () => _editTags(spot),
-                      icon: const Icon(Icons.sell_outlined),
-                      label: Text(l.editTags),
-                    ),
-                  ),
-                const SizedBox(height: 12),
-                // Wraps onto further lines instead of overflowing.
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    FilledButton.tonalIcon(
-                      key: const Key('like'),
-                      onPressed: () => _gated(_toggleLike),
-                      icon: Icon(
-                        _liked ? Icons.favorite : Icons.favorite_border,
-                      ),
-                      label: Text(_liked ? l.liked : l.like),
-                    ),
-                    SaveSpotButton(spotId: widget.spotId),
-                    if (canChange)
-                      OutlinedButton.icon(
-                        key: const Key('postUpdate'),
-                        onPressed: () => _gated(_postUpdate),
-                        icon: const Icon(Icons.edit),
-                        label: Text(l.postUpdate),
-                      ),
-                    OutlinedButton.icon(
-                      key: const Key('openInMaps'),
-                      onPressed: () => _openInMaps(spot),
-                      icon: const Icon(Icons.map_outlined),
-                      label: Text(l.openInGoogleMaps),
-                    ),
-                  ],
-                ),
-                if (spot.description.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    spot.description,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ],
-              ],
-            ),
+          final info = SpotInfoSection(
+            spot: spot,
+            liked: _liked,
+            likeCount: _likeCount ?? spot.likeCount,
+            canChange: canChange,
+            canEditTags: canEditTags,
+            onLike: () => _gated(_toggleLike),
+            onEditTags: () => _editTags(spot),
+            onPostUpdate: () => _gated(_postUpdate),
+            onOpenInMaps: () => _openInMaps(spot),
           );
           // Its own section, heading included; it hides itself (divider and
           // all) while loading and when the service fails.
@@ -496,57 +335,17 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
             dividerAbove: true,
             padding: const EdgeInsets.all(16),
           );
-          final timeline = Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l.updatesTitle,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 4),
-                updates.when(
-                  loading: () => const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (_, _) => Text(l.errorGeneric),
-                  data: (list) => list.isEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(l.updatesNone),
-                        )
-                      : Column(
-                          children: [
-                            for (final u in list)
-                              UpdateTile(
-                                key: ValueKey('update-${u.id}'),
-                                item: u,
-                                isMine: myId != null && u.author.id == myId,
-                                onEdit: () => _editUpdate(u),
-                                onDelete: () => _deleteUpdate(u),
-                                onReport: () =>
-                                    _gated(() => _report('update', u.id)),
-                                onPhotoTap: (i) => showPhotoViewer(context, [
-                                  for (final p in u.photos) p.url,
-                                ], i),
-                                canChangeOwn: canChange,
-                                onAdminEdit: isAdmin
-                                    ? () => _adminEditUpdate(u)
-                                    : null,
-                                onAdminHide: isAdmin
-                                    ? () => _adminHideUpdate(u)
-                                    : null,
-                                onAdminDelete: isAdmin
-                                    ? () => _adminDeleteUpdate(u)
-                                    : null,
-                              ),
-                          ],
-                        ),
-                ),
-              ],
-            ),
+          final timeline = SpotUpdatesSection(
+            updates: updates,
+            myId: myId,
+            isAdmin: isAdmin,
+            canChange: canChange,
+            onEdit: _editUpdate,
+            onDelete: _deleteUpdate,
+            onReport: (u) => _gated(() => _report('update', u.id)),
+            onAdminEdit: _adminEditUpdate,
+            onAdminHide: _adminHideUpdate,
+            onAdminDelete: _adminDeleteUpdate,
           );
 
           final reviewsSection = ReviewsSection(
@@ -562,151 +361,18 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
             canWrite: canChange,
           );
 
-          Widget locationMap(double height, {double radius = 12}) => SizedBox(
-            height: height,
-            child: SpotLocationMap(
-              lat: spot.lat,
-              lon: spot.lon,
-              radius: radius,
-            ),
-          );
-
-          return LayoutBuilder(
-            builder: (context, c) {
-              final width = c.maxWidth;
-              final barBottom = GlassAppBar.contentTop(context);
-              final landscapePhone = context.isPhoneLandscape;
-              if (!landscapePhone && width < kTwoPaneBreakpoint) {
-                // Phone portrait: swipeable photos on top, then details and
-                // the map. Without photos the map takes the top spot.
-                final heroHeight = (width * 3 / 4).clamp(
-                  160.0,
-                  MediaQuery.sizeOf(context).height * 0.5,
-                );
-                return ListView(
-                  // the hero runs under the glass app bar
-                  padding: EdgeInsets.zero.copyWith(bottom: 24),
-                  children: [
-                    if (urls.isEmpty)
-                      locationMap(heroHeight, radius: 0)
-                    else
-                      SpotHeroCarousel(
-                        photoUrls: urls,
-                        height: heroHeight,
-                        onPhotoTap: openPhoto,
-                      ),
-                    info,
-                    weather,
-                    if (urls.isNotEmpty) ...[
-                      const Divider(),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // styled like the other sections' headings;
-                            // only here, where the map is one section of
-                            // a single column
-                            Text(
-                              l.mapTitle,
-                              key: const Key('mapHeading'),
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 12),
-                            locationMap((width * 0.6).clamp(200.0, 320.0)),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const Divider(),
-                    reviewsSection,
-                    const Divider(),
-                    timeline,
-                    const Divider(),
-                    commentsSection,
-                  ],
-                );
-              }
-
-              // Side by side: map and photos stay visible on the left while
-              // the details scroll next to them.
-              final mediaWidth = landscapePhone
-                  ? (width * 0.4).clamp(220.0, 360.0)
-                  : (width * 0.38).clamp(300.0, 560.0);
-              final media = SizedBox(
-                width: mediaWidth,
-                child: ListView(
-                  // the map's top in line with the title of the other pane
-                  padding: EdgeInsets.fromLTRB(12, barBottom + 16, 12, 12),
-                  children: [
-                    // where it is first, then what it looks like; no
-                    // heading: next to the details it speaks for itself
-                    locationMap((mediaWidth - 24) * 0.75),
-                    if (urls.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      SpotMediaGallery(photoUrls: urls, onPhotoTap: openPhoto),
-                    ],
-                  ],
-                ),
-              );
-              // Very wide: updates get their own column; comments stay
-              // with the reviews.
-              final threePane = !context.isPhone && width >= 1280;
-              return Row(
-                key: Key(threePane ? 'detailThreePane' : 'detailTwoPane'),
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  media,
-                  const VerticalDivider(width: 1),
-                  Expanded(
-                    child: _ReadablePane(
-                      children: [
-                        info,
-                        weather,
-                        const Divider(),
-                        reviewsSection,
-                        if (!threePane) ...[const Divider(), timeline],
-                        const Divider(),
-                        commentsSection,
-                      ],
-                    ),
-                  ),
-                  if (threePane) ...[
-                    const VerticalDivider(width: 1),
-                    SizedBox(
-                      width: (width * 0.28).clamp(360.0, 480.0),
-                      child: ListView(
-                        padding: EdgeInsets.only(top: barBottom, bottom: 24),
-                        children: [timeline],
-                      ),
-                    ),
-                  ],
-                ],
-              );
-            },
+          return SpotDetailLayout(
+            spot: spot,
+            photoUrls: urls,
+            onPhotoTap: openPhoto,
+            info: info,
+            weather: weather,
+            reviews: reviewsSection,
+            updates: timeline,
+            comments: commentsSection,
           );
         },
       ),
     );
   }
-}
-
-/// Scrolling pane whose content stays at a readable width, centred, while
-/// the scroll area (mouse wheel, scrollbar) spans the whole pane.
-class _ReadablePane extends StatelessWidget {
-  const _ReadablePane({required this.children});
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, c) => ListView(
-      padding: EdgeInsets.fromLTRB(
-        sideGutter(c.maxWidth),
-        GlassAppBar.contentTop(context),
-        sideGutter(c.maxWidth),
-        24,
-      ),
-      children: children,
-    ),
-  );
 }

@@ -12,6 +12,7 @@ import '../../core/settings.dart';
 import '../../l10n/app_localizations.dart';
 import '../users/author_link.dart' show userPath;
 import '../zones/zone_layer.dart';
+import '../zones/zone_overlay.dart';
 import 'buildings/building_layer.dart';
 import 'buildings/map_tilt.dart';
 import 'map_gestures.dart';

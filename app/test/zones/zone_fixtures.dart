@@ -1,7 +1,7 @@
 import 'package:app/core/settings.dart';
 import 'package:app/features/zones/zone_consent.dart';
 import 'package:app/features/zones/zone_geo.dart';
-import 'package:app/features/zones/zone_layer.dart';
+import 'package:app/features/zones/zone_layer_controller.dart';
 import 'package:app/features/zones/zone_models.dart';
 import 'package:app/features/zones/zone_tiles.dart';
 import 'package:app/features/zones/zones_repository.dart';
