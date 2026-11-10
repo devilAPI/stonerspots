@@ -3,13 +3,16 @@
 Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 "Releasing 1.0". Development builds (`dev-<n>`) are not listed here.
 
-## Unreleased
+## 1.0.7
 
 - Glass: bars, buttons, sheets and the tab bar use liquid_glass_renderer
   instead of liquid_glass_easy. Holding the tab bar swells it and lifts a
   loupe over the selected tab that follows the finger, also on the web;
   letting go snaps to the tab beneath it. (A fork of the package until its
   web fix, whynotmake-it/flutter_liquid_glass#266, is released.)
+- Phones get the real, refracting glass (Flutter GPU is switched on for
+  Android and iOS); where a device cannot, it is frosted as before. New
+  setting "Real glass" turns it off (frosted, easier on GPU and battery).
 - 3D map: the buildings are worked out about 2.5 times faster per frame
   (wall shading is computed once per building, buffers are reused), so
   panning the tilted map over a city no longer drops frames in the app's

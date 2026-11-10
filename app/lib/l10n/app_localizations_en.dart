@@ -1156,6 +1156,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Solid surfaces instead of glass. Easier on the GPU and battery.';
 
   @override
+  String get settingsRealGlass => 'Real glass';
+
+  @override
+  String get settingsRealGlassHint =>
+      'Glass bends what is behind it. Off, it is frosted, which is easier on the GPU and battery.';
+
+  @override
   String get settingsReduceMotion => 'Reduce motion';
 
   @override

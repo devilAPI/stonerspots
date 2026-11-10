@@ -20,7 +20,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # number with the workflow run number, so every CI build, dev or release, has
 # a higher Android versionCode than the one before it. The +1 here only
 # applies to local builds. A release tag vX.Y.Z must match this version.
-version: 1.0.6+1
+version: 1.0.7+1
 
 environment:
   sdk: ^3.13.4
@@ -63,6 +63,8 @@ dependencies:
       ref: fc00500898d35a09bb1f5423df87e2d512025cfa
       path: packages/liquid_glass_renderer
   motor: ^1.1.0
+  flutter_gpu:
+    sdk: flutter
   shared_preferences: ^2.5.6
   package_info_plus: ^10.2.2
   cryptography: ^2.9.0

@@ -1167,6 +1167,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Einfarbige Flächen statt Glas. Schont Grafikleistung und Akku.';
 
   @override
+  String get settingsRealGlass => 'Echtes Glas';
+
+  @override
+  String get settingsRealGlassHint =>
+      'Das Glas bricht, was dahinter liegt. Aus ist es milchig, das schont GPU und Akku.';
+
+  @override
   String get settingsReduceMotion => 'Bewegung reduzieren';
 
   @override

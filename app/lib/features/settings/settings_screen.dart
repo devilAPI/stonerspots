@@ -50,6 +50,20 @@ class SettingsScreen extends ConsumerWidget {
                         .read(transparencyDisabledProvider.notifier)
                         .set,
                   ),
+                  // only where the device can refract at all
+                  if (realGlassAvailable)
+                    SwitchListTile(
+                      key: const Key('realGlass'),
+                      title: Text(l10n.settingsRealGlass),
+                      subtitle: Text(l10n.settingsRealGlassHint),
+                      // solid surfaces have no glass to choose
+                      value:
+                          ref.watch(realGlassProvider) &&
+                          !ref.watch(transparencyDisabledProvider),
+                      onChanged: ref.watch(transparencyDisabledProvider)
+                          ? null
+                          : ref.read(realGlassProvider.notifier).set,
+                    ),
                   SwitchListTile(
                     key: const Key('reduceMotion'),
                     title: Text(l10n.settingsReduceMotion),

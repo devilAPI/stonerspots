@@ -2012,6 +2012,18 @@ abstract class AppLocalizations {
   /// **'Einfarbige Flächen statt Glas. Schont Grafikleistung und Akku.'**
   String get settingsDisableTransparencyHint;
 
+  /// No description provided for @settingsRealGlass.
+  ///
+  /// In de, this message translates to:
+  /// **'Echtes Glas'**
+  String get settingsRealGlass;
+
+  /// No description provided for @settingsRealGlassHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Das Glas bricht, was dahinter liegt. Aus ist es milchig, das schont GPU und Akku.'**
+  String get settingsRealGlassHint;
+
   /// No description provided for @settingsReduceMotion.
   ///
   /// In de, this message translates to:

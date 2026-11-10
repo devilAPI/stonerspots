@@ -43,6 +43,7 @@ class GlassTabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final glass = !SolidGlass.of(context);
+    final fake = SolidGlass.fakeOf(context);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -57,7 +58,7 @@ class GlassTabBar extends StatelessWidget {
               child: glass
                   ? LiquidGlassLayer(
                       settings: kGlassSettings,
-                      fake: kFakeGlass,
+                      fake: fake,
                       defaultAppearance: glassAppearance(),
                       child: LiquidGlassBlendGroup(
                         blend: _tabBlend,
@@ -67,7 +68,7 @@ class GlassTabBar extends StatelessWidget {
                           onSelected: onChanged,
                           height: kGlassTabBarHeight,
                           shadows: _tabShadows,
-                          fake: kFakeGlass,
+                          fake: fake,
                           labelColor: kOnGlass,
                           tint: Theme.of(context).colorScheme.primary,
                           tintBrightness: Brightness.dark,

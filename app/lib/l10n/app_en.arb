@@ -445,6 +445,8 @@
   "settingsAppearance": "Appearance",
   "settingsDisableTransparency": "Disable transparency",
   "settingsDisableTransparencyHint": "Solid surfaces instead of glass. Easier on the GPU and battery.",
+  "settingsRealGlass": "Real glass",
+  "settingsRealGlassHint": "Glass bends what is behind it. Off, it is frosted, which is easier on the GPU and battery.",
   "settingsReduceMotion": "Reduce motion",
   "settingsReduceMotionHint": "The map jumps instead of flying and tilts without animation.",
   "settingsMap": "Map",

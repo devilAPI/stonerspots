@@ -128,6 +128,27 @@ void main() {
       }
     });
 
+    testWidgets('real glass: a switch only where the device has it', (t) async {
+      await t.pumpWidget(page());
+      await t.pump();
+      expect(find.byKey(const Key('realGlass')), findsNothing);
+
+      debugRealGlassAvailable = true;
+      addTearDown(() => debugRealGlassAvailable = false);
+      await t.pumpWidget(const SizedBox());
+      final store = SettingsStore.memory();
+      await t.pumpWidget(page(store: store));
+      await t.pump();
+      final tile = find.byKey(const Key('realGlass'));
+      expect(t.widget<SwitchListTile>(tile).value, isTrue);
+      await t.tap(tile);
+      await t.pump();
+      expect(store.getBool('real_glass'), isFalse);
+      // and the glass below follows it
+      final scope = t.element(find.byType(SettingsScreen));
+      expect(SolidGlass.fakeOf(scope), isTrue);
+    });
+
     testWidgets('and in German', (t) async {
       await t.pumpWidget(page(locale: const Locale('de')));
       await t.pump();

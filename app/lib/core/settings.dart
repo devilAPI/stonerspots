@@ -101,6 +101,12 @@ final transparencyDisabledProvider = NotifierProvider<BoolSetting, bool>(
   () => BoolSetting('disable_transparency'),
 );
 
+/// Glass refracts what is behind it where the device can. On by default;
+/// off, it is frosted like on the web, which is lighter on the GPU.
+final realGlassProvider = NotifierProvider<BoolSetting, bool>(
+  () => BoolSetting('real_glass', defaultValue: true),
+);
+
 /// The 3D map shows buildings. On by default; off, the tilted map is drawn
 /// without them, which is much lighter on older devices.
 final buildings3dProvider = NotifierProvider<BoolSetting, bool>(
@@ -130,6 +136,7 @@ class SettingsScope extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => SolidGlass(
     enabled: ref.watch(transparencyDisabledProvider),
+    realGlass: ref.watch(realGlassProvider),
     child: MapSettings(
       sharpTiles: ref.watch(sharpTilesProvider),
       reduceMotion: ref.watch(reduceMotionProvider),

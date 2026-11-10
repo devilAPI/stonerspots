@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 
+import 'flutter_gpu_check.dart';
+
 export 'glass_sheet.dart';
 export 'glass_tab_bar.dart';
 export 'loupe_tab_bar/loupe_tab_bar.dart' show BottomBarTab, LoupeTabBar;
@@ -33,16 +35,31 @@ const Color _solidRim = Color(0x1FFFFFFF);
 /// so no backdrop read, blur or refraction. Without this widget above them
 /// surfaces are glass; they do not depend on a ProviderScope for that.
 class SolidGlass extends InheritedWidget {
-  const SolidGlass({super.key, required this.enabled, required super.child});
+  const SolidGlass({
+    super.key,
+    required this.enabled,
+    this.realGlass = true,
+    required super.child,
+  });
 
   final bool enabled;
 
-  static bool of(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<SolidGlass>()?.enabled ??
-      false;
+  /// Glass may refract where the device can ([realGlassAvailable]); off,
+  /// it is always the frosted kind.
+  final bool realGlass;
+
+  static SolidGlass? _of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<SolidGlass>();
+
+  static bool of(BuildContext context) => _of(context)?.enabled ?? false;
+
+  /// Whether glass here is drawn frosted (FakeGlass) instead of refracting.
+  static bool fakeOf(BuildContext context) =>
+      !realGlassAvailable || !(_of(context)?.realGlass ?? true);
 
   @override
-  bool updateShouldNotify(SolidGlass oldWidget) => enabled != oldWidget.enabled;
+  bool updateShouldNotify(SolidGlass oldWidget) =>
+      enabled != oldWidget.enabled || realGlass != oldWidget.realGlass;
 }
 
 /// The colour of a [GlassPanel] here; opaque when glass is off.
@@ -52,18 +69,31 @@ Color glassTint(BuildContext context) =>
 /// The app's one glass look, so bars, buttons and sheets match.
 const kGlassSettings = LiquidGlassSettings();
 
-/// Whether glass is drawn as fake glass (a frosted backdrop with the glass
-/// rim, no refraction): on the web and wherever Impeller shader filters are
-/// missing (Skia, the Linux build).
-final bool kFakeGlass = kIsWeb || !ui.ImageFilter.isShaderFilterSupported;
+/// Whether this device draws real, refracting glass: Impeller with Flutter
+/// GPU (switched on in the Android and iOS app config). Elsewhere (the web,
+/// Skia, a GPU without support) glass is frosted, the package's FakeGlass.
+/// Known after [initGlass].
+bool get realGlassAvailable => _realGlassAvailable;
+bool _realGlassAvailable = false;
+
+@visibleForTesting
+set debugRealGlassAvailable(bool value) => _realGlassAvailable = value;
 
 /// The tint of glass here, [color] or [glassTint]'s.
 LiquidGlassAppearance glassAppearance([Color color = _glassTint]) =>
     LiquidGlassAppearance(tint: color);
 
 /// Call once before [runApp]: loads the glass shaders, so the first glass
-/// on screen is not drawn without them for a frame or two.
-Future<void> initGlass() => LiquidGlass.precache();
+/// on screen is not drawn without them for a frame or two, and finds out
+/// whether real glass works here ([realGlassAvailable]).
+Future<void> initGlass() async {
+  await LiquidGlass.precache();
+  if (kIsWeb || !ui.ImageFilter.isShaderFilterSupported) return;
+  // without Flutter GPU the glass layers fall back to frosted glass by
+  // themselves, and the app must know (the tab bar's loupe is stacked
+  // differently then)
+  _realGlassAvailable = flutterGpuAvailable();
+}
 
 /// The bare surface every piece of glass stands on: a lens, or under
 /// [SolidGlass] a filled shape. Either way it clips [child]. Glass takes no
@@ -87,7 +117,7 @@ class GlassPanel extends StatelessWidget {
     if (!SolidGlass.of(context)) {
       return LiquidGlass.withOwnLayer(
         settings: kGlassSettings,
-        fake: kFakeGlass,
+        fake: SolidGlass.fakeOf(context),
         shape: LiquidRoundedSuperellipse(borderRadius: radius),
         appearance: glassAppearance(color ?? _glassTint),
         child: child,

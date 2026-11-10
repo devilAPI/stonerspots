@@ -448,6 +448,8 @@
   "settingsAppearance": "Darstellung",
   "settingsDisableTransparency": "Transparenz deaktivieren",
   "settingsDisableTransparencyHint": "Einfarbige Flächen statt Glas. Schont Grafikleistung und Akku.",
+  "settingsRealGlass": "Echtes Glas",
+  "settingsRealGlassHint": "Das Glas bricht, was dahinter liegt. Aus ist es milchig, das schont GPU und Akku.",
   "settingsReduceMotion": "Bewegung reduzieren",
   "settingsReduceMotionHint": "Die Karte springt statt zu fliegen und kippt ohne Animation.",
   "settingsMap": "Karte",
