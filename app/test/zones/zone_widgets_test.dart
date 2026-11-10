@@ -614,6 +614,22 @@ void main() {
       await t.pumpAndSettle();
     }
 
+    testWidgets('could not be checked: checked again until it can', (t) async {
+      // a place with no zone at all, whose tiles the server cannot load yet
+      final repo = FakeZonesRepository()..fail = true;
+      await pumpChip(t, [
+        ...overridesFor(repo),
+        zoneStatusRetryProvider.overrideWithValue(const Duration(seconds: 30)),
+      ], base);
+      expect(find.byKey(const Key('zoneStatus-unknown')), findsOneWidget);
+
+      repo.fail = false; // the server has them now
+      await t.pump(const Duration(seconds: 30));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('zoneStatus-clear')), findsOneWidget);
+      expect(find.text('No zone'), findsOneWidget);
+    });
+
     testWidgets('red: near a playground, with kind and distance', (t) async {
       await pumpChip(
         t,

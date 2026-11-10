@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
@@ -62,12 +64,31 @@ Future<ZoneStatus> checkZones(ZoneTileCache cache, LatLng p) async {
   }
 }
 
+/// How long a status that could not be checked waits before it is checked
+/// again (while it is on screen): the server may be fetching the zones from
+/// a slow Overpass server and have them by then.
+final zoneStatusRetryProvider = Provider<Duration>(
+  (ref) => const Duration(seconds: 30),
+);
+
 /// The zone status of a spot; only read while [zonesActiveProvider] holds.
+/// "Could not be checked" is checked again every [zoneStatusRetryProvider]
+/// while something shows it.
 final zoneStatusProvider = FutureProvider.autoDispose
-    .family<ZoneStatus, ({double lat, double lon})>(
-      (ref, p) =>
-          checkZones(ref.watch(zoneTileCacheProvider), LatLng(p.lat, p.lon)),
-    );
+    .family<ZoneStatus, ({double lat, double lon})>((ref, p) async {
+      final status = await checkZones(
+        ref.watch(zoneTileCacheProvider),
+        LatLng(p.lat, p.lon),
+      );
+      if (status.verdict == ZoneVerdict.unknown) {
+        final retry = Timer(
+          ref.read(zoneStatusRetryProvider),
+          ref.invalidateSelf,
+        );
+        ref.onDispose(retry.cancel);
+      }
+      return status;
+    });
 
 /// One line for [s] ("In einer Verbotszone (Spielplatz, 40 m)").
 String zoneStatusText(AppLocalizations l, ZoneStatus s) {
