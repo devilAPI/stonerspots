@@ -1,4 +1,5 @@
 import 'package:app/features/map/spot_cluster_layer.dart';
+import 'package:app/features/map/buildings/building_layer.dart';
 import 'package:app/features/map/buildings/map_tilt.dart';
 import 'package:app/core/settings.dart';
 import 'package:app/core/location_service.dart';
@@ -197,6 +198,66 @@ void main() {
     await t.pumpAndSettle();
     expect(ctl.camera.zoom, kMap3dMaxZoom);
     expect(t.takeException(), isNull);
+  });
+
+  group('map settings', () {
+    Future<void> pump(
+      WidgetTester t, {
+      required SettingsStore store,
+      bool reduceMotion = false,
+    }) async {
+      await t.pumpWidget(
+        ProviderScope(
+          overrides: [
+            settingsStoreProvider.overrideWithValue(store),
+            mapSpotsRepositoryProvider.overrideWithValue(_Repo()),
+            locationServiceProvider.overrideWithValue(_Location()),
+            mapDebounceProvider.overrideWithValue(Duration.zero),
+          ],
+          child: MapSettings(
+            sharpTiles: true,
+            reduceMotion: reduceMotion,
+            child: const MaterialApp(
+              locale: Locale('en'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: MapScreen(),
+            ),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+    }
+
+    testWidgets('the tilted map has buildings unless they are turned off', (
+      t,
+    ) async {
+      final store = SettingsStore.memory();
+      await store.setBool('map_3d', true);
+      await pump(t, store: store);
+      expect(find.byType(BuildingLayer), findsOneWidget);
+
+      await store.setBool('map_3d_buildings', false);
+      await t.pumpWidget(const SizedBox());
+      await pump(t, store: store);
+      expect(find.byType(BuildingLayer), findsNothing);
+      // still tilted, only without buildings
+      expect(
+        MapTiltScope.of(t.element(find.byType(SpotClusterLayer)))?.pitch,
+        greaterThan(0),
+      );
+    });
+
+    testWidgets('with reduced motion the map tilts at once', (t) async {
+      await pump(t, store: SettingsStore.memory(), reduceMotion: true);
+      await t.tap(find.byKey(const Key('map3d')));
+      await t.pump();
+      await t.pump();
+      expect(
+        MapTiltScope.of(t.element(find.byType(SpotClusterLayer)))?.pitch,
+        closeTo(kMapPitch * 3.14159265 / 180, 1e-6),
+      );
+    });
   });
 
   group('location', () {

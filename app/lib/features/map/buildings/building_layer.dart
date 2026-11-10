@@ -138,12 +138,12 @@ class _BuildingLayerState extends ConsumerState<BuildingLayer> {
 class BuildingPalette {
   BuildingPalette._(this.roof, this.wall)
     : wallShades = [
-        for (var i = 0; i < 17; i++)
+        for (var i = 0; i < kWallShades; i++)
           Color.from(
             alpha: 1,
-            red: (wall.r * (0.56 + 0.44 * i / 16)).clamp(0, 1),
-            green: (wall.g * (0.56 + 0.44 * i / 16)).clamp(0, 1),
-            blue: (wall.b * (0.56 + 0.44 * i / 16)).clamp(0, 1),
+            red: (wall.r * (0.56 + 0.44 * i / (kWallShades - 1))).clamp(0, 1),
+            green: (wall.g * (0.56 + 0.44 * i / (kWallShades - 1))).clamp(0, 1),
+            blue: (wall.b * (0.56 + 0.44 * i / (kWallShades - 1))).clamp(0, 1),
           ).toARGB32(),
       ];
 
@@ -253,14 +253,10 @@ class BuildingPainter extends CustomPainter {
       ..sort((a, b) => keys[a].compareTo(keys[b]));
 
     debugWallFeet.clear();
-    final pos = _Floats();
-    final col = _Ints();
-    final ind = _Shorts();
+    final mesh = _mesh;
     var triangles = 0;
     final roofColor = palette.roof.toARGB32();
     final shades = palette.wallShades;
-    // light from the south-west, high
-    const lightX = -0.6, lightY = 0.8;
 
     // flattening towards 2D, the buildings fade out instead of popping
     final fade = (tilt.pitch * 180 / math.pi / kBuildingsFadePitch).clamp(
@@ -272,60 +268,71 @@ class BuildingPainter extends CustomPainter {
       Paint()..color = Color.fromRGBO(0, 0, 0, kBuildingOpacity * fade),
     );
     void flush() {
-      if (ind.length == 0) return;
-      final v = ui.Vertices.raw(
-        VertexMode.triangles,
-        pos.view(),
-        colors: col.view(),
-        indices: ind.view(),
-      );
+      if (mesh.indices == 0) return;
+      final v = mesh.vertices();
       canvas.drawVertices(v, BlendMode.dst, Paint());
       v.dispose();
-      pos.length = 0;
-      col.length = 0;
-      ind.length = 0;
+      mesh.clear();
     }
 
-    var bx = Float64List(256), by = Float64List(256);
-    var tx = Float64List(256), ty = Float64List(256);
-    final walls = <int>[];
-    final wallKeys = <double>[];
+    // world point (x, y) -> map-local -> raised ground, folded into one
+    // affine map per output row: xr = ax * px + bx * py + cx, and so on
+    final sxx = scale * cosR, sxy = -scale * sinR;
+    final syx = scale * sinR, syy = scale * cosR;
+    final ox = -c.dx * cosR + c.dy * sinR + half.dx;
+    final oy = -c.dx * sinR - c.dy * cosR + half.dy;
+    final xa = r[0] * sxx + r[1] * syx, xb = r[0] * sxy + r[1] * syy;
+    final xc = r[0] * ox + r[1] * oy + r[3];
+    final ya = r[4] * sxx + r[5] * syx, yb = r[4] * sxy + r[5] * syy;
+    final yc = r[4] * ox + r[5] * oy + r[7];
+    final wa = r[8] * sxx + r[9] * syx, wb = r[8] * sxy + r[9] * syy;
+    final wc = r[8] * ox + r[9] * oy + r[11];
+    // and the eye's distance (the screen's divisor) at the roof
+    final qa = q[8] * sxx + q[9] * syx, qb = q[8] * sxy + q[9] * syy;
+    final qc = q[8] * ox + q[9] * oy + q[11];
+
+    var bx = _bx, by = _by, tx = _tx, ty = _ty;
+    var walls = _walls;
+    var wallKeys = _wallKeys;
     for (final i in idx) {
       final b = buildings[order[i]];
       final top = -b.height * pxPerMetre;
       final bottom = -b.minHeight * pxPerMetre;
-      final count = b.points.length ~/ 2;
+      final pts = b.points;
+      final count = pts.length ~/ 2;
       if (bx.length < count) {
-        bx = Float64List(count * 2);
-        by = Float64List(count * 2);
-        tx = Float64List(count * 2);
-        ty = Float64List(count * 2);
+        _bx = bx = Float64List(count * 2);
+        _by = by = Float64List(count * 2);
+        _tx = tx = Float64List(count * 2);
+        _ty = ty = Float64List(count * 2);
+        _walls = walls = Int32List(count * 2);
+        _wallKeys = wallKeys = Float64List(count * 2);
       }
       // each corner projected once: where its foot and its top are drawn
+      final r2b = r[2] * bottom, r6b = r[6] * bottom, r10b = r[10] * bottom;
+      final r2t = r[2] * top, r6t = r[6] * top, r10t = r[10] * top;
+      final nearTop = q[10] * top + qc;
       var tooClose = false;
       for (var k = 0; k < count; k++) {
-        final wx = b.points[2 * k] * scale - c.dx;
-        final wy = b.points[2 * k + 1] * scale - c.dy;
-        final x = wx * cosR - wy * sinR + half.dx;
-        final y = wx * sinR + wy * cosR + half.dy;
+        final px = pts[2 * k], py = pts[2 * k + 1];
         // a roof reaching the eye (zoomed far in) would be drawn torn apart
-        if (q[8] * x + q[9] * y + q[10] * top + q[11] < kNearestW) {
+        if (qa * px + qb * py + nearTop < kNearestW) {
           tooClose = true;
           break;
         }
-        final xr = r[0] * x + r[1] * y + r[3];
-        final yr = r[4] * x + r[5] * y + r[7];
-        final wr = r[8] * x + r[9] * y + r[11];
-        final wb = wr + r[10] * bottom, wt = wr + r[10] * top;
-        bx[k] = (xr + r[2] * bottom) / wb;
-        by[k] = (yr + r[6] * bottom) / wb;
-        tx[k] = (xr + r[2] * top) / wt;
-        ty[k] = (yr + r[6] * top) / wt;
+        final xr = xa * px + xb * py + xc;
+        final yr = ya * px + yb * py + yc;
+        final wr = wa * px + wb * py + wc;
+        final fb = 1 / (wr + r10b), ft = 1 / (wr + r10t);
+        bx[k] = (xr + r2b) * fb;
+        by[k] = (yr + r6b) * fb;
+        tx[k] = (xr + r2t) * ft;
+        ty[k] = (yr + r6t) * ft;
       }
       if (tooClose) continue;
-      // walls that face the viewer, far to near
-      walls.clear();
-      wallKeys.clear();
+      // walls that face the viewer, sorted far to near (insertion sort: a
+      // building has a handful)
+      var nWalls = 0;
       var start = 0;
       for (final end in b.ringEnds) {
         for (var k = start; k < end; k++) {
@@ -336,68 +343,82 @@ class BuildingPainter extends CustomPainter {
               (bx[j] - bx[k]) * (ty[k] - by[k]) -
               (by[j] - by[k]) * (tx[k] - bx[k]);
           if (cross <= 0) continue;
-          walls.add(k * 65536 + j);
-          wallKeys.add(by[k] + by[j]);
+          final key = by[k] + by[j];
+          var w = nWalls++;
+          while (w > 0 && wallKeys[w - 1] > key) {
+            wallKeys[w] = wallKeys[w - 1];
+            walls[w] = walls[w - 1];
+            w--;
+          }
+          wallKeys[w] = key;
+          walls[w] = k * 65536 + j;
         }
         start = end;
       }
-      final roofTris = b.roof.length ~/ 3;
-      if (pos.length ~/ 2 + walls.length * 4 + count > _batchVertices) flush();
-      if (walls.length * 4 + count > _batchVertices) continue; // huge: skip
-      final wallOrder = List<int>.generate(walls.length, (k) => k)
-        ..sort((a, b) => wallKeys[a].compareTo(wallKeys[b]));
-      for (final w in wallOrder) {
+      final roof = b.roof;
+      final vertices = nWalls * 4 + count;
+      if (vertices > _batchVertices) continue; // huge: skip
+      if (mesh.vertexCount + vertices > _batchVertices) flush();
+      mesh.reserve(vertices, nWalls * 6 + roof.length);
+      final pos = mesh.pos, col = mesh.col, ind = mesh.ind;
+      var p = mesh.vertexCount * 2, v = mesh.vertexCount, n = mesh.indices;
+      final wallShade = b.wallShades;
+      for (var w = 0; w < nWalls; w++) {
         final k = walls[w] ~/ 65536, j = walls[w] % 65536;
         assert(() {
           debugWallFeet.add((by[k] + by[j]) / 2);
           return true;
         }());
-        final ex = b.points[2 * j] - b.points[2 * k];
-        final ey = b.points[2 * j + 1] - b.points[2 * k + 1];
-        final len = math.sqrt(ex * ex + ey * ey);
-        final facing = len == 0 ? 0.0 : (ey * lightX - ex * lightY) / len;
-        final color =
-            shades[((facing + 1) * 0.5 * (shades.length - 1)).round()];
-        final v0 = pos.length ~/ 2;
-        pos
-          ..add(bx[k])
-          ..add(by[k])
-          ..add(bx[j])
-          ..add(by[j])
-          ..add(tx[j])
-          ..add(ty[j])
-          ..add(tx[k])
-          ..add(ty[k]);
-        col
-          ..add(color)
-          ..add(color)
-          ..add(color)
-          ..add(color);
-        ind
-          ..add(v0)
-          ..add(v0 + 1)
-          ..add(v0 + 2)
-          ..add(v0)
-          ..add(v0 + 2)
-          ..add(v0 + 3);
+        final color = shades[wallShade[k]];
+        pos[p] = bx[k];
+        pos[p + 1] = by[k];
+        pos[p + 2] = bx[j];
+        pos[p + 3] = by[j];
+        pos[p + 4] = tx[j];
+        pos[p + 5] = ty[j];
+        pos[p + 6] = tx[k];
+        pos[p + 7] = ty[k];
+        p += 8;
+        col[v] = color;
+        col[v + 1] = color;
+        col[v + 2] = color;
+        col[v + 3] = color;
+        ind[n] = v;
+        ind[n + 1] = v + 1;
+        ind[n + 2] = v + 2;
+        ind[n + 3] = v;
+        ind[n + 4] = v + 2;
+        ind[n + 5] = v + 3;
+        n += 6;
+        v += 4;
       }
-      final r0 = pos.length ~/ 2;
+      final r0 = v;
       for (var k = 0; k < count; k++) {
-        pos
-          ..add(tx[k])
-          ..add(ty[k]);
-        col.add(roofColor);
+        pos[p++] = tx[k];
+        pos[p++] = ty[k];
+        col[v++] = roofColor;
       }
-      for (final t in b.roof) {
-        ind.add(r0 + t);
+      for (var t = 0; t < roof.length; t++) {
+        ind[n++] = r0 + roof[t];
       }
-      triangles += walls.length * 2 + roofTris;
+      mesh
+        ..vertexCount = v
+        ..indices = n;
+      triangles += nWalls * 2 + roof.length ~/ 3;
     }
     flush();
     canvas.restore();
     lastTriangles = triangles;
     lastBuildings = idx.length;
   }
+
+  // Scratch space for one paint, reused by the next (painting is
+  // single-threaded): projected corners, walls, and the mesh.
+  static var _bx = Float64List(256), _by = Float64List(256);
+  static var _tx = Float64List(256), _ty = Float64List(256);
+  static var _walls = Int32List(256);
+  static var _wallKeys = Float64List(256);
+  static final _mesh = _Mesh();
 
   @override
   bool shouldRepaint(BuildingPainter old) =>
@@ -407,43 +428,37 @@ class BuildingPainter extends CustomPainter {
       old.palette != palette;
 }
 
-/// Growable typed buffers, reused between frames by nobody (a frame's
-/// buffers are small enough to build anew).
-class _Floats {
-  Float32List _b = Float32List(4096);
-  int length = 0;
-  void add(double v) {
-    if (length == _b.length) {
-      _b = Float32List(_b.length * 2)..setAll(0, _b);
+/// Triangles with a colour per vertex, built into buffers that grow as
+/// needed and are kept for the next paint.
+class _Mesh {
+  Float32List pos = Float32List(8192);
+  Int32List col = Int32List(4096);
+  Uint16List ind = Uint16List(8192);
+  int vertexCount = 0;
+  int indices = 0;
+
+  /// Room for [vertices] and [indices] more.
+  void reserve(int vertices, int indices) {
+    final v = vertexCount + vertices, n = this.indices + indices;
+    if (v > col.length) {
+      final size = math.max(v, col.length * 2);
+      pos = Float32List(size * 2)..setAll(0, pos);
+      col = Int32List(size)..setAll(0, col);
     }
-    _b[length++] = v;
+    if (n > ind.length) {
+      ind = Uint16List(math.max(n, ind.length * 2))..setAll(0, ind);
+    }
   }
 
-  Float32List view() => Float32List.sublistView(_b, 0, length);
-}
+  ui.Vertices vertices() => ui.Vertices.raw(
+    VertexMode.triangles,
+    Float32List.sublistView(pos, 0, vertexCount * 2),
+    colors: Int32List.sublistView(col, 0, vertexCount),
+    indices: Uint16List.sublistView(ind, 0, indices),
+  );
 
-class _Shorts {
-  Uint16List _b = Uint16List(4096);
-  int length = 0;
-  void add(int v) {
-    if (length == _b.length) {
-      _b = Uint16List(_b.length * 2)..setAll(0, _b);
-    }
-    _b[length++] = v;
+  void clear() {
+    vertexCount = 0;
+    indices = 0;
   }
-
-  Uint16List view() => Uint16List.sublistView(_b, 0, length);
-}
-
-class _Ints {
-  Int32List _b = Int32List(2048);
-  int length = 0;
-  void add(int v) {
-    if (length == _b.length) {
-      _b = Int32List(_b.length * 2)..setAll(0, _b);
-    }
-    _b[length++] = v;
-  }
-
-  Int32List view() => Int32List.sublistView(_b, 0, length);
 }

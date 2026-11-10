@@ -4,6 +4,7 @@
 //     --target=integration_test/perf_test.dart \
 //     --dart-define-from-file=env/local.json
 import 'package:app/main.dart';
+import 'package:app/features/map/spot_cluster_layer.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -11,6 +12,17 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:latlong2/latlong.dart';
+
+/// A destination of the app's navigation: an icon in the rail; in the glass
+/// tab bar, whose icons are drawn as text, its label.
+Finder tab(IconData icon, List<String> labels) {
+  final rail = find.byIcon(icon);
+  if (rail.evaluate().isNotEmpty) return rail.first;
+  return find
+      .byWidgetPredicate((w) => w is Text && labels.contains(w.data))
+      .first;
+}
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -61,7 +73,7 @@ void main() {
       }
     }, 'map');
 
-    await t.tap(find.byIcon(Icons.dynamic_feed_outlined));
+    await t.tap(tab(Icons.dynamic_feed_outlined, const ['Feed']));
     await idle(t, 4000);
     final list = find.byType(Scrollable).last;
     await measure(() async {
@@ -70,5 +82,24 @@ void main() {
         await idle(t, 700);
       }
     }, 'feed');
+
+    // 3D: tilted, at street level over central Munich (buildings drawn)
+    await t.tap(tab(Icons.map_outlined, const ['Map', 'Karte']));
+    await idle(t, 1500);
+    final controller = MapController.of(
+      t.element(find.byType(SpotClusterLayer)),
+    );
+    controller.move(const LatLng(48.1372, 11.5755), 16.5);
+    await idle(t, 1000);
+    await t.tap(find.byKey(const Key('map3d')));
+    await idle(t, 12000); // building tiles load and are read
+    final centre3d = t.getCenter(find.byType(FlutterMap));
+    await measure(() async {
+      for (var i = 0; i < 8; i++) {
+        final d = i.isEven ? const Offset(250, 120) : const Offset(-250, -120);
+        await t.timedDragFrom(centre3d, d, const Duration(milliseconds: 700));
+        await idle(t, 300);
+      }
+    }, 'map3d');
   });
 }

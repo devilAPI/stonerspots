@@ -8,6 +8,7 @@ import '../../core/glass.dart';
 import '../../core/location_service.dart';
 import '../../core/models.dart';
 import '../../core/responsive.dart';
+import '../../core/settings.dart';
 import '../../l10n/app_localizations.dart';
 import '../users/author_link.dart' show userPath;
 import '../zones/zone_layer.dart';
@@ -42,9 +43,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
   final _mapKey = GlobalKey(debugLabel: 'map');
 
   /// Animates the tilt (the 3D button, settling after a two-finger tilt).
+  static const _tiltDuration = Duration(milliseconds: 350);
   late final _tiltAnimation = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 350),
+    duration: _tiltDuration,
   );
   Animation<double>? _tiltTween;
 
@@ -90,7 +92,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
     _tiltTween = Tween<double>(begin: from, end: target).animate(
       CurvedAnimation(parent: _tiltAnimation, curve: Curves.easeInOut),
     )..addListener(_applyTilt);
-    _tiltAnimation.forward(from: 0);
+    _tiltAnimation
+      ..duration = MapSettings.reduceMotionOf(context)
+          ? Duration.zero
+          : _tiltDuration
+      ..forward(from: 0);
   }
 
   /// Going into 3D closer than [kMap3dMaxZoom]: back out to it.
@@ -138,9 +144,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
       camera.projectAtZoom(LatLng(spot.lat, spot.lon), zoom) + Offset(0, lift),
       zoom,
     );
-    _flight.fly(centre, zoom).then((_) {
-      if (mounted) _notifyBounds();
-    });
+    _flight
+        .fly(centre, zoom, instant: MapSettings.reduceMotionOf(context))
+        .then((_) {
+          if (mounted) _notifyBounds();
+        });
     _showPreview(spot);
   }
 
@@ -241,6 +249,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       }
     });
     final map3d = pitch > 0;
+    final buildings = map3d && ref.watch(buildings3dProvider);
     if (!identical(_markerSource, spots)) {
       _markerSource = spots;
       final top = spots.take(kTopSpots).map((s) => s.id).toSet();
@@ -299,7 +308,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
                     tilted: map3d,
                   ),
                   const ZoneLayer(),
-                  BuildingLayer(darkBase: isDarkBaseMap(context, _base)),
+                  if (buildings)
+                    BuildingLayer(darkBase: isDarkBaseMap(context, _base)),
                   SpotClusterLayer(markers: _markers),
                   UntiltedMapChild(
                     child: SafeArea(
@@ -308,7 +318,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                         context,
                         base: _base,
                         transitKey: transitKey,
-                        buildings: map3d,
+                        buildings: buildings,
                       ),
                     ),
                   ),

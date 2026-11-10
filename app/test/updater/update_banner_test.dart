@@ -15,7 +15,7 @@ import 'updater_harness.dart';
 Widget app(UpdaterHarness h, {Locale locale = const Locale('en')}) =>
     ProviderScope(
       overrides: h.overrides,
-      child: GlassSettingScope(
+      child: SettingsScope(
         child: MaterialApp(
           locale: locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -152,7 +152,15 @@ void main() {
     expect(h.installer.installed, isEmpty);
   });
 
+  /// Room for the whole settings page, so the update tiles are on screen.
+  void tallView(WidgetTester t) {
+    t.view.physicalSize = const Size(800, 1800);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+  }
+
   testWidgets('settings: switch and manual check', (t) async {
+    tallView(t);
     final h = UpdaterHarness(build: '7');
     await t.pumpWidget(
       ProviderScope(
@@ -191,6 +199,7 @@ void main() {
     t,
   ) async {
     // dev build 63 of 1.0.1: up to date on dev
+    tallView(t);
     final h = UpdaterHarness(build: '63', version: '1.0.1');
     await pumpSettings(t, h);
     final tile = find.byKey(const Key('updateChannel'));

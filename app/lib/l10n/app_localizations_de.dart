@@ -1167,6 +1167,30 @@ class AppLocalizationsDe extends AppLocalizations {
       'Einfarbige Flächen statt Glas. Schont Grafikleistung und Akku.';
 
   @override
+  String get settingsReduceMotion => 'Bewegung reduzieren';
+
+  @override
+  String get settingsReduceMotionHint =>
+      'Die Karte springt statt zu fliegen und kippt ohne Animation.';
+
+  @override
+  String get settingsMap => 'Karte';
+
+  @override
+  String get settingsBuildings3d => '3D-Gebäude';
+
+  @override
+  String get settingsBuildings3dHint =>
+      'Gebäude auf der gekippten Karte. Auf älteren Geräten ausschalten für eine flüssigere Karte.';
+
+  @override
+  String get settingsSharpTiles => 'Scharfe Karte';
+
+  @override
+  String get settingsSharpTilesHint =>
+      'Hochauflösende Kartenkacheln auf scharfen Displays. Aus lädt ein Viertel der Daten.';
+
+  @override
   String get saved => 'Gespeichert';
 
   @override

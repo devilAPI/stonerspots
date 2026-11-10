@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/settings.dart';
 import '../../l10n/app_localizations.dart';
 import 'buildings/buildings.dart' show kBuildingsAttribution;
 
@@ -26,6 +27,10 @@ const String kCartoKey = String.fromEnvironment('CARTO_KEY');
 String _cartoDarkUrl(String key) =>
     'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=$key';
 
+/// High-resolution tiles: on a high-density screen, unless turned off.
+bool _retina(BuildContext context) =>
+    MapSettings.sharpTilesOf(context) && RetinaMode.isHighDensity(context);
+
 bool _usesCartoDark(BuildContext context, String cartoKey) =>
     Theme.of(context).brightness == Brightness.dark &&
     cartoKey.isNotEmpty &&
@@ -48,7 +53,7 @@ TileLayer buildTileLayer(
   if (_usesCartoDark(context, cartoKey)) {
     return TileLayer(
       urlTemplate: _cartoDarkUrl(cartoKey),
-      retinaMode: RetinaMode.isHighDensity(context),
+      retinaMode: _retina(context),
       userAgentPackageName: 'de.stonerspots.app',
       panBuffer: panBuffer,
       maxNativeZoom: 18,
@@ -118,7 +123,7 @@ TileLayer buildTransitTileLayer(
   return TileLayer(
     urlTemplate:
         'https://tile.thunderforest.com/$style/{z}/{x}/{y}{r}.png?apikey=$key',
-    retinaMode: RetinaMode.isHighDensity(context),
+    retinaMode: _retina(context),
     userAgentPackageName: 'de.stonerspots.app',
     panBuffer: panBuffer,
     maxNativeZoom: 20,

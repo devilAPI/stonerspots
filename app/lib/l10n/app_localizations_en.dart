@@ -1156,6 +1156,30 @@ class AppLocalizationsEn extends AppLocalizations {
       'Solid surfaces instead of glass. Easier on the GPU and battery.';
 
   @override
+  String get settingsReduceMotion => 'Reduce motion';
+
+  @override
+  String get settingsReduceMotionHint =>
+      'The map jumps instead of flying and tilts without animation.';
+
+  @override
+  String get settingsMap => 'Map';
+
+  @override
+  String get settingsBuildings3d => '3D buildings';
+
+  @override
+  String get settingsBuildings3dHint =>
+      'Buildings on the tilted map. Turn off on older devices for a smoother map.';
+
+  @override
+  String get settingsSharpTiles => 'Sharp map';
+
+  @override
+  String get settingsSharpTilesHint =>
+      'High-resolution map tiles on sharp screens. Off loads a quarter of the data.';
+
+  @override
   String get saved => 'Saved';
 
   @override

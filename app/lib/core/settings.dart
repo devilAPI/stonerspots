@@ -101,16 +101,69 @@ final transparencyDisabledProvider = NotifierProvider<BoolSetting, bool>(
   () => BoolSetting('disable_transparency'),
 );
 
-/// Applies the transparency setting to all glass below it. Goes above the
-/// app's [Navigator], so that sheets and pushed pages follow it too.
-class GlassSettingScope extends ConsumerWidget {
-  const GlassSettingScope({super.key, required this.child});
+/// The 3D map shows buildings. On by default; off, the tilted map is drawn
+/// without them, which is much lighter on older devices.
+final buildings3dProvider = NotifierProvider<BoolSetting, bool>(
+  () => BoolSetting('map_3d_buildings', defaultValue: true),
+);
+
+/// Maps load high-resolution tiles on high-density screens. On by default;
+/// off, a quarter of the pixels (and data) for a slightly softer map.
+final sharpTilesProvider = NotifierProvider<BoolSetting, bool>(
+  () => BoolSetting('map_sharp_tiles', defaultValue: true),
+);
+
+/// The map jumps instead of flying and tilts without an animation. The
+/// system's "remove animations" has the same effect.
+final reduceMotionProvider = NotifierProvider<BoolSetting, bool>(
+  () => BoolSetting('reduce_motion'),
+);
+
+/// Applies the settings that every screen follows to the widgets below it:
+/// glass ([SolidGlass]) and the maps ([MapSettings]). Goes above the app's
+/// [Navigator], so that sheets and pushed pages follow them too.
+class SettingsScope extends ConsumerWidget {
+  const SettingsScope({super.key, required this.child});
 
   final Widget child;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => SolidGlass(
     enabled: ref.watch(transparencyDisabledProvider),
-    child: child,
+    child: MapSettings(
+      sharpTiles: ref.watch(sharpTilesProvider),
+      reduceMotion: ref.watch(reduceMotionProvider),
+      child: child,
+    ),
   );
+}
+
+/// How maps below it load and move. Without it they use the defaults: sharp
+/// tiles, animated.
+class MapSettings extends InheritedWidget {
+  const MapSettings({
+    super.key,
+    required this.sharpTiles,
+    required this.reduceMotion,
+    required super.child,
+  });
+
+  final bool sharpTiles;
+  final bool reduceMotion;
+
+  static MapSettings? _of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<MapSettings>();
+
+  /// Whether to load high-resolution tiles on a high-density screen.
+  static bool sharpTilesOf(BuildContext context) =>
+      _of(context)?.sharpTiles ?? true;
+
+  /// Whether to skip map animations: the setting, or the system's.
+  static bool reduceMotionOf(BuildContext context) =>
+      (_of(context)?.reduceMotion ?? false) ||
+      (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+
+  @override
+  bool updateShouldNotify(MapSettings old) =>
+      sharpTiles != old.sharpTiles || reduceMotion != old.reduceMotion;
 }

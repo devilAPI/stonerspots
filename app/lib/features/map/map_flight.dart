@@ -26,8 +26,14 @@ class MapFlight {
 
   static const _distance = Distance();
 
-  /// Flies to [centre] at [zoom]; a flight under way is replaced.
-  Future<void> fly(LatLng centre, double zoom) {
+  /// Flies to [centre] at [zoom]; a flight under way is replaced. With
+  /// [instant] (reduced motion) it jumps there.
+  Future<void> fly(LatLng centre, double zoom, {bool instant = false}) {
+    if (instant) {
+      stop();
+      map.move(centre, zoom, id: 'flight');
+      return Future.value();
+    }
     final camera = map.camera;
     _from = camera.center;
     _fromZoom = camera.zoom;

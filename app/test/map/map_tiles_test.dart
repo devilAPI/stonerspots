@@ -1,3 +1,4 @@
+import 'package:app/core/settings.dart';
 import 'package:app/features/map/map_tiles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -91,5 +92,32 @@ void main() {
       );
     }
     expect(hasTransitMap(), isTrue);
+  });
+
+  testWidgets('sharp tiles on a dense screen, unless turned off', (t) async {
+    t.view.devicePixelRatio = 2;
+    addTearDown(t.view.reset);
+    Future<bool> retina({required bool sharp}) async {
+      late TileLayer layer;
+      await t.pumpWidget(
+        MapSettings(
+          sharpTiles: sharp,
+          reduceMotion: false,
+          child: MaterialApp(
+            theme: ThemeData(brightness: Brightness.dark),
+            home: Builder(
+              builder: (c) {
+                layer = buildTileLayer(c, cartoKey: 'abc');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+      return layer.resolvedRetinaMode != RetinaMode.disabled;
+    }
+
+    expect(await retina(sharp: true), isTrue);
+    expect(await retina(sharp: false), isFalse);
   });
 }

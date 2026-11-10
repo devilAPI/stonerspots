@@ -50,6 +50,33 @@ class SettingsScreen extends ConsumerWidget {
                         .read(transparencyDisabledProvider.notifier)
                         .set,
                   ),
+                  SwitchListTile(
+                    key: const Key('reduceMotion'),
+                    title: Text(l10n.settingsReduceMotion),
+                    subtitle: Text(l10n.settingsReduceMotionHint),
+                    value: ref.watch(reduceMotionProvider),
+                    onChanged: ref.read(reduceMotionProvider.notifier).set,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _Section(
+                title: l10n.settingsMap,
+                children: [
+                  SwitchListTile(
+                    key: const Key('buildings3d'),
+                    title: Text(l10n.settingsBuildings3d),
+                    subtitle: Text(l10n.settingsBuildings3dHint),
+                    value: ref.watch(buildings3dProvider),
+                    onChanged: ref.read(buildings3dProvider.notifier).set,
+                  ),
+                  SwitchListTile(
+                    key: const Key('sharpTiles'),
+                    title: Text(l10n.settingsSharpTiles),
+                    subtitle: Text(l10n.settingsSharpTilesHint),
+                    value: ref.watch(sharpTilesProvider),
+                    onChanged: ref.read(sharpTilesProvider.notifier).set,
+                  ),
                 ],
               ),
               if (ref.watch(updaterConfigProvider).platform != null) ...[

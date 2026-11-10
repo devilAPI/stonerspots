@@ -18,6 +18,14 @@ const kBuildingsAttribution = 'OpenFreeMap © OpenMapTiles';
 /// The zoom of the building tiles (OpenMapTiles has every building there).
 const int kBuildingTileZoom = 14;
 
+/// How many shades a wall can take, from facing away from the light to
+/// facing it.
+const int kWallShades = 17;
+
+/// Where the light comes from on the map (south-west, high): x east, y
+/// south, unit length.
+const double _lightX = -0.6, _lightY = 0.8;
+
 /// One building (or building part). Points are Web Mercator in "world"
 /// units 0..1 (x east, y south), x and y interleaved, all rings one after
 /// the other.
@@ -41,6 +49,22 @@ class Building {
     east = maxX;
     north = minY;
     south = maxY;
+    // the shade of each wall depends on the map, not on the view: worked out
+    // once here instead of every frame
+    final shades = Uint8List(points.length ~/ 2);
+    var start = 0;
+    for (final end in ringEnds) {
+      for (var k = start; k < end; k++) {
+        final j = k + 1 < end ? k + 1 : start;
+        final ex = points[2 * j] - points[2 * k];
+        final ey = points[2 * j + 1] - points[2 * k + 1];
+        final len = math.sqrt(ex * ex + ey * ey);
+        final facing = len == 0 ? 0.0 : (ey * _lightX - ex * _lightY) / len;
+        shades[k] = ((facing + 1) * 0.5 * (kWallShades - 1)).round();
+      }
+      start = end;
+    }
+    wallShades = shades;
   }
 
   final Float64List points;
@@ -58,6 +82,10 @@ class Building {
   final double minHeight;
 
   late final double west, east, north, south;
+
+  /// The shade (0 = darkest of [kWallShades]) of the wall from each point to
+  /// the next one of its ring.
+  late final Uint8List wallShades;
 
   double get centerX => (west + east) / 2;
   double get centerY => (north + south) / 2;

@@ -2012,6 +2012,48 @@ abstract class AppLocalizations {
   /// **'Einfarbige Flächen statt Glas. Schont Grafikleistung und Akku.'**
   String get settingsDisableTransparencyHint;
 
+  /// No description provided for @settingsReduceMotion.
+  ///
+  /// In de, this message translates to:
+  /// **'Bewegung reduzieren'**
+  String get settingsReduceMotion;
+
+  /// No description provided for @settingsReduceMotionHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Karte springt statt zu fliegen und kippt ohne Animation.'**
+  String get settingsReduceMotionHint;
+
+  /// No description provided for @settingsMap.
+  ///
+  /// In de, this message translates to:
+  /// **'Karte'**
+  String get settingsMap;
+
+  /// No description provided for @settingsBuildings3d.
+  ///
+  /// In de, this message translates to:
+  /// **'3D-Gebäude'**
+  String get settingsBuildings3d;
+
+  /// No description provided for @settingsBuildings3dHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Gebäude auf der gekippten Karte. Auf älteren Geräten ausschalten für eine flüssigere Karte.'**
+  String get settingsBuildings3dHint;
+
+  /// No description provided for @settingsSharpTiles.
+  ///
+  /// In de, this message translates to:
+  /// **'Scharfe Karte'**
+  String get settingsSharpTiles;
+
+  /// No description provided for @settingsSharpTilesHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Hochauflösende Kartenkacheln auf scharfen Displays. Aus lädt ein Viertel der Daten.'**
+  String get settingsSharpTilesHint;
+
   /// No description provided for @saved.
   ///
   /// In de, this message translates to:

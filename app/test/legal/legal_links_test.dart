@@ -67,7 +67,7 @@ Future<ProviderContainer> pumpRouter(
   await t.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: GlassSettingScope(
+      child: SettingsScope(
         child: Consumer(
           builder: (_, ref, _) => MaterialApp.router(
             locale: Locale(lang),

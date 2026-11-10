@@ -34,7 +34,7 @@ Widget page({Locale locale = const Locale('en'), SettingsStore? store}) =>
       overrides: [
         if (store != null) settingsStoreProvider.overrideWithValue(store),
       ],
-      child: GlassSettingScope(
+      child: SettingsScope(
         child: MaterialApp(
           locale: locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -80,7 +80,7 @@ Future<ProviderContainer> pumpRouter(
   await t.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: GlassSettingScope(
+      child: SettingsScope(
         child: Consumer(
           builder: (_, ref, _) => MaterialApp.router(
             locale: const Locale('en'),
@@ -107,6 +107,25 @@ void main() {
         find.descendant(of: find.byKey(_toggle), matching: find.byType(Switch)),
         findsOneWidget,
       );
+    });
+
+    testWidgets('the map and motion switches are kept', (t) async {
+      final store = SettingsStore.memory();
+      await t.pumpWidget(page(store: store));
+      await t.pump();
+      for (final (key, setting, before) in [
+        ('reduceMotion', 'reduce_motion', false),
+        ('buildings3d', 'map_3d_buildings', true),
+        ('sharpTiles', 'map_sharp_tiles', true),
+      ]) {
+        final tile = find.byKey(Key(key));
+        await t.scrollUntilVisible(tile, 100);
+        expect(t.widget<SwitchListTile>(tile).value, before);
+        await t.tap(tile);
+        await t.pump();
+        expect(store.getBool(setting), !before, reason: key);
+        expect(t.widget<SwitchListTile>(tile).value, !before);
+      }
     });
 
     testWidgets('and in German', (t) async {
@@ -149,6 +168,9 @@ void main() {
     testWidgets("what's new in 1.0 lists the main features", (t) async {
       await t.pumpWidget(page());
       await t.pump();
+      await t.scrollUntilVisible(find.byKey(const Key('whatsNew')), 100);
+      await t.ensureVisible(find.byKey(const Key('whatsNew')));
+      await t.pumpAndSettle();
       await t.tap(find.byKey(const Key('whatsNew')));
       await t.pumpAndSettle();
       expect(find.byKey(const Key('whatsNewDialog')), findsOneWidget);
@@ -183,6 +205,9 @@ void main() {
     testWidgets("what's new, in German", (t) async {
       await t.pumpWidget(page(locale: const Locale('de')));
       await t.pump();
+      await t.scrollUntilVisible(find.byKey(const Key('whatsNew')), 100);
+      await t.ensureVisible(find.byKey(const Key('whatsNew')));
+      await t.pumpAndSettle();
       expect(find.text('Über Stonerspots'), findsOneWidget);
       await t.tap(find.byKey(const Key('whatsNew')));
       await t.pumpAndSettle();

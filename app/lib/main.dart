@@ -47,7 +47,7 @@ class _StonerspotsAppState extends ConsumerState<StonerspotsApp> {
   Widget build(BuildContext context) {
     ref.watch(homeWidgetSyncProvider);
     ref.watch(adminTwoFactorPromptsProvider);
-    return GlassSettingScope(
+    return SettingsScope(
       child: MaterialApp.router(
         // Inside MaterialApp, whose own region would paint the navigation bar
         // black on every frame.

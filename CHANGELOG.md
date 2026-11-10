@@ -10,6 +10,16 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
   loupe over the selected tab that follows the finger, also on the web;
   letting go snaps to the tab beneath it. (A fork of the package until its
   web fix, whynotmake-it/flutter_liquid_glass#266, is released.)
+- 3D map: the buildings are worked out about 2.5 times faster per frame
+  (wall shading is computed once per building, buffers are reused), so
+  panning the tilted map over a city no longer drops frames in the app's
+  own work: on the Linux desktop over central Munich the slowest frames
+  went from 28 to 13 ms.
+- Settings: new "Map" section with "3D buildings" (off draws the tilted
+  map without them, for older devices) and "Sharp map" (off loads normal
+  instead of high-resolution tiles on sharp screens, a quarter of the
+  data). New "Reduce motion": the map jumps instead of flying and tilts
+  without animation; the system's "remove animations" does the same.
 
 ## 1.0.6
 
