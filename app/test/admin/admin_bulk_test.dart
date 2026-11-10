@@ -150,9 +150,14 @@ Future<void> _pump(WidgetTester t, _Lists lists, _Actions actions) async {
 }
 
 Future<void> _tab(WidgetTester t, String name) async {
-  await t.tap(
-    find.descendant(of: find.byType(TabBar), matching: find.text(name)),
+  // on a phone the sections scroll sideways in their glass row
+  final tab = find.descendant(
+    of: find.byType(TabBar),
+    matching: find.text(name),
   );
+  await t.ensureVisible(tab);
+  await t.pumpAndSettle();
+  await t.tap(tab);
   await t.pumpAndSettle();
 }
 

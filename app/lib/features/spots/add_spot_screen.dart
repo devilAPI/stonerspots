@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../core/glass.dart';
 import '../../core/back_or_home.dart';
 import '../../core/location_service.dart';
 import '../../core/responsive.dart';
@@ -216,7 +217,7 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
     ];
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: GlassAppBar(
         leading: const BackOrHomeButton(),
         title: Text(l.addSpotTitle),
       ),

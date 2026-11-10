@@ -237,9 +237,14 @@ class GlassChipRow extends StatelessWidget {
   );
 }
 
-/// App bar as a capsule of glass floating over the page. Use it with
-/// `Scaffold(extendBodyBehindAppBar: true)`, and start scrolling content at
-/// [GlassAppBar.contentTop] so it can pass underneath.
+/// The top of a page the iOS 27 way: no bar, but floating glass controls
+/// over the content: [leading] (back) as a round button, the [title] as
+/// plain text, the [actions] in one capsule (a single one is round). The
+/// page fades out beneath them, so the title stays readable over anything.
+///
+/// Use it as the Scaffold's appBar with `extendBodyBehindAppBar: true`, and
+/// start scrolling content at [GlassAppBar.contentTop] so it can pass
+/// underneath.
 class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   const GlassAppBar({
     super.key,
@@ -254,9 +259,9 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   static const double _margin = 8;
 
-  /// Where a page's content starts below the bar.
+  /// Where a page's content starts below the controls.
   static double contentTop(BuildContext context) =>
-      // From the view: a Scaffold takes the top padding out of its body's
+      // From the device: a Scaffold takes the top padding out of its body's
       // MediaQuery, and this is called from inside bodies as well.
       DeviceInsets.of(context).top + kGlassAppBarHeight + 2 * _margin;
 
@@ -266,35 +271,91 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme.titleLarge
-        ?.copyWith(color: kOnGlass);
-    return SafeArea(
-      bottom: false,
-      child: Padding(
-        padding: const EdgeInsets.all(_margin),
-        child: SizedBox(
-          height: kGlassAppBarHeight,
-          child: GlassSurface(
-            child: Row(
-              children: [
-                if (leading != null) leading! else const SizedBox(width: 20),
-                Expanded(
-                  child: DefaultTextStyle(
-                    style: text ?? const TextStyle(color: kOnGlass),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    child: title,
-                  ),
+    final theme = Theme.of(context);
+    final fade = theme.scaffoldBackgroundColor;
+    final leading = this.leading;
+    return Stack(
+      children: [
+        // iOS 27's scroll edge: the page fades out under the controls
+        Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    fade.withValues(alpha: 0.9),
+                    fade.withValues(alpha: 0.55),
+                    fade.withValues(alpha: 0),
+                  ],
+                  stops: const [0, 0.55, 1],
                 ),
-                ...actions,
-                const SizedBox(width: 4),
-              ],
+              ),
             ),
           ),
         ),
-      ),
+        SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: _margin,
+            ),
+            child: SizedBox(
+              height: kGlassAppBarHeight,
+              child: Row(
+                children: [
+                  if (leading != null) GlassControls(children: [leading]),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DefaultTextStyle(
+                      style: (theme.textTheme.titleMedium ?? const TextStyle())
+                          .copyWith(
+                            color: kOnGlass,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 17,
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      child: Center(child: title),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  if (actions.isNotEmpty)
+                    GlassControls(children: actions)
+                  // keeps the title centred under a lone back button
+                  else if (leading != null)
+                    const SizedBox(width: kGlassControlSize),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
+}
+
+/// Height of a floating control; one icon button in it is a circle.
+const double kGlassControlSize = 48;
+
+/// Floating controls on glass, side by side in one capsule: one icon button
+/// makes a round button, several a pill (iOS 27's grouped controls).
+class GlassControls extends StatelessWidget {
+  const GlassControls({super.key, required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: kGlassControlSize,
+    child: GlassSurface(
+      radius: kGlassControlSize / 2,
+      child: Row(mainAxisSize: MainAxisSize.min, children: children),
+    ),
+  );
 }
 
 const _fabHeight = 48.0;

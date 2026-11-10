@@ -22,7 +22,7 @@ class AdminTwoFactorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final gutter = sideGutter(MediaQuery.sizeOf(context).width);
     return Scaffold(
-      appBar: AppBar(
+      appBar: GlassAppBar(
         leading: const BackOrHomeButton(),
         title: Text(AppLocalizations.of(context).adminTitle),
       ),

@@ -22,7 +22,8 @@ class BackOrHomeButton extends StatelessWidget {
     return IconButton(
       key: const Key('backToHome'),
       tooltip: AppLocalizations.of(context).backToHome,
-      icon: const Icon(Icons.arrow_back),
+      // iOS 27: a chevron in a round glass button
+      icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
       onPressed: () => context.go('/'),
     );
   }

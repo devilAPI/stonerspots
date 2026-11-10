@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/glass.dart';
 import '../../core/back_or_home.dart';
 import '../../core/tab_keys.dart';
 import '../../l10n/app_localizations.dart';
@@ -39,26 +40,57 @@ class AdminScreen extends ConsumerWidget {
               child: child!,
             ),
             child: Scaffold(
-              appBar: AppBar(
+              appBar: GlassAppBar(
                 leading: const BackOrHomeButton(),
                 title: Text(l10n.adminTitle),
-                bottom: TabBar(
-                  tabs: [
-                    Tab(text: l10n.adminReports),
-                    Tab(text: l10n.adminUsers),
-                    Tab(text: l10n.adminSpots),
-                    Tab(text: l10n.adminTags),
-                    Tab(text: l10n.adminActions),
-                  ],
-                ),
               ),
-              body: const TabBarView(
+              body: Column(
                 children: [
-                  AdminReportsTab(),
-                  AdminUsersTab(),
-                  AdminSpotsTab(),
-                  AdminTagsTab(),
-                  AdminSystemTab(),
+                  // the sections as one row of glass, under the controls
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                    child: Center(
+                      child: GlassControls(
+                        children: [
+                          Flexible(
+                            child: TabBar(
+                              isScrollable: true,
+                              tabAlignment: TabAlignment.center,
+                              dividerColor: Colors.transparent,
+                              labelColor: kOnGlass,
+                              unselectedLabelColor: kOnGlass.withValues(
+                                alpha: 0.7,
+                              ),
+                              indicatorSize: TabBarIndicatorSize.tab,
+                              indicator: const ShapeDecoration(
+                                color: Color(0x2EAEAEB2),
+                                shape: StadiumBorder(),
+                              ),
+                              splashBorderRadius: BorderRadius.circular(24),
+                              tabs: [
+                                Tab(text: l10n.adminReports),
+                                Tab(text: l10n.adminUsers),
+                                Tab(text: l10n.adminSpots),
+                                Tab(text: l10n.adminTags),
+                                Tab(text: l10n.adminActions),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Expanded(
+                    child: TabBarView(
+                      children: [
+                        AdminReportsTab(),
+                        AdminUsersTab(),
+                        AdminSpotsTab(),
+                        AdminTagsTab(),
+                        AdminSystemTab(),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),

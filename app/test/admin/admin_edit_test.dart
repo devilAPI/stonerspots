@@ -213,9 +213,14 @@ Future<void> _pump(WidgetTester tester, _Fake repo, Size size) async {
 }
 
 Future<void> _tab(WidgetTester tester, String name) async {
-  await tester.tap(
-    find.descendant(of: find.byType(TabBar), matching: find.text(name)),
+  // on a phone the sections scroll sideways in their glass row
+  final tab = find.descendant(
+    of: find.byType(TabBar),
+    matching: find.text(name),
   );
+  await tester.ensureVisible(tab);
+  await tester.pumpAndSettle();
+  await tester.tap(tab);
   await tester.pumpAndSettle();
 }
 

@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/glass.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Side of a cropped profile picture in pixels (less when the chosen part
@@ -162,13 +163,22 @@ class _AvatarCropScreenState extends State<AvatarCropScreen> {
     final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+      appBar: GlassAppBar(
+        leading: IconButton(
+          key: const Key('avatarCropCancel'),
+          tooltip: MaterialLocalizations.of(context).cancelButtonLabel,
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.close),
+        ),
         title: Text(l.avatarCropTitle),
         actions: [
           TextButton(
             key: const Key('avatarCropDone'),
+            style: TextButton.styleFrom(
+              foregroundColor: kOnGlass,
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              textStyle: const TextStyle(fontWeight: FontWeight.w600),
+            ),
             onPressed: () => Navigator.pop(context, _state.crop),
             child: Text(l.avatarCropUse),
           ),

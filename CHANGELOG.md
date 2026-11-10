@@ -17,6 +17,18 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
   start: confirming it is remembered, and it is asked only when you turn
   zones on (the ⓘ button shows it any time).
 - The map always opens in 2D; 3D is no longer remembered.
+- iPhone home-screen app (installed from Safari): the tabs work again. The
+  web engine reports no safe area, so the tab bar sat in the home
+  indicator's swipe zone, where iOS swallows taps, and top controls under
+  the clock; the app now reads the safe area from the browser.
+- iOS 27 look: no more app bars. Pages have floating glass controls, a
+  round back button (‹) on the left, the actions in one capsule on the
+  right, and the title as plain text in between, over a soft fade of the
+  page. Admin's sections are a glass row below them.
+- Search is a round glass button beside the tabs (phones); it opens the
+  map's search from any tab. With the side rail it stays on the map.
+- The zone notes on the map ("Verbotszonen werden geladen", "Zoom in…",
+  "could not be loaded") are glass capsules with an icon.
 - Also ships everything listed under 1.0.7, which was never released: its
   build could not fetch the glass package (a git dependency on a fork with
   Git LFS files); the package is now part of the repository.

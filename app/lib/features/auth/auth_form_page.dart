@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/glass.dart';
 import '../../core/back_or_home.dart';
 import '../../l10n/app_localizations.dart';
 import '../legal/legal_links.dart';
@@ -35,7 +36,10 @@ class AuthFormPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final error = this.error;
     return Scaffold(
-      appBar: AppBar(leading: const BackOrHomeButton(), title: Text(title)),
+      appBar: GlassAppBar(
+        leading: const BackOrHomeButton(),
+        title: Text(title),
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
