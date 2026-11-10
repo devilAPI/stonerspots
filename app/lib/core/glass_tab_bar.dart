@@ -24,8 +24,29 @@ const _tabShadows = [
 ];
 const _tabSlide = Duration(milliseconds: 320);
 
-/// The floating tab bar. It places itself at the bottom of the [Stack] it is
-/// the last child of, above the safe area.
+/// A round button beside the tabs, like iOS 27's search button.
+class GlassBarAction {
+  const GlassBarAction({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.key,
+  });
+
+  final IconData icon;
+
+  /// Tooltip and screen-reader label.
+  final String label;
+  final VoidCallback onPressed;
+  final Key? key;
+}
+
+/// Gap between the tabs and the [GlassBarAction].
+const double kGlassBarActionGap = 8;
+
+/// The floating tab bar, with an optional round [action] to its right. It
+/// places itself at the bottom of the [Stack] it is the last child of,
+/// above the safe area. [width] is the tabs' and the action's together.
 class GlassTabBar extends StatelessWidget {
   const GlassTabBar({
     super.key,
@@ -33,17 +54,33 @@ class GlassTabBar extends StatelessWidget {
     required this.items,
     required this.selectedIndex,
     required this.onChanged,
+    this.action,
   });
 
   final double width;
   final List<BottomBarTab> items;
   final int selectedIndex;
   final ValueChanged<int> onChanged;
+  final GlassBarAction? action;
 
   @override
   Widget build(BuildContext context) {
     final glass = !SolidGlass.of(context);
     final fake = SolidGlass.fakeOf(context);
+    final action = this.action;
+    final tabsWidth = action == null
+        ? width
+        : width - kGlassTabBarHeight - kGlassBarActionGap;
+    Widget withAction(Widget tabs, Widget Function(GlassBarAction) button) =>
+        action == null
+        ? tabs
+        : Row(
+            children: [
+              SizedBox(width: tabsWidth, child: tabs),
+              const SizedBox(width: kGlassBarActionGap),
+              button(action),
+            ],
+          );
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -60,30 +97,39 @@ class GlassTabBar extends StatelessWidget {
                       settings: kGlassSettings,
                       fake: fake,
                       defaultAppearance: glassAppearance(),
+                      // one group: pulled toward each other, tabs and button
+                      // merge like iOS 27's
                       child: LiquidGlassBlendGroup(
                         blend: _tabBlend,
-                        child: LoupeTabBar(
-                          tabs: items,
-                          selectedIndex: selectedIndex,
-                          onSelected: onChanged,
-                          height: kGlassTabBarHeight,
-                          shadows: _tabShadows,
-                          fake: fake,
-                          labelColor: kOnGlass,
-                          tint: Theme.of(context).colorScheme.primary,
-                          tintBrightness: Brightness.dark,
+                        child: withAction(
+                          LoupeTabBar(
+                            tabs: items,
+                            selectedIndex: selectedIndex,
+                            onSelected: onChanged,
+                            height: kGlassTabBarHeight,
+                            shadows: _tabShadows,
+                            fake: fake,
+                            labelColor: kOnGlass,
+                            tint: Theme.of(context).colorScheme.primary,
+                            tintBrightness: Brightness.dark,
+                          ),
+                          (a) => _GlassActionButton(action: a),
                         ),
                       ),
                     )
-                  : GlassPanel(
-                      radius: kGlassTabBarHeight / 2,
-                      child: _SolidTabs(
-                        cellWidth:
-                            (width - _tabPadding.horizontal) / items.length,
-                        items: items,
-                        selectedIndex: selectedIndex,
-                        onChanged: onChanged,
+                  : withAction(
+                      GlassPanel(
+                        radius: kGlassTabBarHeight / 2,
+                        child: _SolidTabs(
+                          cellWidth:
+                              (tabsWidth - _tabPadding.horizontal) /
+                              items.length,
+                          items: items,
+                          selectedIndex: selectedIndex,
+                          onChanged: onChanged,
+                        ),
                       ),
+                      (a) => _SolidActionButton(action: a),
                     ),
             ),
           ),
@@ -91,6 +137,63 @@ class GlassTabBar extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The round glass [GlassBarAction]: it swells and stretches under the
+/// finger, in the tab bar's blend group.
+class _GlassActionButton extends StatelessWidget {
+  const _GlassActionButton({required this.action});
+
+  final GlassBarAction action;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: action.label,
+    excludeSemantics: true,
+    child: Tooltip(
+      message: action.label,
+      child: GestureDetector(
+        key: action.key,
+        onTap: action.onPressed,
+        child: LiquidStretch(
+          interactionScale: 1.05,
+          child: LiquidGlass.grouped(
+            shape: const LiquidOval(),
+            shadows: _tabShadows,
+            child: SizedBox.square(
+              dimension: kGlassTabBarHeight,
+              child: Icon(action.icon, color: kOnGlass, size: 28),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// [_GlassActionButton] on a solid surface.
+class _SolidActionButton extends StatelessWidget {
+  const _SolidActionButton({required this.action});
+
+  final GlassBarAction action;
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: kGlassTabBarHeight,
+    child: GlassPanel(
+      radius: kGlassTabBarHeight / 2,
+      child: Material(
+        type: MaterialType.transparency,
+        child: IconButton(
+          key: action.key,
+          tooltip: action.label,
+          onPressed: action.onPressed,
+          icon: Icon(action.icon, color: kOnGlass, size: 28),
+        ),
+      ),
+    ),
+  );
 }
 
 /// The tabs of a solid [GlassTabBar]. They answer like the glass ones: a tap

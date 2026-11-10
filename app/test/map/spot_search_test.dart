@@ -8,6 +8,7 @@ import 'package:app/core/token_store.dart';
 import 'package:app/features/auth/auth_controller.dart';
 import 'package:app/features/map/map_filter_bar.dart';
 import 'package:app/features/map/map_screen.dart';
+import 'package:app/features/map/map_search_request.dart';
 import 'package:app/features/map/spot_preview_sheet.dart';
 import 'package:app/features/map/spot_search.dart';
 import 'package:app/features/map/spots_controller.dart';
@@ -340,6 +341,18 @@ void main() {
 
     MapCamera camera(WidgetTester t) =>
         MapCamera.of(t.element(find.byType(TileLayer)));
+
+    testWidgets('the search button beside the tabs opens the search', (
+      t,
+    ) async {
+      await pumpMap(t);
+      expect(find.byKey(const Key('mapSearchField')), findsNothing);
+      ProviderScope.containerOf(t.element(find.byType(MapScreen)))
+          .read(mapSearchRequestProvider.notifier)
+          .open();
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('mapSearchField')), findsOneWidget);
+    });
 
     testWidgets('picking a match flies there and opens its card', (t) async {
       await pumpMap(t);

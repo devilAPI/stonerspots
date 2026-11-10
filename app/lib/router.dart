@@ -19,6 +19,7 @@ import 'core/models.dart' show User;
 import 'core/providers.dart' show apiClientProvider;
 import 'core/back_or_home.dart';
 import 'core/tab_keys.dart';
+import 'features/map/map_search_request.dart';
 import 'features/map/map_screen.dart';
 import 'features/saved/saved_list_screen.dart';
 import 'features/saved/saved_lists_screen.dart';
@@ -61,12 +62,12 @@ String authAccess(User? u) => u == null ? 'out' : '${u.id}:${u.isAdmin}';
 bool redirectsMayChange(String? before, String now) =>
     now != before && !(before == 'out' && now != 'out');
 
-class _ScaffoldWithNav extends StatelessWidget {
+class _ScaffoldWithNav extends ConsumerWidget {
   const _ScaffoldWithNav({required this.shell});
   final StatefulNavigationShell shell;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     return TabKeys(
       count: 3,
@@ -76,6 +77,16 @@ class _ScaffoldWithNav extends StatelessWidget {
         selectedIndex: shell.currentIndex,
         onSelected: (i) =>
             shell.goBranch(i, initialLocation: i == shell.currentIndex),
+        // iOS 27's search button: back to the map's own page, search open
+        action: GlassBarAction(
+          key: const Key('navSearch'),
+          icon: Icons.search,
+          label: l10n.mapSearch,
+          onPressed: () {
+            shell.goBranch(0, initialLocation: true);
+            ref.read(mapSearchRequestProvider.notifier).open();
+          },
+        ),
         items: [
           NavItem(Icons.map_outlined, l10n.navMap),
           NavItem(Icons.dynamic_feed_outlined, l10n.navFeed),

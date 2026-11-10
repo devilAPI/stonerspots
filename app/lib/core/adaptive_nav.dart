@@ -28,12 +28,17 @@ class AdaptiveNavScaffold extends StatelessWidget {
     required this.selectedIndex,
     required this.onSelected,
     required this.body,
+    this.action,
   });
 
   final List<NavItem> items;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
   final Widget body;
+
+  /// A round button beside the bottom tabs (search); only with the tabs,
+  /// the rail's pages offer it themselves.
+  final GlassBarAction? action;
 
   /// [body] with [inset] added to its padding.
   Widget _bodyBeneath(BuildContext context, EdgeInsets inset) {
@@ -61,7 +66,14 @@ class AdaptiveNavScaffold extends StatelessWidget {
               ),
             ),
             GlassTabBar(
-              width: math.min(width - 32, 360),
+              width: math.min(
+                width - 32,
+                360 +
+                    (action == null
+                        ? 0
+                        : kGlassTabBarHeight + kGlassBarActionGap),
+              ),
+              action: action,
               selectedIndex: selectedIndex,
               onChanged: onSelected,
               items: [

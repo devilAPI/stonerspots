@@ -14,8 +14,7 @@ void main() {
     addTearDown(t.view.reset);
     await t.pumpWidget(
       MaterialApp(
-        builder: (_, child) =>
-            DeviceInsets(debugInsets: iphone, child: child!),
+        builder: (_, child) => DeviceInsets(debugInsets: iphone, child: child!),
         home: page,
       ),
     );

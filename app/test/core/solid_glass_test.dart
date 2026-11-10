@@ -507,6 +507,47 @@ void main() {
       expect(picked, 2);
     });
 
+    for (final solid in [false, true]) {
+      testWidgets('the round search button beside the tabs '
+          '(${solid ? 'solid' : 'glass'})', (t) async {
+        var searched = 0;
+        await pumpIn(
+          t,
+          Stack(
+            children: [
+              GlassTabBar(
+                width: 360,
+                items: tabs,
+                selectedIndex: 0,
+                onChanged: (_) {},
+                action: GlassBarAction(
+                  key: const Key('navSearch'),
+                  icon: Icons.search,
+                  label: 'Search spots',
+                  onPressed: () => searched++,
+                ),
+              ),
+            ],
+          ),
+          solid: solid,
+        );
+        await t.pumpAndSettle();
+        final button = t.getRect(find.byKey(const Key('navSearch')));
+        // a circle to the right of the tabs, as tall as they are
+        expect(button.width, closeTo(kGlassTabBarHeight, 0.5));
+        expect(button.height, closeTo(kGlassTabBarHeight, 0.5));
+        expect(
+          button.left,
+          greaterThan(t.getRect(find.text('Map').first).right),
+        );
+        await t.tap(find.byKey(const Key('navSearch')));
+        await t.pumpAndSettle();
+        expect(searched, 1);
+        // the tabs still work beside it
+        expect(find.text('Profile'), findsWidgets);
+      });
+    }
+
     testWidgets('the rail works without glass', (t) async {
       int? picked;
       await pumpIn(t, nav((i) => picked = i), solid: true, size: desktop);

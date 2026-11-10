@@ -347,9 +347,16 @@ class _MapSpotSearchState extends ConsumerState<MapSpotSearch> {
 /// it also takes the keyboard shortcuts Ctrl+K (Cmd+K) and `/`; `/` is left
 /// to text fields that have focus.
 class MapSearchButton extends StatefulWidget {
-  const MapSearchButton({super.key, required this.onPressed});
+  const MapSearchButton({
+    super.key,
+    required this.onPressed,
+    this.visible = true,
+  });
 
   final VoidCallback onPressed;
+
+  /// Off: no button, only the keyboard shortcuts.
+  final bool visible;
 
   @override
   State<MapSearchButton> createState() => _MapSearchButtonState();
@@ -414,10 +421,12 @@ class _MapSearchButtonState extends State<MapSearchButton> {
   }
 
   @override
-  Widget build(BuildContext context) => IconButton(
-    key: const Key('mapSearchOpen'),
-    tooltip: AppLocalizations.of(context).mapSearch,
-    onPressed: widget.onPressed,
-    icon: const Icon(Icons.search),
-  );
+  Widget build(BuildContext context) => !widget.visible
+      ? const SizedBox.shrink()
+      : IconButton(
+          key: const Key('mapSearchOpen'),
+          tooltip: AppLocalizations.of(context).mapSearch,
+          onPressed: widget.onPressed,
+          icon: const Icon(Icons.search),
+        );
 }

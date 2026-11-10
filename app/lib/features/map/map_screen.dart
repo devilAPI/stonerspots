@@ -20,6 +20,7 @@ import 'map_compass.dart';
 import 'map_controls_theme.dart';
 import 'map_filter_bar.dart';
 import 'map_flight.dart';
+import 'map_search_request.dart';
 import 'map_tiles.dart';
 import 'spot_cluster_layer.dart';
 import 'spot_marker.dart';
@@ -240,6 +241,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final spots = ref.watch(spotsControllerProvider.select((s) => s.spots));
     final transitKey = ref.watch(thunderforestKeyProvider);
     final pitch = ref.watch(mapPitchProvider);
+    ref.listen(mapSearchRequestProvider, (_, _) => _openSearch());
     ref.listen(mapPitchProvider, (before, now) {
       if ((before ?? 0) <= 0 && now > 0) {
         WidgetsBinding.instance.addPostFrameCallback(
@@ -345,7 +347,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      MapSearchButton(onPressed: _openSearch),
+                      // with the tabs, search is the round button beside
+                      // them; the shortcuts work either way
+                      MapSearchButton(
+                        onPressed: _openSearch,
+                        visible: context.useNavRail,
+                      ),
                       MapLayerButton(
                         key: const Key('mapLayer'),
                         base: _base,
