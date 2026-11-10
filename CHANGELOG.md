@@ -17,8 +17,13 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
   start: confirming it is remembered, and it is asked only when you turn
   zones on (the ⓘ button shows it any time).
 - The map always opens in 2D; 3D is no longer remembered.
+- Also ships everything listed under 1.0.7, which was never released: its
+  build could not fetch the glass package (a git dependency on a fork with
+  Git LFS files); the package is now part of the repository.
 
 ## 1.0.7
+
+Not released: its build failed (see 1.0.8, which ships these changes).
 
 - Glass: bars, buttons, sheets and the tab bar use liquid_glass_renderer
   instead of liquid_glass_easy. Holding the tab bar swells it and lifts a
