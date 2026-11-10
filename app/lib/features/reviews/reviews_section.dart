@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/dialogs.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
 import '../feed/feed_card.dart' show relativeTime;
@@ -112,24 +113,13 @@ class _ReviewsSectionState extends ConsumerState<ReviewsSection> {
 
   Future<void> _delete() async {
     final l = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.reviewDeleteTitle),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l.cancel),
-          ),
-          FilledButton(
-            key: const Key('reviewDeleteConfirm'),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l.reviewDeleteConfirm),
-          ),
-        ],
-      ),
+    final ok = await confirmDialog(
+      context,
+      title: l.reviewDeleteTitle,
+      confirm: l.reviewDeleteConfirm,
+      confirmKey: const Key('reviewDeleteConfirm'),
     );
-    if (ok != true) return;
+    if (!ok) return;
     try {
       await _repo.delete(widget.spotId);
     } catch (_) {

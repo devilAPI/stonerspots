@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/dialogs.dart';
 import '../../core/api_client.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
@@ -116,24 +117,13 @@ class _SpotCommentsState extends ConsumerState<SpotComments>
 
   Future<void> _delete(Comment c) async {
     final l = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.commentDeleteTitle),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l.cancel),
-          ),
-          FilledButton(
-            key: const Key('commentDeleteConfirm'),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l.commentDeleteConfirm),
-          ),
-        ],
-      ),
+    final ok = await confirmDialog(
+      context,
+      title: l.commentDeleteTitle,
+      confirm: l.commentDeleteConfirm,
+      confirmKey: const Key('commentDeleteConfirm'),
     );
-    if (ok != true || !mounted) return;
+    if (!ok || !mounted) return;
     try {
       await _comments.delete(c);
       if (mounted) setState(() => _delta--);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api_client.dart';
+import '../../core/dialogs.dart';
 import '../../core/models.dart';
 import '../../l10n/app_localizations.dart';
 import '../admin/admin_edit_dialogs.dart';
@@ -20,35 +21,6 @@ void _snack(BuildContext context, String text) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 }
 
-Future<bool> _confirm(
-  BuildContext context, {
-  required String title,
-  String? body,
-  required String confirm,
-  required Key confirmKey,
-}) async {
-  final l = AppLocalizations.of(context);
-  final ok = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(title),
-      content: body == null ? null : Text(body),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: Text(l.cancel),
-        ),
-        FilledButton(
-          key: confirmKey,
-          onPressed: () => Navigator.pop(ctx, true),
-          child: Text(confirm),
-        ),
-      ],
-    ),
-  );
-  return ok == true;
-}
-
 /// The author edits their own update.
 Future<bool> editOwnUpdate(BuildContext context, FeedItem item) async =>
     await showUpdateComposer(context, spotId: item.spot.id, editing: item) ==
@@ -61,7 +33,7 @@ Future<bool> deleteOwnUpdate(
   FeedItem item,
 ) async {
   final l = AppLocalizations.of(context);
-  final ok = await _confirm(
+  final ok = await confirmDialog(
     context,
     title: l.updateDeleteTitle,
     confirm: l.updateDeleteConfirm,
@@ -106,7 +78,7 @@ Future<bool> adminDeleteUpdate(
   FeedItem item,
 ) async {
   final l = AppLocalizations.of(context);
-  final ok = await _confirm(
+  final ok = await confirmDialog(
     context,
     title: l.adminRemoveUpdateTitle,
     body: l.adminRemoveUpdateBody,

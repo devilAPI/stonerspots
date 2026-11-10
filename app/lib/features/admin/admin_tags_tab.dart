@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/dialogs.dart';
 import '../../core/api_client.dart';
 import '../../core/models.dart';
 import '../../core/responsive.dart';
@@ -99,28 +100,15 @@ class _AdminTagsTabState extends ConsumerState<AdminTagsTab> {
 
   Future<void> _delete(AdminTag tag) async {
     final l10n = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.adminDeleteTagTitle(spotTagLabel(ctx, tag.tag))),
-        content: Text(l10n.adminDeleteTagBody(tag.spotCount)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            key: const Key('confirm-delete-tag'),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.adminDeleteTag),
-          ),
-        ],
-      ),
+    final ok = await confirmDialog(
+      context,
+      title: l10n.adminDeleteTagTitle(spotTagLabel(context, tag.tag)),
+      body: l10n.adminDeleteTagBody(tag.spotCount),
+      confirm: l10n.adminDeleteTag,
+      confirmKey: const Key('confirm-delete-tag'),
+      danger: true,
     );
-    if (ok != true) return;
+    if (!ok) return;
     try {
       await _repo.deleteTag(tag.tag.wire);
       _snack(l10n.adminTagDeleted);

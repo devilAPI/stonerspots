@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/dialogs.dart';
 import '../../core/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import 'admin_actions.dart';
@@ -72,29 +73,16 @@ class _AdminSystemTabState extends ConsumerState<AdminSystemTab> {
 
   Future<void> _update(String channel) async {
     final l10n = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.adminUpdateConfirmTitle),
-        content: Text(
-          channel == 'dev'
-              ? l10n.adminUpdateConfirmDev
-              : l10n.adminUpdateConfirmRelease,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            key: const Key('confirm-update'),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.adminUpdate),
-          ),
-        ],
-      ),
+    final ok = await confirmDialog(
+      context,
+      title: l10n.adminUpdateConfirmTitle,
+      body: channel == 'dev'
+          ? l10n.adminUpdateConfirmDev
+          : l10n.adminUpdateConfirmRelease,
+      confirm: l10n.adminUpdate,
+      confirmKey: const Key('confirm-update'),
     );
-    if (ok != true || !mounted) return;
+    if (!ok || !mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _requesting = true);
     try {

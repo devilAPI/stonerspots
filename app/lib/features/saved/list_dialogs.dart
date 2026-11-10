@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/dialogs.dart';
 import '../../core/api_client.dart';
 import '../../l10n/app_localizations.dart';
 import 'saved_controller.dart';
@@ -113,29 +114,15 @@ Future<bool> confirmDeleteList(
   final l = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
   final repo = ref.read(savedRepositoryProvider);
-  final sure = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(l.savedDeleteTitle),
-      content: Text(l.savedDeleteBody(list.title(l))),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: Text(l.cancel),
-        ),
-        FilledButton(
-          key: const Key('confirmDeleteList'),
-          style: FilledButton.styleFrom(
-            backgroundColor: Theme.of(ctx).colorScheme.error,
-            foregroundColor: Theme.of(ctx).colorScheme.onError,
-          ),
-          onPressed: () => Navigator.pop(ctx, true),
-          child: Text(l.savedDelete),
-        ),
-      ],
-    ),
+  final sure = await confirmDialog(
+    context,
+    title: l.savedDeleteTitle,
+    body: l.savedDeleteBody(list.title(l)),
+    confirm: l.savedDelete,
+    confirmKey: const Key('confirmDeleteList'),
+    danger: true,
   );
-  if (sure != true) return false;
+  if (!sure) return false;
   try {
     await repo.deleteList(list.id);
   } catch (_) {

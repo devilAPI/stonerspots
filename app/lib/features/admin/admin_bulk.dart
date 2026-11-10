@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/dialogs.dart';
 import '../../core/spot_tag_widgets.dart';
 import '../../core/tag_catalog.dart';
 import '../../l10n/app_localizations.dart';
@@ -118,29 +119,15 @@ Future<bool> confirmAdminDelete(
   required String body,
 }) async {
   final l10n = AppLocalizations.of(context);
-  final ok = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(title),
-      content: Text(body),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: Text(l10n.cancel),
-        ),
-        FilledButton(
-          key: const Key('confirm-bulk-delete'),
-          style: FilledButton.styleFrom(
-            backgroundColor: Theme.of(ctx).colorScheme.error,
-            foregroundColor: Theme.of(ctx).colorScheme.onError,
-          ),
-          onPressed: () => Navigator.pop(ctx, true),
-          child: Text(l10n.adminDelete),
-        ),
-      ],
-    ),
+  final ok = await confirmDialog(
+    context,
+    title: title,
+    body: body,
+    confirm: l10n.adminDelete,
+    confirmKey: const Key('confirm-bulk-delete'),
+    danger: true,
   );
-  return ok == true;
+  return ok;
 }
 
 /// Lets the admin pick one tag of the catalog; null when dismissed.
