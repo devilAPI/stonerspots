@@ -21,14 +21,14 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:liquid_glass_easy/liquid_glass_easy.dart';
+import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 
 const phone = Size(400, 800);
 const desktop = Size(1400, 900);
 const tabs = [
-  LiquidGlassTabBarItem(icon: Icons.map_outlined, label: 'Map'),
-  LiquidGlassTabBarItem(icon: Icons.dynamic_feed_outlined, label: 'Feed'),
-  LiquidGlassTabBarItem(icon: Icons.person_outline, label: 'Profile'),
+  BottomBarTab(icon: Icons.map_outlined, label: 'Map'),
+  BottomBarTab(icon: Icons.dynamic_feed_outlined, label: 'Feed'),
+  BottomBarTab(icon: Icons.person_outline, label: 'Profile'),
 ];
 const navItems = [
   NavItem(Icons.map_outlined, 'Map'),
@@ -103,11 +103,10 @@ Future<void> pumpIn(
 
 /// Nothing of the glass engine in the tree: no backdrop read at all.
 void expectNoGlass() {
-  expect(find.byType(LiquidGlassLens), findsNothing);
-  expect(find.byType(LiquidGlassLite), findsNothing);
-  expect(find.byType(LiquidGlassTabBar), findsNothing);
-  expect(find.byType(LiquidGlassFab), findsNothing);
-  expect(find.byType(LiquidGlassSheet), findsNothing);
+  expect(find.byType(LiquidGlass), findsNothing);
+  expect(find.byType(LiquidGlassLayer), findsNothing);
+  expect(find.byType(LoupeTabBar), findsNothing);
+  expect(find.byType(LiquidStretch), findsNothing);
   expect(find.byType(BackdropFilter), findsNothing);
 }
 
@@ -131,7 +130,7 @@ void main() {
   group('GlassSurface', () {
     testWidgets('is a lens by default', (t) async {
       await pumpIn(t, const GlassSurface(child: Text('hi')), solid: false);
-      expect(find.byType(LiquidGlassLens), findsOneWidget);
+      expect(find.byType(LiquidGlass), findsOneWidget);
     });
 
     testWidgets('solid: no lens, and nothing shines through', (t) async {
@@ -323,10 +322,10 @@ void main() {
           body: const Center(child: Text('body')),
         ),
         [
-          find.text('Map'),
-          find.text('Feed'),
-          find.text('Profile'),
-          find.byIcon(Icons.person_outline),
+          // glass tabs draw their icons as text, and every tab twice
+          find.text('Map').first,
+          find.text('Feed').first,
+          find.text('Profile').first,
           find.text('body'),
         ],
         padding: const EdgeInsets.only(bottom: 30),
@@ -535,7 +534,7 @@ void main() {
       addTearDown(t.view.reset);
       await t.pumpWidget(app(false));
       final state = key.currentState;
-      expect(find.byType(LiquidGlassTabBar), findsOneWidget);
+      expect(find.byType(LoupeTabBar), findsOneWidget);
       await t.pumpWidget(app(true));
       await t.pump();
       expectNoGlass();

@@ -55,7 +55,14 @@ dependencies:
   web: ^1.1.1
   crypto: ^3.0.8
   share_plus: ^13.3.1
-  liquid_glass_easy: ^5.1.0
+  # Fork with the fake-glass ring fix (whynotmake-it/flutter_liquid_glass#266)
+  # until it is released.
+  liquid_glass_renderer:
+    git:
+      url: https://github.com/devilAPI/flutter_liquid_glass.git
+      ref: fc00500898d35a09bb1f5423df87e2d512025cfa
+      path: packages/liquid_glass_renderer
+  motor: ^1.1.0
   shared_preferences: ^2.5.6
   package_info_plus: ^10.2.2
   cryptography: ^2.9.0

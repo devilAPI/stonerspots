@@ -1,8 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:liquid_glass_easy/liquid_glass_easy.dart'
-    show LiquidGlassTabBarItem;
 
 import 'glass.dart';
 import 'responsive.dart';
@@ -68,7 +66,7 @@ class AdaptiveNavScaffold extends StatelessWidget {
               onChanged: onSelected,
               items: [
                 for (final i in items)
-                  LiquidGlassTabBarItem(icon: i.icon, label: i.label),
+                  BottomBarTab(icon: i.icon, label: i.label),
               ],
             ),
           ],

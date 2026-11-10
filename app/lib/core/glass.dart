@@ -1,6 +1,14 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:liquid_glass_easy/liquid_glass_easy.dart';
+import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
+
+import 'loupe_tab_bar/loupe_tab_bar.dart';
+
+export 'loupe_tab_bar/loupe_tab_bar.dart' show BottomBarTab, LoupeTabBar;
 
 /// Height of the floating glass tab bar and the gap kept below it. The shell
 /// adds both to the bottom padding it hands to its pages.
@@ -44,22 +52,20 @@ Color glassTint(BuildContext context) =>
     SolidGlass.of(context) ? kSolidGlass : _glassTint;
 
 /// The app's one glass look, so bars, buttons and sheets match.
-LiquidGlassStyle glassStyle({double radius = 28}) => LiquidGlassStyle(
-  shape: LiquidGlassShape.continuousRoundedRectangle(cornerRadius: radius),
-  specular: const LiquidGlassLight.specular(),
-  color: _glassTint,
-  blur: 7,
-  refractionIndex: 1.08,
-  refractionWidth: 16,
-);
+const kGlassSettings = LiquidGlassSettings();
 
-/// Call once before [runApp]: Skia and the web have no live backdrop to
-/// refract, so they get the frosted variant; pre-compiling the shaders
-/// avoids an empty first frame of glass on Impeller.
-Future<void> initGlass() async {
-  LiquidGlassEngine.liteGlassOnSkia = true;
-  await LiquidGlassShaders.ensureLoaded();
-}
+/// Whether glass is drawn as fake glass (a frosted backdrop with the glass
+/// rim, no refraction): on the web and wherever Impeller shader filters are
+/// missing (Skia, the Linux build).
+final bool kFakeGlass = kIsWeb || !ui.ImageFilter.isShaderFilterSupported;
+
+/// The tint of glass here, [color] or [glassTint]'s.
+LiquidGlassAppearance glassAppearance([Color color = _glassTint]) =>
+    LiquidGlassAppearance(tint: color);
+
+/// Call once before [runApp]: loads the glass shaders, so the first glass
+/// on screen is not drawn without them for a frame or two.
+Future<void> initGlass() => LiquidGlass.precache();
 
 /// The bare surface every piece of glass stands on: a lens, or under
 /// [SolidGlass] a filled shape. Either way it clips [child]. Glass takes no
@@ -81,9 +87,11 @@ class GlassPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!SolidGlass.of(context)) {
-      final style = glassStyle(radius: radius);
-      return LiquidGlassLens(
-        style: color == null ? style : style.copyWith(color: color),
+      return LiquidGlass.withOwnLayer(
+        settings: kGlassSettings,
+        fake: kFakeGlass,
+        shape: LiquidRoundedSuperellipse(borderRadius: radius),
+        appearance: glassAppearance(color ?? _glassTint),
         child: child,
       );
     }
@@ -262,12 +270,21 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-const _tabPadding = 6.0;
-const _tabItemStyle = LiquidGlassTabItemStyle(
-  selectedColor: kOnGlass,
-  unselectedColor: Color(0xB3FFFFFF),
-);
+/// The tab row's inset, as in [LoupeTabBar], so solid tabs sit where the
+/// glass ones do.
+const _tabPadding = EdgeInsets.symmetric(horizontal: 9, vertical: 4);
+const _tabUnselected = Color(0xB3FFFFFF);
+const _tabIconSize = 24.0;
+const _tabLabelSize = 10.0;
+const _tabLabelGap = 3.0;
 const _tabPillColor = Color(0x2EAEAEB2);
+
+/// Blend distance of the tab bar's glass: below the gap to anything beside
+/// it, so it only merges with what is pulled close.
+const _tabBlend = 5.0;
+const _tabShadows = [
+  BoxShadow(color: Color(0x33000000), blurRadius: 24, offset: Offset(0, 8)),
+];
 const _tabSlide = Duration(milliseconds: 320);
 
 /// The floating tab bar. It places itself at the bottom of the [Stack] it is
@@ -282,28 +299,13 @@ class GlassTabBar extends StatelessWidget {
   });
 
   final double width;
-  final List<LiquidGlassTabBarItem> items;
+  final List<BottomBarTab> items;
   final int selectedIndex;
   final ValueChanged<int> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    if (!SolidGlass.of(context)) {
-      return LiquidGlassTabBar(
-        width: width,
-        height: kGlassTabBarHeight,
-        // on top of the safe area, which the bar adds itself
-        margin: const EdgeInsets.only(bottom: kGlassTabBarGap),
-        selectedIndex: selectedIndex,
-        onChanged: onChanged,
-        style: glassStyle(radius: kGlassTabBarHeight / 2),
-        pillStyle: const LiquidGlassTabPillStyle(
-          mode: LiquidGlassPillMode.impellerOnly,
-        ),
-        itemStyle: _tabItemStyle,
-        items: items,
-      );
-    }
+    final glass = !SolidGlass.of(context);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -315,15 +317,36 @@ class GlassTabBar extends StatelessWidget {
             child: SizedBox(
               width: width,
               height: kGlassTabBarHeight,
-              child: GlassPanel(
-                radius: kGlassTabBarHeight / 2,
-                child: _SolidTabs(
-                  cellWidth: (width - 2 * _tabPadding) / items.length,
-                  items: items,
-                  selectedIndex: selectedIndex,
-                  onChanged: onChanged,
-                ),
-              ),
+              child: glass
+                  ? LiquidGlassLayer(
+                      settings: kGlassSettings,
+                      fake: kFakeGlass,
+                      defaultAppearance: glassAppearance(),
+                      child: LiquidGlassBlendGroup(
+                        blend: _tabBlend,
+                        child: LoupeTabBar(
+                          tabs: items,
+                          selectedIndex: selectedIndex,
+                          onSelected: onChanged,
+                          height: kGlassTabBarHeight,
+                          shadows: _tabShadows,
+                          fake: kFakeGlass,
+                          labelColor: kOnGlass,
+                          tint: Theme.of(context).colorScheme.primary,
+                          tintBrightness: Brightness.dark,
+                        ),
+                      ),
+                    )
+                  : GlassPanel(
+                      radius: kGlassTabBarHeight / 2,
+                      child: _SolidTabs(
+                        cellWidth:
+                            (width - _tabPadding.horizontal) / items.length,
+                        items: items,
+                        selectedIndex: selectedIndex,
+                        onChanged: onChanged,
+                      ),
+                    ),
             ),
           ),
         ),
@@ -343,7 +366,7 @@ class _SolidTabs extends StatefulWidget {
   });
 
   final double cellWidth;
-  final List<LiquidGlassTabBarItem> items;
+  final List<BottomBarTab> items;
   final int selectedIndex;
   final ValueChanged<int> onChanged;
 
@@ -370,7 +393,7 @@ class _SolidTabsState extends State<_SolidTabs> {
   Widget _tab(int i, int selected) {
     final item = widget.items[i];
     final isSelected = i == selected;
-    final color = _tabItemStyle.colorFor(selected: isSelected);
+    final color = isSelected ? kOnGlass : _tabUnselected;
     return Expanded(
       child: MergeSemantics(
         child: Semantics(
@@ -381,20 +404,15 @@ class _SolidTabsState extends State<_SolidTabs> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  item.icon,
-                  color: color,
-                  size: _tabItemStyle.iconSizeFor(underGlass: 0),
-                ),
-                SizedBox(height: _tabItemStyle.iconLabelGap),
+                Icon(item.icon, color: color, size: _tabIconSize),
+                const SizedBox(height: _tabLabelGap),
                 Text(
-                  item.label!,
+                  item.label,
                   style: TextStyle(
                     color: color,
-                    fontSize: _tabItemStyle.labelFontSizeFor(underGlass: 0),
-                    fontWeight: _tabItemStyle.fontWeightFor(
-                      selected: isSelected,
-                    ),
+                    fontSize: _tabLabelSize,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0,
                   ),
                 ),
               ],
@@ -410,7 +428,7 @@ class _SolidTabsState extends State<_SolidTabs> {
     final held = _held;
     final selected = held?.round() ?? widget.selectedIndex;
     return Padding(
-      padding: const EdgeInsets.all(_tabPadding),
+      padding: _tabPadding,
       child: RawGestureDetector(
         behavior: HitTestBehavior.opaque,
         gestures: {
@@ -483,17 +501,8 @@ class GlassFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!SolidGlass.of(context)) {
-      return LiquidGlassFab.extended(
-        style: glassStyle(radius: radius),
-        foregroundColor: kOnGlass,
-        onPressed: onPressed,
-        icon: icon,
-        label: label,
-      );
-    }
     final corners = BorderRadius.circular(radius);
-    return SizedBox(
+    final button = SizedBox(
       height: _fabHeight,
       child: GlassPanel(
         radius: radius,
@@ -531,6 +540,9 @@ class GlassFab extends StatelessWidget {
         ),
       ),
     );
+    if (SolidGlass.of(context)) return button;
+    // swells and stretches under the finger, like the tab bar
+    return LiquidStretch(interactionScale: 1.05, child: button);
   }
 }
 
@@ -598,18 +610,6 @@ Future<T?> showGlassSheet<T>({
   bool isScrollControlled = false,
   BoxConstraints? constraints,
 }) {
-  if (!SolidGlass.of(context)) {
-    return showLiquidGlassSheet<T>(
-      context: context,
-      style: glassStyle(radius: radius),
-      foregroundColor: kOnGlass,
-      padding: EdgeInsets.zero,
-      useRootNavigator: useRootNavigator,
-      isScrollControlled: isScrollControlled,
-      constraints: constraints,
-      builder: builder,
-    );
-  }
   return showModalBottomSheet<T>(
     context: context,
     backgroundColor: Colors.transparent,
@@ -620,23 +620,26 @@ Future<T?> showGlassSheet<T>({
     constraints: constraints,
     builder: (context) => Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: _SolidSheet(radius: radius, child: builder(context)),
+      child: _GlassSheet(radius: radius, child: builder(context)),
     ),
   );
 }
 
-/// What [LiquidGlassSheet] lays out, on a solid surface.
-class _SolidSheet extends StatelessWidget {
-  const _SolidSheet({required this.radius, required this.child});
+/// A sheet floating above the bottom edge: a drag handle over [child], on
+/// glass or, without it, a solid surface.
+class _GlassSheet extends StatelessWidget {
+  const _GlassSheet({required this.radius, required this.child});
 
   final double radius;
   final Widget child;
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: LiquidGlassSheet.defaultMargin(
-      LiquidGlassSheetAnchor.floating,
-      bottomInset: MediaQuery.viewPaddingOf(context).bottom,
+    padding: EdgeInsets.fromLTRB(
+      10,
+      0,
+      10,
+      math.max(10, MediaQuery.viewPaddingOf(context).bottom),
     ),
     child: GlassPanel(
       radius: radius,

@@ -3,6 +3,14 @@
 Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 "Releasing 1.0". Development builds (`dev-<n>`) are not listed here.
 
+## Unreleased
+
+- Glass: bars, buttons, sheets and the tab bar use liquid_glass_renderer
+  instead of liquid_glass_easy. Holding the tab bar swells it and lifts a
+  loupe over the selected tab that follows the finger, also on the web;
+  letting go snaps to the tab beneath it. (A fork of the package until its
+  web fix, whynotmake-it/flutter_liquid_glass#266, is released.)
+
 ## 1.0.6
 
 - Map: every spot shows up again when zoomed out. The map loaded at most

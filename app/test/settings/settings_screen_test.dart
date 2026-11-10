@@ -12,7 +12,7 @@ import 'package:app/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liquid_glass_easy/liquid_glass_easy.dart';
+import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app/features/users/users_repository.dart';
 
@@ -132,18 +132,18 @@ void main() {
       await t.runAsync(() async => store = await SettingsStore.load());
       await t.pumpWidget(page(store: store));
       await t.pump();
-      expect(find.byType(LiquidGlassLens), findsOneWidget); // the app bar
+      expect(find.byType(LiquidGlass), findsOneWidget); // the app bar
 
       await t.tap(find.byKey(_toggle));
       await t.pump();
-      expect(find.byType(LiquidGlassLens), findsNothing);
+      expect(find.byType(LiquidGlass), findsNothing);
       expect(store.getBool('disable_transparency'), isTrue);
       final prefs = await t.runAsync(SharedPreferences.getInstance);
       expect(prefs!.getBool('disable_transparency'), isTrue);
 
       await t.tap(find.byKey(_toggle));
       await t.pump();
-      expect(find.byType(LiquidGlassLens), findsOneWidget);
+      expect(find.byType(LiquidGlass), findsOneWidget);
     });
 
     testWidgets("what's new in 1.0 lists the main features", (t) async {
@@ -197,7 +197,7 @@ void main() {
       late final SettingsStore store;
       await t.runAsync(() async => store = await SettingsStore.load());
       await t.pumpWidget(page(store: store));
-      expect(find.byType(LiquidGlassLens), findsNothing);
+      expect(find.byType(LiquidGlass), findsNothing);
     });
   });
 
@@ -209,7 +209,7 @@ void main() {
       await t.pumpAndSettle();
       expect(find.byType(SettingsScreen), findsOneWidget);
       // outside the shell: no tab bar
-      expect(find.byType(LiquidGlassTabBar), findsNothing);
+      expect(find.byType(LoupeTabBar), findsNothing);
       await t.tap(find.byType(BackButton));
       await t.pumpAndSettle();
       expect(find.byType(SettingsScreen), findsNothing);
@@ -234,16 +234,16 @@ void main() {
 
     testWidgets('the tab bar is solid after coming back', (t) async {
       await pumpRouter(t, '/profile');
-      expect(find.byType(LiquidGlassTabBar), findsOneWidget);
+      expect(find.byType(LoupeTabBar), findsOneWidget);
       await t.tap(find.byKey(const Key('open-settings')));
       await t.pumpAndSettle();
       await t.tap(find.byKey(_toggle));
       await t.pump();
-      expect(find.byType(LiquidGlassLens), findsNothing);
+      expect(find.byType(LiquidGlass), findsNothing);
       await t.tap(find.byType(BackButton));
       await t.pumpAndSettle();
-      expect(find.byType(LiquidGlassTabBar), findsNothing);
-      expect(find.byType(LiquidGlassLens), findsNothing);
+      expect(find.byType(LoupeTabBar), findsNothing);
+      expect(find.byType(LiquidGlass), findsNothing);
       expect(find.text('Profile'), findsWidgets);
     });
   });
