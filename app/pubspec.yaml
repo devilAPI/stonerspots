@@ -20,7 +20,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # number with the workflow run number, so every CI build, dev or release, has
 # a higher Android versionCode than the one before it. The +1 here only
 # applies to local builds. A release tag vX.Y.Z must match this version.
-version: 1.0.8+1
+version: 1.0.9+1
 
 environment:
   sdk: ^3.13.4
