@@ -73,6 +73,12 @@ class ZoneTileCache {
 
   // insertion-ordered: the first entry is the least recently used
   final _tiles = <ZoneTileId, (ZoneData, DateTime)>{};
+  final _arrived = StreamController<(ZoneTileId, ZoneData)>.broadcast();
+
+  /// Every tile the server answered, also one that replaces an older copy
+  /// (after [freshFor] or [staleAfter]): whatever shows a tile's zones
+  /// follows it, so the map and a spot's status never show two versions.
+  Stream<(ZoneTileId, ZoneData)> get arrived => _arrived.stream;
   final _pending = <ZoneTileId, Future<ZoneData>>{};
 
   /// The tile if it is loaded (fresh or stale), without fetching.
@@ -99,6 +105,7 @@ class ZoneTileCache {
       while (_tiles.length > maxTiles) {
         _tiles.remove(_tiles.keys.first);
       }
+      _arrived.add((id, data));
       return data;
     } catch (_) {
       if (old != null) return old;
@@ -111,9 +118,16 @@ class ZoneTileCache {
   /// The zones of the tiles around [p] (every place within [metres] is
   /// among them). Throws when a tile cannot be loaded.
   Future<ZoneData> zonesNear(LatLng p, double metres) async {
-    final tiles = await Future.wait([
-      for (final t in tilesAround(p, metres)) tile(t),
-    ]);
+    // All asked for at once, then awaited one by one: not Future.wait,
+    // which loses the answers of tiles already in memory (they come as
+    // SynchronousFuture, whose callback runs before Future.wait is ready
+    // for it). A spot's status then saw no zones at all and said "no zone"
+    // right where the map, which had loaded those tiles, showed red.
+    final pending = [for (final t in tilesAround(p, metres)) tile(t)];
+    final tiles = <ZoneData>[];
+    for (final f in pending) {
+      tiles.add(await f);
+    }
     final seen = <String>{};
     return ZoneData(
       zones: [

@@ -3,6 +3,21 @@
 Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 "Releasing 1.0". Development builds (`dev-<n>`) are not listed here.
 
+## 1.0.13
+
+- Zone status of a spot said "Keine Verbotszone" where the map showed it
+  red: once the map had loaded the zone tiles around a spot, the status
+  check read none of their zones (it collected the tiles with
+  `Future.wait`, which drops answers that are already in memory). The
+  spot page, the map's spot card and the add-spot warning were affected.
+- The map and a spot's zone status follow every refresh of a zone tile,
+  so they never show two versions of it.
+- Phones (iOS home-screen app most of all): with the keyboard open, the
+  map page was an empty strip, because the keyboard's height was taken
+  off twice (by the tab bar's frame and again by the page). The frame no
+  longer makes room for the keyboard; the page does, once, and the tab
+  bar stays behind the keyboard.
+
 ## 1.0.12
 
 - Feed filters reworked: the sort (New, Top, Nearby) is one glass row of

@@ -10,6 +10,7 @@ import 'package:app/features/zones/zone_tiles.dart';
 import 'package:app/features/zones/zones_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'zone_fixtures.dart';
 
@@ -207,6 +208,37 @@ void main() {
       repo.fail = true; // the refresh fails: the older copy stays
       expect(await cache.tile(t), isNotNull);
       expect(repo.asked, hasLength(3));
+    });
+
+    test('zonesNear: tiles already loaded count too', () async {
+      // the map loaded the tile first; the spot's status then found no
+      // zone in it (Future.wait dropped the synchronous answers)
+      final repo = repoWith([point('n/1', ZoneKind.sports, at(0, 20))]);
+      final cache = ZoneTileCache(repo);
+      expect((await cache.zonesNear(base, 120)).zones, hasLength(1));
+      expect((await cache.zonesNear(base, 120)).zones, hasLength(1));
+      // near a tile edge, one loaded and one not
+      final edge = LatLng(base.latitude, (578 + 1) * kZoneTileSize - 0.0005);
+      final cache2 = ZoneTileCache(repo);
+      await cache2.tile(ZoneTileId.at(edge.latitude, edge.longitude));
+      expect(tilesAround(edge, 120), hasLength(2));
+      expect((await cache2.zonesNear(edge, 120)).zones, hasLength(1));
+      expect(repo.asked, hasLength(3));
+    });
+
+    test('reports every tile that arrives, also a refresh', () async {
+      var now = DateTime(2026, 1, 1, 12);
+      final cache = ZoneTileCache(FakeZonesRepository(), now: () => now);
+      final seen = <ZoneTileId>[];
+      final sub = cache.arrived.listen((e) => seen.add(e.$1));
+      const t = ZoneTileId(1, 1);
+      await cache.tile(t);
+      await cache.tile(t); // from memory: nothing new
+      now = now.add(const Duration(hours: 2));
+      await cache.tile(t);
+      await Future<void>.delayed(Duration.zero);
+      expect(seen, [t, t]);
+      await sub.cancel();
     });
 
     test('keeps at most maxTiles, dropping the least recently used', () async {

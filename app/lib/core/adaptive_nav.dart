@@ -20,7 +20,11 @@ const double _extendedRailWidth = 200;
 /// desktop), extended with labels on wide windows.
 ///
 /// [body] runs edge to edge beneath it; the space the navigation covers is
-/// added to the body's [MediaQuery] padding.
+/// added to the body's [MediaQuery] padding. The keyboard is left to the
+/// body: this scaffold does not shrink for it (the tabs stay behind it), and
+/// the body's pages make room once, themselves. Shrinking here as well took
+/// the keyboard's height off twice, which left the map page an empty strip
+/// above the keyboard.
 class AdaptiveNavScaffold extends StatelessWidget {
   const AdaptiveNavScaffold({
     super.key,
@@ -57,6 +61,7 @@ class AdaptiveNavScaffold extends StatelessWidget {
     if (!context.useNavRail) {
       final width = MediaQuery.sizeOf(context).width;
       return Scaffold(
+        resizeToAvoidBottomInset: false,
         body: Stack(
           children: [
             _bodyBeneath(
@@ -88,6 +93,7 @@ class AdaptiveNavScaffold extends StatelessWidget {
     final extended = context.extendedRail;
     final railWidth = extended ? _extendedRailWidth : _railWidth;
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           _bodyBeneath(

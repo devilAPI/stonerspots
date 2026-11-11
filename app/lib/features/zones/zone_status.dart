@@ -9,6 +9,7 @@ import 'germany.dart';
 import 'zone_consent.dart';
 import 'zone_geo.dart';
 import 'zone_models.dart';
+import 'zone_tiles.dart';
 import 'zones_repository.dart';
 
 /// What the zone data says about one place.
@@ -73,13 +74,23 @@ final zoneStatusRetryProvider = Provider<Duration>(
 
 /// The zone status of a spot; only read while [zonesActiveProvider] holds.
 /// "Could not be checked" is checked again every [zoneStatusRetryProvider]
-/// while something shows it.
+/// while something shows it, and it is checked again whenever one of its
+/// tiles arrives anew (the map then redraws it too).
 final zoneStatusProvider = FutureProvider.autoDispose
     .family<ZoneStatus, ({double lat, double lon})>((ref, p) async {
-      final status = await checkZones(
-        ref.watch(zoneTileCacheProvider),
-        LatLng(p.lat, p.lon),
-      );
+      final cache = ref.watch(zoneTileCacheProvider);
+      final at = LatLng(p.lat, p.lon);
+      final status = await checkZones(cache, at);
+      if (!ref.mounted) return status;
+      final tiles = tilesAround(at, kZoneRadius + 20).toSet();
+      final used = {for (final t in tiles) t: cache.peek(t)};
+      final sub = cache.arrived.listen((e) {
+        final (t, data) = e;
+        if (tiles.contains(t) && !identical(used[t], data)) {
+          ref.invalidateSelf();
+        }
+      });
+      ref.onDispose(sub.cancel);
       if (status.verdict == ZoneVerdict.unknown) {
         final retry = Timer(
           ref.read(zoneStatusRetryProvider),

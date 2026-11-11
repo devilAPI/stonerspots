@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:app/features/zones/germany.dart';
 import 'package:app/features/map/buildings/map_tilt.dart';
 import 'package:app/features/map/map_gestures.dart';
@@ -628,6 +630,32 @@ void main() {
       await t.pumpAndSettle();
       expect(find.byKey(const Key('zoneStatus-clear')), findsOneWidget);
       expect(find.text('No zone'), findsOneWidget);
+    });
+
+    testWidgets('a tile that arrives anew is checked again', (t) async {
+      // the map refreshes an older copy of the tile: the chip follows
+      var now = DateTime(2026, 11, 11, 23);
+      final repo = repoWith([]);
+      final cache = ZoneTileCache(repo, now: () => now);
+      await pumpChip(t, [
+        ...overridesFor(repo),
+        zoneTileCacheProvider.overrideWithValue(cache),
+      ], base);
+      expect(find.byKey(const Key('zoneStatus-clear')), findsOneWidget);
+
+      final tile = ZoneTileId.at(base.latitude, base.longitude);
+      repo.tiles[tile] = ZoneData(
+        zones: [point('n/1', ZoneKind.sports, at(0, 20))],
+      );
+      now = now.add(const Duration(hours: 2));
+      unawaited(cache.tile(tile)); // as the map does after a while
+      await t.pumpAndSettle();
+      // ignore: avoid_print
+      print(
+        'DBG asked ${repo.asked.length} peek ${cache.peek(tile)?.zones.length} keys ${find.byWidgetPredicate((w) => w.key is ValueKey<String> && (w.key! as ValueKey<String>).value.startsWith('zoneStatus')).evaluate().map((e) => e.widget.key)}',
+      );
+      expect(find.byKey(const Key('zoneStatus-forbidden')), findsOneWidget);
+      expect(t.takeException(), isNull);
     });
 
     testWidgets('red: near a playground, with kind and distance', (t) async {

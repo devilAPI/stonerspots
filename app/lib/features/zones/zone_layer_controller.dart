@@ -158,7 +158,16 @@ class ZoneLayerController extends Notifier<ZoneLayerState> {
 
   @override
   ZoneLayerState build() {
+    // a tile the cache got anew (it is refreshed after a while): redraw it
+    final arrivals = ref.read(zoneTileCacheProvider).arrived.listen((e) {
+      final (t, data) = e;
+      final drawn = _graphics[t];
+      if (drawn == null || identical(drawn.zones, data.zones)) return;
+      _graphics[t] = ZoneTileGraphics.build(t, data.zones);
+      _publish();
+    });
     ref.onDispose(() {
+      arrivals.cancel();
       _debounce?.cancel();
       _clock?.cancel();
       _retry?.cancel();
