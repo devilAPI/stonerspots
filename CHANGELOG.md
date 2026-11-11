@@ -25,6 +25,10 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
   nearest spot comes first. Server side; needs the new server.
 - Spot page without photos on a phone: the map's style and recenter
   buttons were behind the title bar; they sit below it now.
+- Zone data is kept at most an hour, in the browser (was a day) and in
+  an app left open (was the whole session): after the zones were rebuilt,
+  an older copy could still show a spot as "Keine Verbotszone" while it
+  lies in one.
 - Backend built with Go 1.27.4: fixes a vulnerability in the standard
   library's HTTP server and client (GO-2026-6859).
 

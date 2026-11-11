@@ -52,19 +52,23 @@ final zonesRepositoryProvider = Provider<ZonesRepository>(
 
 /// Tiles fetched this session, shared by the map layer, the spot status and
 /// the add-spot check. Requests for a tile already on the way wait for that
-/// one. Data the server marked stale is asked for again after [staleAfter];
-/// failures are not cached.
+/// one. Data the server marked stale is asked for again after [staleAfter],
+/// fresh data after [freshFor] (the zones are rebuilt weekly, and an app
+/// left open, like a home-screen app on iOS, runs for days); failures are
+/// not cached, and while a refresh fails the older copy is used.
 class ZoneTileCache {
   ZoneTileCache(
     this._repo, {
     this.maxTiles = 200,
     this.staleAfter = const Duration(minutes: 10),
+    this.freshFor = const Duration(hours: 1),
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
   final ZonesRepository _repo;
   final int maxTiles;
   final Duration staleAfter;
+  final Duration freshFor;
   final DateTime Function() _now;
 
   // insertion-ordered: the first entry is the least recently used
@@ -80,7 +84,7 @@ class ZoneTileCache {
     if (hit != null) {
       _tiles[id] = hit; // most recently used
       final (data, at) = hit;
-      if (!data.stale || _now().difference(at) < staleAfter) {
+      if (_now().difference(at) < (data.stale ? staleAfter : freshFor)) {
         return SynchronousFuture(data);
       }
     }

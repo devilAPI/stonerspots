@@ -191,6 +191,24 @@ void main() {
       expect(repo.asked, hasLength(2));
     });
 
+    test('fresh data is asked for again after an hour', () async {
+      var now = DateTime(2026, 1, 1, 12);
+      final repo = FakeZonesRepository();
+      final cache = ZoneTileCache(repo, now: () => now);
+      const t = ZoneTileId(1, 1);
+      await cache.tile(t);
+      now = now.add(const Duration(minutes: 59));
+      await cache.tile(t);
+      expect(repo.asked, hasLength(1));
+      now = now.add(const Duration(minutes: 2));
+      await cache.tile(t);
+      expect(repo.asked, hasLength(2));
+      now = now.add(const Duration(hours: 2));
+      repo.fail = true; // the refresh fails: the older copy stays
+      expect(await cache.tile(t), isNotNull);
+      expect(repo.asked, hasLength(3));
+    });
+
     test('keeps at most maxTiles, dropping the least recently used', () async {
       final repo = FakeZonesRepository();
       final cache = ZoneTileCache(repo, maxTiles: 2);

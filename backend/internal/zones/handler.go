@@ -162,8 +162,10 @@ func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	// an hour: the zones are rebuilt weekly, and a copy kept for a day can
+	// still show a spot as clear after the rebuild added a zone there
 	if !out.Stale {
-		w.Header().Set("Cache-Control", "public, max-age=86400")
+		w.Header().Set("Cache-Control", "public, max-age=3600")
 	}
 	httpx.JSON(w, http.StatusOK, out)
 }

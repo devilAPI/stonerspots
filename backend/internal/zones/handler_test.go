@@ -211,6 +211,8 @@ func TestZonesStaleOnUpstreamFailure(t *testing.T) {
 	h := router(testDeps(ratelimit.Rule{}, true), svc)
 	if rec, _ := get(t, h, 48.12, 11.56, 48.14, 11.58); rec.Code != 200 {
 		t.Fatal(rec.Body)
+	} else if got := rec.Header().Get("Cache-Control"); got != "public, max-age=3600" {
+		t.Errorf("fresh answers: Cache-Control %q, want an hour", got)
 	}
 
 	// a week later Overpass is down: the old copy at once, marked stale,
