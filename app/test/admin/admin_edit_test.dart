@@ -126,6 +126,7 @@ class _Fake implements AdminRepository {
       id: id,
       email: patch.email ?? u.email,
       displayName: patch.displayName ?? u.displayName,
+      bio: patch.bio ?? u.bio,
       isAdmin: patch.isAdmin ?? u.isAdmin,
       createdAt: u.createdAt,
       spotCount: u.spotCount,
@@ -282,6 +283,18 @@ void main() {
             {'email': 'new@x.de', 'is_admin': true},
           ]);
           expect(find.text('new@x.de'), findsOneWidget);
+        });
+
+        testWidgets('an admin can change or clear the bio', (tester) async {
+          final repo = _Fake();
+          await _pump(tester, repo, e.value);
+          await _tab(tester, 'Users');
+          await _tap(tester, 'user-edit-2');
+          await _type(tester, 'edit-user-bio', '  nicer words ');
+          await _tap(tester, 'edit-user-save');
+          expect(repo.userPatches, [
+            {'bio': 'nicer words'},
+          ]);
         });
 
         testWidgets('unchanged form does not call the API', (tester) async {

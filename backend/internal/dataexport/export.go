@@ -104,6 +104,7 @@ type Profile struct {
 	ID               uint64     `json:"id"`
 	Email            string     `json:"email"`
 	DisplayName      string     `json:"display_name"`
+	Bio              string     `json:"bio"`
 	CreatedAt        time.Time  `json:"created_at"`
 	AdultConfirmedAt *time.Time `json:"adult_confirmed_at"`
 	EmailVerified    bool       `json:"email_verified"`
@@ -301,9 +302,9 @@ func (b *builder) profile() error {
 	p := &b.doc.Profile
 	var adult, banned sql.NullTime
 	var avatar sql.NullString
-	err := b.tx.QueryRowContext(b.ctx, `SELECT id, email, display_name, created_at, adult_confirmed_at,
+	err := b.tx.QueryRowContext(b.ctx, `SELECT id, email, display_name, bio, created_at, adult_confirmed_at,
 		email_verified, is_admin, totp_enabled, avatar_key, banned_at FROM users WHERE id = ?`, b.uid).
-		Scan(&p.ID, &p.Email, &p.DisplayName, &p.CreatedAt, &adult, &p.EmailVerified, &p.IsAdmin,
+		Scan(&p.ID, &p.Email, &p.DisplayName, &p.Bio, &p.CreatedAt, &adult, &p.EmailVerified, &p.IsAdmin,
 			&p.TOTPEnabled, &avatar, &banned)
 	if err != nil {
 		return err

@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/go-sql-driver/mysql"
@@ -126,6 +127,44 @@ func ValidDisplayName(name string) (string, bool) {
 	name = strings.TrimSpace(name)
 	n := utf8.RuneCountInString(name)
 	return name, n >= 1 && n <= 80 && !strings.Contains(name, "@")
+}
+
+// MaxBioLen and MaxBioLines bound a profile's bio.
+const (
+	MaxBioLen   = 300
+	MaxBioLines = 6
+)
+
+// ValidBio tidies a bio: Windows line ends become \n, tabs spaces, other
+// control characters go, spaces at line ends and the whole text's ends
+// are trimmed, and more than one empty line in a row becomes one. ok is
+// false when the result is longer than MaxBioLen characters or
+// MaxBioLines lines. "" (no bio) is valid.
+func ValidBio(bio string) (string, bool) {
+	bio = strings.ReplaceAll(bio, "\r\n", "\n")
+	bio = strings.ReplaceAll(bio, "\r", "\n")
+	bio = strings.Map(func(r rune) rune {
+		switch {
+		case r == '\n':
+			return r
+		case r == '\t':
+			return ' '
+		case unicode.IsControl(r), r == '\u2028', r == '\u2029':
+			return -1
+		}
+		return r
+	}, bio)
+	lines := strings.Split(bio, "\n")
+	out := make([]string, 0, len(lines))
+	for _, l := range lines {
+		l = strings.TrimRightFunc(l, unicode.IsSpace)
+		if l == "" && len(out) > 0 && out[len(out)-1] == "" {
+			continue
+		}
+		out = append(out, l)
+	}
+	bio = strings.TrimSpace(strings.Join(out, "\n"))
+	return bio, utf8.RuneCountInString(bio) <= MaxBioLen && strings.Count(bio, "\n") < MaxBioLines
 }
 
 // DuplicateUserField names the users column whose unique key err violates

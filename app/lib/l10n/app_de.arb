@@ -728,5 +728,13 @@
   "updateChannelAndroidDowngrade": "Android installiert die stabile Version erst, wenn sie neuer ist als diese Dev-Version. Um sofort zu wechseln, deinstalliere die App vorher.",
   "map3d": "3D-Ansicht",
   "satelliteCredit": "Satellitenbilder: Esri World Imagery",
-  "zonesLoading": "Verbotszonen werden geladen…"
+  "zonesLoading": "Verbotszonen werden geladen…",
+  "userBioTitle": "Über mich",
+  "userBioAdd": "Bio hinzufügen",
+  "userBioEdit": "Bio bearbeiten",
+  "userBioHint": "Was sollen andere über dich wissen?",
+  "userBioTooManyLines": "Höchstens {lines} Zeilen",
+  "@userBioTooManyLines": {"placeholders": {"lines": {"type": "int"}}},
+  "userBioTooLong": "Die Bio ist zu lang",
+  "userBioSaveFailed": "Bio konnte nicht gespeichert werden"
 }

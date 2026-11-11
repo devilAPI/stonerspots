@@ -57,8 +57,8 @@ type fixture struct {
 
 func setup(t *testing.T, d *sql.DB) fixture {
 	var f fixture
-	f.me = mustExec(t, d, `INSERT INTO users (email, password_hash, display_name, adult_confirmed_at, email_verified, avatar_key, totp_secret)
-		VALUES ('me@beispiel.test', '$2a$12$secret-hash', 'Me', NOW(), 1, 'avatars/me.jpg', 'TOTPSECRET')`)
+	f.me = mustExec(t, d, `INSERT INTO users (email, password_hash, display_name, bio, adult_confirmed_at, email_verified, avatar_key, totp_secret)
+		VALUES ('me@beispiel.test', '$2a$12$secret-hash', 'Me', 'Meine Bio', NOW(), 1, 'avatars/me.jpg', 'TOTPSECRET')`)
 	f.other = mustExec(t, d, `INSERT INTO users (email, password_hash, display_name) VALUES ('other@beispiel.test', 'x', 'Other')`)
 	f.fan = mustExec(t, d, `INSERT INTO users (email, password_hash, display_name) VALUES ('fan@beispiel.test', 'x', 'Fan')`)
 
@@ -129,7 +129,7 @@ func TestExport(t *testing.T) {
 	}
 
 	p := doc.Profile
-	if p.ID != f.me || p.Email != "me@beispiel.test" || p.DisplayName != "Me" || !p.EmailVerified || p.AdultConfirmedAt == nil || p.CreatedAt.IsZero() {
+	if p.ID != f.me || p.Email != "me@beispiel.test" || p.DisplayName != "Me" || p.Bio != "Meine Bio" || !p.EmailVerified || p.AdultConfirmedAt == nil || p.CreatedAt.IsZero() {
 		t.Fatalf("profile = %+v", p)
 	}
 	if p.AvatarURL == nil || *p.AvatarURL != base+"/api/v1/media/avatars/me.jpg" {

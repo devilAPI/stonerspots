@@ -136,11 +136,15 @@ class AdminUser {
     required this.reportsReceived,
     this.banned = false,
     this.avatarUrl,
+    this.bio = '',
   });
 
   final int id;
   final String email;
   final String displayName;
+
+  /// What they wrote about themselves; empty when nothing.
+  final String bio;
   final bool isAdmin;
   final DateTime createdAt;
   final int spotCount;
@@ -162,6 +166,7 @@ class AdminUser {
     reportsReceived: (j['reports_received'] ?? 0) as int,
     banned: (j['banned'] ?? false) as bool,
     avatarUrl: parseAvatarUrl(j['avatar_url']),
+    bio: (j['bio'] ?? '') as String,
   );
 
   /// This user with a new profile picture set by an admin.
@@ -175,6 +180,7 @@ class AdminUser {
     reportsReceived: reportsReceived,
     banned: banned,
     avatarUrl: url,
+    bio: bio,
   );
 
   /// This user after an admin removed their profile picture.
@@ -187,6 +193,7 @@ class AdminUser {
     spotCount: spotCount,
     reportsReceived: reportsReceived,
     banned: banned,
+    bio: bio,
   );
 }
 
@@ -273,9 +280,12 @@ class AdminSpot {
 
 /// Fields of `PATCH /admin/users/{id}`; only set fields are serialized.
 class AdminUserPatch {
-  const AdminUserPatch({this.displayName, this.email, this.isAdmin});
+  const AdminUserPatch({this.displayName, this.bio, this.email, this.isAdmin});
 
   final String? displayName;
+
+  /// "" removes it.
+  final String? bio;
   final String? email;
   final bool? isAdmin;
 
@@ -283,6 +293,7 @@ class AdminUserPatch {
 
   Map<String, dynamic> toJson() => {
     'display_name': ?displayName,
+    'bio': ?bio,
     'email': ?email,
     'is_admin': ?isAdmin,
   };

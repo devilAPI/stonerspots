@@ -250,6 +250,7 @@ CREATE TABLE `users` (
   `banned_at` datetime DEFAULT NULL,
   `avatar_key` varchar(255) DEFAULT NULL,
   `totp_last_step` bigint(20) DEFAULT NULL,
+  `bio` varchar(300) NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_users_email` (`email`),
   UNIQUE KEY `uq_users_display_name` (`display_name`),
@@ -267,7 +268,7 @@ CREATE TABLE `zone_tiles` (
   KEY `idx_zone_tiles_fetched` (`fetched_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (28, 0);
+INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (29, 0);
 
 INSERT INTO `tags` (`tag`, `name_de`, `name_en`, `icon`, `sort`) VALUES
   ('roof', 'Überdacht', 'Roof', 'roof', 10),

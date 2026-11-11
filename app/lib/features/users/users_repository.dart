@@ -18,10 +18,14 @@ class UserProfile {
     this.following = false,
     this.isMe = false,
     this.avatarUrl,
+    this.bio = '',
   });
 
   final int id;
   final String displayName;
+
+  /// What they wrote about themselves; empty when nothing.
+  final String bio;
 
   /// The profile picture, or null when there is none.
   final String? avatarUrl;
@@ -48,6 +52,22 @@ class UserProfile {
     following: (j['following'] ?? false) as bool,
     isMe: (j['is_me'] ?? false) as bool,
     avatarUrl: parseAvatarUrl(j['avatar_url']),
+    bio: (j['bio'] ?? '') as String,
+  );
+
+  /// This profile with [bio] as its bio.
+  UserProfile withBio(String bio) => UserProfile(
+    id: id,
+    displayName: displayName,
+    createdAt: createdAt,
+    spotCount: spotCount,
+    updateCount: updateCount,
+    followerCount: followerCount,
+    followingCount: followingCount,
+    following: following,
+    isMe: isMe,
+    avatarUrl: avatarUrl,
+    bio: bio,
   );
 
   /// This profile after the caller followed ([follow]) or unfollowed it.
@@ -64,6 +84,7 @@ class UserProfile {
           following: follow,
           isMe: isMe,
           avatarUrl: avatarUrl,
+          bio: bio,
         );
 }
 
@@ -80,6 +101,11 @@ abstract class UsersRepository {
   /// Both are idempotent; they need a login.
   Future<void> follow(int id);
   Future<void> unfollow(int id);
+
+  /// Sets the caller's bio ("" removes it); resolves to it as the server
+  /// stored it (trimmed, blank lines collapsed). Throws [ApiException]
+  /// `invalid_bio` when it is too long.
+  Future<String> setBio(String bio);
 }
 
 class ApiUsersRepository implements UsersRepository {
@@ -119,6 +145,15 @@ class ApiUsersRepository implements UsersRepository {
   @override
   Future<void> unfollow(int id) async {
     await _api.delete<dynamic>('/users/$id/follow');
+  }
+
+  @override
+  Future<String> setBio(String bio) async {
+    final j = await _api.put<Map<String, dynamic>>(
+      '/me/bio',
+      data: {'bio': bio},
+    );
+    return (j['bio'] ?? '') as String;
   }
 }
 

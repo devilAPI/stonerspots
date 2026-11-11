@@ -53,6 +53,14 @@ class UserProfileController extends AsyncNotifier<UserProfile> {
       ref.read(feedControllerProvider.notifier).refresh();
     }
   }
+
+  /// Saves the caller's own bio; the profile shows it as stored. Throws
+  /// when it failed, with the profile unchanged.
+  Future<void> setBio(String bio) async {
+    final stored = await _repo.setBio(bio);
+    final now = state.value;
+    if (ref.mounted && now != null) state = AsyncData(now.withBio(stored));
+  }
 }
 
 /// Paging over one user's list, loading as soon as it is first watched.

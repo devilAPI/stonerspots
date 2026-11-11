@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -333,5 +334,67 @@ func TestUserUpdatesPaging(t *testing.T) {
 	}
 	if w := do(t, h, "GET", fmt.Sprintf("/users/%d/updates?cursor=nope", u), 0); w.Code != 400 {
 		t.Fatalf("bad cursor: %d", w.Code)
+	}
+}
+
+func TestBio(t *testing.T) {
+	db, h := setup(t)
+	me, other := testutil.NewUser(t, db), testutil.NewUser(t, db)
+	put := func(user uint64, body string) *httptest.ResponseRecorder {
+		t.Helper()
+		req := httptest.NewRequest("PUT", "/me/bio", strings.NewReader(body))
+		if user != 0 {
+			req.Header.Set("Authorization", "Bearer "+testutil.Token(t, user))
+		}
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, req)
+		return w
+	}
+	type bioProfile struct {
+		Bio string `json:"bio"`
+	}
+	bioOf := func(id uint64) string {
+		w := do(t, h, "GET", fmt.Sprintf("/users/%d", id), 0)
+		return decode[bioProfile](t, w).Bio
+	}
+	if got := bioOf(me); got != "" {
+		t.Fatalf("new users have no bio: %q", got)
+	}
+	if w := put(0, `{"bio":"x"}`); w.Code != 401 {
+		t.Fatalf("anonymous: %d", w.Code)
+	}
+	for _, body := range []string{`{}`, `{"bio":null}`, `{"bio":5}`, `nope`} {
+		if w := put(me, body); w.Code != 400 {
+			t.Errorf("%s: %d", body, w.Code)
+		}
+	}
+	if w := put(me, `{"bio":"`+strings.Repeat("a", 301)+`"}`); w.Code != 400 {
+		t.Fatalf("too long: %d", w.Code)
+	}
+
+	w := put(me, `{"bio":"  Chille gern am Isarufer.\r\n\r\n\r\nGrüße  "}`)
+	if w.Code != 200 {
+		t.Fatalf("set: %d %s", w.Code, w.Body)
+	}
+	const want = "Chille gern am Isarufer.\n\nGrüße"
+	if got := decode[bioProfile](t, w).Bio; got != want {
+		t.Fatalf("answer %q", got)
+	}
+	if got := bioOf(me); got != want {
+		t.Fatalf("profile %q", got)
+	}
+	if got := bioOf(other); got != "" {
+		t.Fatalf("someone else's bio changed: %q", got)
+	}
+	// the same again changes no row, and is still fine
+	if w := put(me, `{"bio":"`+strings.ReplaceAll(want, "\n", `\n`)+`"}`); w.Code != 200 {
+		t.Fatalf("unchanged: %d %s", w.Code, w.Body)
+	}
+	if w := put(me, `{"bio":""}`); w.Code != 200 || bioOf(me) != "" {
+		t.Fatalf("clear: %d, %q", w.Code, bioOf(me))
+	}
+	exec(t, db, `UPDATE users SET banned_at = NOW() WHERE id = ?`, other)
+	if w := put(other, `{"bio":"still here"}`); w.Code == 200 {
+		t.Fatalf("banned user set a bio")
 	}
 }

@@ -81,6 +81,7 @@ func field[T any](p map[string]json.RawMessage, key string, dst *T) (present, ok
 
 type userPatch struct {
 	displayName *string
+	bio         *string
 	email       *string
 	isAdmin     *bool
 }
@@ -92,7 +93,7 @@ func (h handler) patchUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	caller, _ := auth.UserID(r.Context())
-	p, ok := readPatch(w, r, "display_name", "email", "is_admin")
+	p, ok := readPatch(w, r, "display_name", "bio", "email", "is_admin")
 	if !ok {
 		return
 	}
@@ -109,6 +110,18 @@ func (h handler) patchUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		up.displayName = &name
+	}
+	var bio string
+	if present, good := field(p, "bio", &bio); !good {
+		badBody(w)
+		return
+	} else if present {
+		bio, ok := auth.ValidBio(bio)
+		if !ok {
+			httpx.Error(w, http.StatusBadRequest, "invalid_bio", "bio is too long")
+			return
+		}
+		up.bio = &bio
 	}
 	var e string
 	if present, good := field(p, "email", &e); !good {
@@ -188,6 +201,9 @@ func (r repo) patchUser(ctx context.Context, id, caller uint64, p userPatch) (us
 	var args []any
 	if p.displayName != nil {
 		sets, args = append(sets, "display_name = ?"), append(args, *p.displayName)
+	}
+	if p.bio != nil {
+		sets, args = append(sets, "bio = ?"), append(args, *p.bio)
 	}
 	if p.email != nil {
 		sets, args = append(sets, "email = ?"), append(args, *p.email)

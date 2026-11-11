@@ -65,6 +65,7 @@ type userOut struct {
 	ID              uint64 `json:"id"`
 	Email           string `json:"email"`
 	DisplayName     string `json:"display_name"`
+	Bio             string `json:"bio"`
 	IsAdmin         bool   `json:"is_admin"`
 	CreatedAt       string `json:"created_at"`
 	SpotCount       int    `json:"spot_count"`
@@ -93,6 +94,8 @@ func TestPatchUserValidation(t *testing.T) {
 		{"name 81", `{"display_name":"` + strings.Repeat("ä", 81) + `"}`, 400, "invalid_display_name"},
 		{"name 80", `{"display_name":"` + strings.Repeat("ä", 80) + `"}`, 200, ""},
 		{"name 1", `{"display_name":" a "}`, 200, ""},
+		{"null bio", `{"bio":null}`, 400, "invalid_body"},
+		{"bio 301", `{"bio":"` + strings.Repeat("ä", 301) + `"}`, 400, "invalid_bio"},
 		{"bad email", `{"email":"nope"}`, 400, "invalid_email"},
 		{"email wrong type", `{"email":5}`, 400, "invalid_body"},
 		{"admin wrong type", `{"is_admin":"yes"}`, 400, "invalid_body"},
@@ -135,6 +138,19 @@ func TestPatchUserEmailAndFields(t *testing.T) {
 	e.expect(t, w, 200, "")
 	decode(t, w, &got)
 	if got.DisplayName != "Neo" || got.Email != "new.person@example.test" || got.IsAdmin {
+		t.Fatalf("got %+v", got)
+	}
+	// an admin edits or clears the bio
+	w = e.patchUser(t, u, `{"bio":"  rude words \r\n"}`)
+	e.expect(t, w, 200, "")
+	decode(t, w, &got)
+	if got.Bio != "rude words" || got.DisplayName != "Neo" {
+		t.Fatalf("got %+v", got)
+	}
+	w = e.patchUser(t, u, `{"bio":""}`)
+	e.expect(t, w, 200, "")
+	decode(t, w, &got)
+	if got.Bio != "" {
 		t.Fatalf("got %+v", got)
 	}
 	// promote

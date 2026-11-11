@@ -89,6 +89,108 @@ void main() {
     expect(find.byKey(const Key('unfollowButton')), findsNothing);
   });
 
+  testWidgets('someone else\'s bio shows under the name, not editable', (
+    t,
+  ) async {
+    portrait(t);
+    final repo = FakeUsers(
+      profiles: {
+        7: UserProfile(
+          id: 7,
+          displayName: 'Alice',
+          createdAt: DateTime.utc(2025),
+          bio: 'Chille gern am Isarufer.\nGrüße',
+        ),
+      },
+    );
+    await pumpProfile(t, repo);
+    expect(find.text('Chille gern am Isarufer.\nGrüße'), findsOneWidget);
+    expect(find.byKey(const Key('editBio')), findsNothing);
+    expect(find.byKey(const Key('addBio')), findsNothing);
+  });
+
+  testWidgets('no bio, someone else: nothing shows', (t) async {
+    portrait(t);
+    await pumpProfile(t, FakeUsers());
+    expect(find.byKey(const Key('userBio')), findsNothing);
+    expect(find.byKey(const Key('addBio')), findsNothing);
+  });
+
+  testWidgets('own profile: write, change and remove the bio', (t) async {
+    portrait(t);
+    final repo = FakeUsers(
+      profiles: {
+        1: UserProfile(
+          id: 1,
+          displayName: 'Me',
+          createdAt: DateTime.utc(2025),
+          isMe: true,
+        ),
+      },
+    );
+    await pumpProfile(t, repo, userId: 1);
+    await t.tap(find.byKey(const Key('addBio')));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const Key('bioField')), '  Hallo Welt ');
+    await t.tap(find.byKey(const Key('bioSave')));
+    await t.pumpAndSettle();
+    expect(repo.calls, contains('bio:Hallo Welt'));
+    expect(find.text('Hallo Welt'), findsOneWidget);
+    expect(find.byKey(const Key('addBio')), findsNothing);
+
+    // too many lines: cannot be saved
+    await t.tap(find.byKey(const Key('editBio')));
+    await t.pumpAndSettle();
+    await t.enterText(
+      find.byKey(const Key('bioField')),
+      List.filled(7, 'x').join('\n'),
+    );
+    await t.pump();
+    expect(find.text('At most 6 lines'), findsOneWidget);
+    expect(
+      t.widget<FilledButton>(find.byKey(const Key('bioSave'))).onPressed,
+      isNull,
+    );
+    // cancelled: nothing sent
+    await t.tap(find.text('Cancel'));
+    await t.pumpAndSettle();
+    expect(repo.calls.where((c) => c.startsWith('bio:')), hasLength(1));
+
+    await t.tap(find.byKey(const Key('editBio')));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const Key('bioField')), '');
+    await t.tap(find.byKey(const Key('bioSave')));
+    await t.pumpAndSettle();
+    expect(repo.calls.last, 'bio:');
+    expect(find.byKey(const Key('addBio')), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('a bio that fails to save says so and stays as it was', (
+    t,
+  ) async {
+    portrait(t);
+    final repo = FakeUsers(
+      profiles: {
+        1: UserProfile(
+          id: 1,
+          displayName: 'Me',
+          createdAt: DateTime.utc(2025),
+          isMe: true,
+          bio: 'Alt',
+        ),
+      },
+    )..failBio = ApiException(400, 'invalid_bio', 'too long');
+    await pumpProfile(t, repo, userId: 1);
+    await t.tap(find.byKey(const Key('editBio')));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const Key('bioField')), 'Neu');
+    await t.tap(find.byKey(const Key('bioSave')));
+    await t.pumpAndSettle();
+    expect(find.text('The bio is too long'), findsOneWidget);
+    expect(find.text('Alt'), findsOneWidget);
+  });
+
   testWidgets('logged out: follow opens the login page', (t) async {
     portrait(t);
     final repo = FakeUsers();

@@ -98,6 +98,15 @@ class FakeUsers implements UsersRepository {
     calls.add('unfollow:$id');
     if (failFollow != null) throw failFollow!;
   }
+
+  Object? failBio;
+
+  @override
+  Future<String> setBio(String bio) async {
+    calls.add('bio:$bio');
+    if (failBio != null) throw failBio!;
+    return bio.trim();
+  }
 }
 
 void portrait(WidgetTester t, [Size size = const Size(400, 800)]) {

@@ -16,6 +16,7 @@ import '../feed/satellite_thumb.dart';
 import '../reviews/rating_widgets.dart';
 import 'author_link.dart';
 import 'avatar_editor.dart';
+import 'bio_editor.dart';
 import 'users_controller.dart';
 import 'users_repository.dart';
 
@@ -105,6 +106,23 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     }
   }
 
+  Future<void> _editBio(UserProfile p) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final bio = await showBioDialog(context, current: p.bio);
+    if (bio == null || bio == p.bio || !mounted) return;
+    try {
+      await ref.read(userProfileProvider(widget.userId).notifier).setBio(bio);
+    } catch (e) {
+      final tooLong = e is ApiException && e.code == 'invalid_bio';
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(tooLong ? l.userBioTooLong : l.userBioSaveFailed),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -185,6 +203,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
               onFollow: () => _toggleFollow(p),
               editable: (p.isMe && myId == p.id) || iAmAdmin,
               moderating: !(p.isMe && myId == p.id),
+              onEditBio: p.isMe && myId == p.id ? () => _editBio(p) : null,
               extra: widget.headerExtra,
             ),
             Padding(
@@ -311,10 +330,14 @@ class _Header extends StatelessWidget {
     required this.onFollow,
     required this.editable,
     this.moderating = false,
+    this.onEditBio,
     this.extra,
   });
 
   final UserProfile profile;
+
+  /// Your own profile: write or change the bio.
+  final VoidCallback? onEditBio;
   final bool busy;
   final VoidCallback onFollow;
   final Widget? extra;
@@ -376,6 +399,10 @@ class _Header extends StatelessWidget {
               ),
             ],
           ),
+          if (p.bio.isNotEmpty || onEditBio != null) ...[
+            const SizedBox(height: 12),
+            _Bio(bio: p.bio, onEdit: onEditBio),
+          ],
           const SizedBox(height: 16),
           Row(
             children: [
@@ -423,6 +450,52 @@ class _Header extends StatelessWidget {
           if (extra != null) ...[const SizedBox(height: 16), extra!],
         ],
       ),
+    );
+  }
+}
+
+/// The bio under the name; on your own profile with a way to write or
+/// change it.
+class _Bio extends StatelessWidget {
+  const _Bio({required this.bio, this.onEdit});
+
+  final String bio;
+  final VoidCallback? onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final edit = onEdit;
+    if (bio.isEmpty) {
+      return TextButton.icon(
+        key: const Key('addBio'),
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.zero,
+          visualDensity: VisualDensity.compact,
+        ),
+        onPressed: edit,
+        icon: const Icon(Icons.edit_note, size: 20),
+        label: Text(l.userBioAdd),
+      );
+    }
+    final text = SelectableText(
+      bio,
+      key: const Key('userBio'),
+      style: Theme.of(context).textTheme.bodyMedium,
+    );
+    if (edit == null) return SizedBox(width: double.infinity, child: text);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: text),
+        IconButton(
+          key: const Key('editBio'),
+          tooltip: l.userBioEdit,
+          visualDensity: VisualDensity.compact,
+          onPressed: edit,
+          icon: const Icon(Icons.edit_outlined, size: 20),
+        ),
+      ],
     );
   }
 }

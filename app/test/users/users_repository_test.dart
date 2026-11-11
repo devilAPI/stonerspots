@@ -129,6 +129,23 @@ void main() {
     expect(a.seen.last.path, '/users/7/follow');
   });
 
+  test('setBio puts the text and returns it as stored', () async {
+    final a = _Adapter((o) => _json(200, {'bio': 'Hallo'}));
+    final repo = ApiUsersRepository(_client(a));
+    expect(await repo.setBio('  Hallo  '), 'Hallo');
+    expect(a.seen.last.method, 'PUT');
+    expect(a.seen.last.path, '/me/bio');
+    expect(a.seen.last.data, {'bio': '  Hallo  '});
+  });
+
+  test('the profile carries the bio', () {
+    expect(UserProfile.fromJson({..._profile, 'bio': 'Hi'}).bio, 'Hi');
+    expect(UserProfile.fromJson(_profile).bio, '');
+    final p = UserProfile.fromJson({..._profile, 'bio': 'Hi'});
+    expect(p.withFollowing(!p.following).bio, 'Hi');
+    expect(p.withBio('Neu').bio, 'Neu');
+  });
+
   test('the feed sends following only when set', () async {
     final a = _Adapter((_) => _json(200, {'items': [], 'next_cursor': null}));
     final feed = ApiFeedRepository(_client(a));

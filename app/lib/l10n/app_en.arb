@@ -704,5 +704,12 @@
   "updateChannelAndroidDowngrade": "Android only installs the stable version once it is newer than this dev build. To switch right away, uninstall the app first.",
   "map3d": "3D view",
   "satelliteCredit": "Satellite images: Esri World Imagery",
-  "zonesLoading": "Loading zones…"
+  "zonesLoading": "Loading zones…",
+  "userBioTitle": "About me",
+  "userBioAdd": "Add a bio",
+  "userBioEdit": "Edit bio",
+  "userBioHint": "What should others know about you?",
+  "userBioTooManyLines": "At most {lines} lines",
+  "userBioTooLong": "The bio is too long",
+  "userBioSaveFailed": "Could not save the bio"
 }

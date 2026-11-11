@@ -25,6 +25,11 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
   nearest spot comes first. Server side; needs the new server.
 - Spot page without photos on a phone: the map's style and recenter
   buttons were behind the title bar; they sit below it now.
+- Profiles have a bio: up to 300 characters and 6 lines under the name,
+  written and changed on your own profile ("Bio hinzufügen", or the pencil
+  beside it). Admins can change or clear anyone's in the user editor, and
+  the data export includes it (`PUT /me/bio`, `bio` on `GET /users/{id}`;
+  migration 0029; needs the new server).
 - Zone data is kept at most an hour, in the browser (was a day) and in
   an app left open (was the whole session): after the zones were rebuilt,
   an older copy could still show a spot as "Keine Verbotszone" while it

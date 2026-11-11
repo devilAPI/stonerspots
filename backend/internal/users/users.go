@@ -7,7 +7,9 @@ import (
 	"context"
 	"database/sql"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -33,8 +35,10 @@ var errNotFound = errors.New("users: not found")
 
 // Profile is the public view of a user.
 type Profile struct {
-	ID             uint64    `json:"id"`
-	DisplayName    string    `json:"display_name"`
+	ID          uint64 `json:"id"`
+	DisplayName string `json:"display_name"`
+	// Bio is what the user wrote about themselves; "" when nothing.
+	Bio            string    `json:"bio"`
 	AvatarURL      *string   `json:"avatar_url"`
 	CreatedAt      time.Time `json:"created_at"`
 	SpotCount      int       `json:"spot_count"`
@@ -62,6 +66,7 @@ func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
 	r.Get("/users/{id}/spots", h.userSpots)
 	r.Get("/users/{id}/updates", h.userUpdates)
 	authed := r.With(auth.Middleware(d.Cfg.JWTSecret))
+	authed.Put("/me/bio", h.putBio)
 	authed.Put("/users/{id}/follow", h.follow)
 	authed.Delete("/users/{id}/follow", h.unfollow)
 }
@@ -106,7 +111,7 @@ func (h *handler) visible(ctx context.Context, id uint64) error {
 func (h *handler) profile(ctx context.Context, id, viewer uint64) (Profile, error) {
 	var p Profile
 	var avatarKey sql.NullString
-	err := h.db.QueryRowContext(ctx, `SELECT u.id, u.display_name, u.avatar_key, u.created_at,
+	err := h.db.QueryRowContext(ctx, `SELECT u.id, u.display_name, u.bio, u.avatar_key, u.created_at,
 		(SELECT COUNT(*) FROM spots s WHERE s.user_id = u.id AND s.status = 'active'),
 		(SELECT COUNT(*) FROM spot_updates su JOIN spots s ON s.id = su.spot_id
 		  WHERE su.user_id = u.id AND su.status = 'active' AND s.status = 'active'),
@@ -116,7 +121,7 @@ func (h *handler) profile(ctx context.Context, id, viewer uint64) (Profile, erro
 		  WHERE f.follower_id = u.id AND o.banned_at IS NULL),
 		EXISTS(SELECT 1 FROM follows f WHERE f.follower_id = ? AND f.followee_id = u.id)
 		FROM users u WHERE u.id = ? AND u.banned_at IS NULL`, viewer, id).
-		Scan(&p.ID, &p.DisplayName, &avatarKey, &p.CreatedAt, &p.SpotCount, &p.UpdateCount,
+		Scan(&p.ID, &p.DisplayName, &p.Bio, &avatarKey, &p.CreatedAt, &p.SpotCount, &p.UpdateCount,
 			&p.FollowerCount, &p.FollowingCount, &p.Following)
 	if errors.Is(err, sql.ErrNoRows) {
 		return p, errNotFound
@@ -372,4 +377,39 @@ func (h *handler) setFollow(ctx context.Context, uid, id uint64, on bool) error 
 		}
 	}
 	return tx.Commit()
+}
+
+// putBio answers PUT /me/bio {"bio": "..."}: sets the caller's bio ("" removes
+// it) and answers with it as stored (see auth.ValidBio).
+func (h *handler) putBio(w http.ResponseWriter, r *http.Request) {
+	uid, _ := auth.UserID(r.Context())
+	var in struct {
+		Bio *string `json:"bio"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10)).Decode(&in); err != nil || in.Bio == nil {
+		httpx.Error(w, http.StatusBadRequest, "invalid_body", `send {"bio": "..."}`)
+		return
+	}
+	bio, ok := auth.ValidBio(*in.Bio)
+	if !ok {
+		httpx.Error(w, http.StatusBadRequest, "invalid_bio",
+			fmt.Sprintf("bio must be at most %d characters and %d lines", auth.MaxBioLen, auth.MaxBioLines))
+		return
+	}
+	res, err := h.db.ExecContext(r.Context(), `UPDATE users SET bio = ? WHERE id = ? AND banned_at IS NULL`, bio, uid)
+	if err != nil {
+		internal(w)
+		return
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		// banned or gone; an unchanged bio also affects no row
+		if err := h.visible(r.Context(), uid); errors.Is(err, errNotFound) {
+			notFound(w)
+			return
+		} else if err != nil {
+			internal(w)
+			return
+		}
+	}
+	httpx.JSON(w, http.StatusOK, map[string]string{"bio": bio})
 }

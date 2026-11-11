@@ -3505,6 +3505,48 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Verbotszonen werden geladen…'**
   String get zonesLoading;
+
+  /// No description provided for @userBioTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Über mich'**
+  String get userBioTitle;
+
+  /// No description provided for @userBioAdd.
+  ///
+  /// In de, this message translates to:
+  /// **'Bio hinzufügen'**
+  String get userBioAdd;
+
+  /// No description provided for @userBioEdit.
+  ///
+  /// In de, this message translates to:
+  /// **'Bio bearbeiten'**
+  String get userBioEdit;
+
+  /// No description provided for @userBioHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Was sollen andere über dich wissen?'**
+  String get userBioHint;
+
+  /// No description provided for @userBioTooManyLines.
+  ///
+  /// In de, this message translates to:
+  /// **'Höchstens {lines} Zeilen'**
+  String userBioTooManyLines(int lines);
+
+  /// No description provided for @userBioTooLong.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Bio ist zu lang'**
+  String get userBioTooLong;
+
+  /// No description provided for @userBioSaveFailed.
+  ///
+  /// In de, this message translates to:
+  /// **'Bio konnte nicht gespeichert werden'**
+  String get userBioSaveFailed;
 }
 
 class _AppLocalizationsDelegate

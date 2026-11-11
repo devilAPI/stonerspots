@@ -11,6 +11,7 @@ import '../../core/spot_tag_widgets.dart';
 import '../../core/user_avatar.dart';
 import '../../l10n/app_localizations.dart';
 import '../spots/update_tile.dart' show updateTagLabel;
+import '../users/bio_editor.dart' show kBioMaxLength;
 import 'admin_models.dart';
 import 'admin_repository.dart';
 
@@ -20,6 +21,8 @@ String adminUserErrorText(AppLocalizations l, Object e) {
     switch (e.code) {
       case 'invalid_display_name':
         return l.adminErrInvalidDisplayName;
+      case 'invalid_bio':
+        return l.userBioTooLong;
       case 'invalid_email':
         return l.adminErrInvalidEmail;
       case 'email_taken':
@@ -114,6 +117,7 @@ class _EditUserDialog extends ConsumerStatefulWidget {
 class _EditUserDialogState extends ConsumerState<_EditUserDialog> {
   late final _name = TextEditingController(text: widget.user.displayName);
   late final _email = TextEditingController(text: widget.user.email);
+  late final _bio = TextEditingController(text: widget.user.bio);
   late bool _isAdmin = widget.user.isAdmin;
   bool _busy = false;
   String? _error;
@@ -122,6 +126,7 @@ class _EditUserDialogState extends ConsumerState<_EditUserDialog> {
   void dispose() {
     _name.dispose();
     _email.dispose();
+    _bio.dispose();
     super.dispose();
   }
 
@@ -129,8 +134,10 @@ class _EditUserDialogState extends ConsumerState<_EditUserDialog> {
     final u = widget.user;
     final name = _name.text.trim();
     final email = _email.text.trim();
+    final bio = _bio.text.trim();
     final patch = AdminUserPatch(
       displayName: name != u.displayName ? name : null,
+      bio: bio != u.bio ? bio : null,
       email: email != u.email ? email : null,
       isAdmin: _isAdmin != u.isAdmin ? _isAdmin : null,
     );
@@ -175,6 +182,15 @@ class _EditUserDialogState extends ConsumerState<_EditUserDialog> {
           controller: _email,
           keyboardType: TextInputType.emailAddress,
           decoration: InputDecoration(labelText: l10n.email),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          key: const Key('edit-user-bio'),
+          controller: _bio,
+          minLines: 2,
+          maxLines: 4,
+          maxLength: kBioMaxLength,
+          decoration: InputDecoration(labelText: l10n.userBioTitle),
         ),
         SwitchListTile(
           key: const Key('edit-user-admin'),

@@ -2047,4 +2047,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get zonesLoading => 'Loading zones…';
+
+  @override
+  String get userBioTitle => 'About me';
+
+  @override
+  String get userBioAdd => 'Add a bio';
+
+  @override
+  String get userBioEdit => 'Edit bio';
+
+  @override
+  String get userBioHint => 'What should others know about you?';
+
+  @override
+  String userBioTooManyLines(int lines) {
+    return 'At most $lines lines';
+  }
+
+  @override
+  String get userBioTooLong => 'The bio is too long';
+
+  @override
+  String get userBioSaveFailed => 'Could not save the bio';
 }

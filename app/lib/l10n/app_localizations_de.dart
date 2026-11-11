@@ -2062,4 +2062,27 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get zonesLoading => 'Verbotszonen werden geladen…';
+
+  @override
+  String get userBioTitle => 'Über mich';
+
+  @override
+  String get userBioAdd => 'Bio hinzufügen';
+
+  @override
+  String get userBioEdit => 'Bio bearbeiten';
+
+  @override
+  String get userBioHint => 'Was sollen andere über dich wissen?';
+
+  @override
+  String userBioTooManyLines(int lines) {
+    return 'Höchstens $lines Zeilen';
+  }
+
+  @override
+  String get userBioTooLong => 'Die Bio ist zu lang';
+
+  @override
+  String get userBioSaveFailed => 'Bio konnte nicht gespeichert werden';
 }
