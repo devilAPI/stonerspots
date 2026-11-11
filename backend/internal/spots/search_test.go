@@ -100,15 +100,15 @@ func TestSearchSkipsHiddenSpots(t *testing.T) {
 
 func TestSearchOrderWithoutLocation(t *testing.T) {
 	e := setup(t)
-	sub := e.create(t, "Alter Parkplatz", 52.50, 13.40) // substring, word prefix
-	mid := e.create(t, "Kleinparkanlage", 52.51, 13.40) // substring only
+	sub := e.create(t, "Alter Parkplatz", 52.50, 13.40) // a later word's start
+	mid := e.create(t, "Kleinparkanlage", 52.51, 13.40) // inside a word only
 	pre := e.create(t, "Parkbank", 52.52, 13.40)        // title prefix
 	exact := e.create(t, "Park", 52.53, 13.40)          // exact
-	low := e.create(t, "Unterpark", 52.54, 13.40)       // substring only, newer, unrated
+	low := e.create(t, "Unterpark", 52.54, 13.40)       // end of a compound
 	e.review(t, mid.ID, 5, "active")
 
 	got := e.search(t, "q=park")
-	want := []uint64{exact.ID, pre.ID, sub.ID, mid.ID, low.ID}
+	want := []uint64{exact.ID, pre.ID, sub.ID, low.ID, mid.ID}
 	if len(got) != len(want) {
 		t.Fatalf("%v", titles(got))
 	}
@@ -117,8 +117,8 @@ func TestSearchOrderWithoutLocation(t *testing.T) {
 			t.Fatalf("order %v", titles(got))
 		}
 	}
-	if got[3].RatingAvg != 5 || got[3].RatingCount != 1 {
-		t.Fatalf("rating %+v", got[3])
+	if got[4].RatingAvg != 5 || got[4].RatingCount != 1 {
+		t.Fatalf("rating %+v", got[4])
 	}
 }
 
@@ -156,5 +156,57 @@ func TestSearchCapsResults(t *testing.T) {
 	}
 	if got := e.search(t, "q=wiese&lat=50&lon=10"); len(got) != searchLimit || got[0].Title != "Wiese 0" {
 		t.Fatalf("len %d first %v", len(got), titles(got)[:1])
+	}
+}
+
+func TestSearchForgivesTyposAndWordOrder(t *testing.T) {
+	e := setup(t)
+	bench := e.create(t, "Parkbank am See", 52.52, 13.405)
+	meadow := e.create(t, "Stadtpark Wiese", 48.2, 16.37)
+	munich := e.create(t, "Isarufer München", 48.13, 11.58)
+	e.create(t, "Ganz woanders", 47.37, 8.54)
+
+	for q, want := range map[string]uint64{
+		"see parkbank": bench.ID,  // any order
+		"bank am see":  bench.ID,  // the end of a compound
+		"parbank":      bench.ID,  // a letter missing
+		"prakbank":     bench.ID,  // two swapped
+		"wiese stadt":  meadow.ID, // the start of a word
+		"stadtprak":    meadow.ID,
+		"muenchen":     munich.ID, // ue for ü
+		"isar ufer":    munich.ID, // a space too many
+	} {
+		got := e.search(t, "q="+url.QueryEscape(q))
+		if len(got) != 1 || got[0].ID != want {
+			t.Errorf("%q: %v", q, titles(got))
+		}
+	}
+}
+
+func TestSearchFindsDescriptionsLast(t *testing.T) {
+	e := setup(t)
+	described := e.create(t, "Bank", 52.52, 13.405)
+	if _, err := e.db.Exec(`UPDATE spots SET description = 'Mit Aussicht auf den Fluss' WHERE id = ?`, described.ID); err != nil {
+		t.Fatal(err)
+	}
+	named := e.create(t, "Aussichtspunkt", 48.2, 16.37)
+
+	// right next to the one with it in the description, the name still wins
+	got := e.search(t, "q=aussicht&lat=52.52&lon=13.405")
+	if len(got) != 2 || got[0].ID != named.ID || got[1].ID != described.ID {
+		t.Fatalf("%v", titles(got))
+	}
+}
+
+func TestSearchBetterMatchesBeforeNearerOnes(t *testing.T) {
+	e := setup(t)
+	typo := e.create(t, "Parkbnak", 52.52, 13.405)    // right here, with a typo
+	real := e.create(t, "Parkbank", 48.2082, 16.3738) // far away
+	got := e.search(t, "q=parkbank&lat=52.5&lon=13.4")
+	if len(got) != 2 || got[0].ID != real.ID || got[1].ID != typo.ID {
+		t.Fatalf("%v", titles(got))
+	}
+	if got[1].DistanceM == nil || *got[1].DistanceM > 3000 {
+		t.Fatalf("distance %v", got[1].DistanceM)
 	}
 }

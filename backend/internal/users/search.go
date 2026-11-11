@@ -4,12 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"sort"
 	"strings"
 	"unicode/utf8"
 
 	"stonerspots/backend/internal/app"
 	"stonerspots/backend/internal/httpx"
 	"stonerspots/backend/internal/spots"
+	"stonerspots/backend/internal/textmatch"
 )
 
 // searchLimit is the most users one search returns.
@@ -23,35 +25,65 @@ type Match struct {
 	SpotCount   int     `json:"spot_count"`
 }
 
-// Search returns at most searchLimit users who are not banned and whose
-// display name contains q: exact name first, then names starting with q,
-// then a word starting with q, then the rest; within each, more spots
-// first. The column collation makes it case- and accent-insensitive.
-// Always non-nil.
+// searchUsers returns at most searchLimit users who are not banned and whose
+// display name matches q (see textmatch): better tiers first, then the
+// better match, then more spots. Always non-nil. It reads all names; there
+// are few.
 func (h *handler) searchUsers(ctx context.Context, q string) ([]Match, error) {
-	esc := spots.LikeEscape(q)
-	rows, err := h.db.QueryContext(ctx, `SELECT u.id, u.display_name, u.avatar_key,
-		(SELECT COUNT(*) FROM spots s WHERE s.user_id = u.id AND s.status = 'active') AS n
+	query := textmatch.NewQuery(q)
+	if query.Empty() {
+		return []Match{}, nil
+	}
+	rows, err := h.db.QueryContext(ctx, `SELECT u.id, u.display_name, u.avatar_key, COALESCE(sc.n, 0)
 		FROM users u
-		WHERE u.banned_at IS NULL AND u.display_name LIKE ?
-		ORDER BY CASE WHEN u.display_name = ? THEN 0 WHEN u.display_name LIKE ? THEN 1
-		  WHEN u.display_name LIKE ? THEN 2 ELSE 3 END, n DESC, u.id ASC
-		LIMIT ?`, "%"+esc+"%", q, esc+"%", "% "+esc+"%", searchLimit)
+		LEFT JOIN (SELECT user_id, COUNT(*) AS n FROM spots WHERE status = 'active'
+		  GROUP BY user_id) sc ON sc.user_id = u.id
+		WHERE u.banned_at IS NULL`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	list := []Match{}
+	type ranked struct {
+		Match
+		tier  int
+		score float64
+	}
+	var found []ranked
 	for rows.Next() {
-		var m Match
+		var m ranked
 		var avatarKey sql.NullString
 		if err := rows.Scan(&m.ID, &m.DisplayName, &avatarKey, &m.SpotCount); err != nil {
 			return nil, err
 		}
+		tier, score, ok := query.Match(m.DisplayName, "")
+		if !ok {
+			continue
+		}
+		m.tier, m.score = tier, score
 		m.AvatarURL = app.AvatarURL(h.base, avatarKey)
-		list = append(list, m)
+		found = append(found, m)
 	}
-	return list, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	sort.Slice(found, func(i, j int) bool {
+		a, b := found[i], found[j]
+		if a.tier != b.tier {
+			return a.tier < b.tier
+		}
+		if a.score != b.score {
+			return a.score > b.score
+		}
+		if a.SpotCount != b.SpotCount {
+			return a.SpotCount > b.SpotCount
+		}
+		return a.ID < b.ID
+	})
+	list := make([]Match, 0, min(len(found), searchLimit))
+	for i := 0; i < len(found) && i < searchLimit; i++ {
+		list = append(list, found[i].Match)
+	}
+	return list, nil
 }
 
 // search answers GET /users/search?q=.
