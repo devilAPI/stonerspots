@@ -1,3 +1,4 @@
+import 'package:app/core/glass.dart';
 import 'package:app/core/settings.dart';
 import 'package:app/features/zones/zone_consent.dart';
 import 'package:app/core/api_client.dart';
@@ -413,6 +414,16 @@ void main() {
       map.top,
       lessThan(tester.getTopLeft(find.byKey(const Key('like'))).dy),
     );
+    // the map runs under the glass bar; its buttons sit below the bar
+    final bar = tester.getRect(find.byType(GlassAppBar));
+    for (final key in ['spotMapLayer', 'spotMapRecenter']) {
+      final button = tester.getRect(find.byKey(Key(key)));
+      expect(button.top, greaterThanOrEqualTo(bar.bottom), reason: key);
+      expect(button.bottom, lessThanOrEqualTo(map.bottom), reason: key);
+    }
+    await tester.tap(find.byKey(const Key('spotMapLayer')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('shows the rating next to the title', (tester) async {

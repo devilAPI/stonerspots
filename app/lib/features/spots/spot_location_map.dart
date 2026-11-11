@@ -18,6 +18,7 @@ class SpotLocationMap extends StatefulWidget {
     required this.lon,
     this.zoom = 19,
     this.radius = 12,
+    this.controlsTop = 8,
   });
 
   final double lat;
@@ -26,6 +27,10 @@ class SpotLocationMap extends StatefulWidget {
   /// Starts as close as the old top-down pictures did.
   final double zoom;
   final double radius;
+
+  /// Distance of the layer and recenter buttons from the map's top: more
+  /// when the map runs under the glass title bar.
+  final double controlsTop;
 
   @override
   State<SpotLocationMap> createState() => _SpotLocationMapState();
@@ -88,7 +93,7 @@ class _SpotLocationMapState extends State<SpotLocationMap> {
             ],
           ),
           Positioned(
-            top: 8,
+            top: widget.controlsTop,
             right: 8,
             child: MapControlColumn(
               children: [

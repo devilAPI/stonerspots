@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -335,9 +337,18 @@ class SpotDetailLayout extends StatelessWidget {
   final ValueChanged<int> onPhotoTap;
   final Widget info, weather, reviews, updates, comments;
 
-  Widget _locationMap(double height, {double radius = 12}) => SizedBox(
+  Widget _locationMap(
+    double height, {
+    double radius = 12,
+    double controlsTop = 8,
+  }) => SizedBox(
     height: height,
-    child: SpotLocationMap(lat: spot.lat, lon: spot.lon, radius: radius),
+    child: SpotLocationMap(
+      lat: spot.lat,
+      lon: spot.lon,
+      radius: radius,
+      controlsTop: controlsTop,
+    ),
   );
 
   @override
@@ -366,7 +377,13 @@ class SpotDetailLayout extends StatelessWidget {
             padding: EdgeInsets.zero.copyWith(bottom: 24),
             children: [
               if (urls.isEmpty)
-                locationMap(heroHeight, radius: 0)
+                // under the glass bar: its buttons go below it
+                locationMap(
+                  // tall enough for both buttons below the bar
+                  math.max(heroHeight, barBottom + 128),
+                  radius: 0,
+                  controlsTop: barBottom + 8,
+                )
               else
                 SpotHeroCarousel(
                   photoUrls: urls,
