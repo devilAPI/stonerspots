@@ -11,8 +11,8 @@
 // [kPrivacyVersionEn] whenever the content changes.
 
 /// Shown as "Stand: …" / "Last updated: …" at the top.
-const kPrivacyVersionDe = '9. November 2026';
-const kPrivacyVersionEn = '9 November 2026';
+const kPrivacyVersionDe = '11. November 2026';
+const kPrivacyVersionEn = '11 November 2026';
 
 const privacyTextDe =
     '''
@@ -38,10 +38,11 @@ Für die Registrierung speichern wir:
 - den Zeitpunkt, zu dem du bestätigt hast, dass du mindestens 18 Jahre alt bist, und den Zeitpunkt der Registrierung,
 - ob deine E-Mail-Adresse bestätigt ist; für Bestätigungs- und Passwort-Links nur deren Hash und Ablaufzeit (Bestätigung 24 Stunden, Passwort-Reset 1 Stunde),
 - optional ein **Profilbild** (öffentlich sichtbar),
+- optional eine **Bio**, ein kurzer Text über dich (öffentlich sichtbar),
 - bei einer Sperre durch die Moderation deren Zeitpunkt,
 - bei Administratoren zusätzlich den geheimen Schlüssel für die Zwei-Faktor-Anmeldung (TOTP) und den zuletzt verwendeten Code-Zeitraum.
 
-Dein öffentliches Profil zeigt Anzeigenamen, Profilbild, seit wann du dabei bist, deine Spots und Updates sowie die Zahl deiner Spots, Updates, Follower und der Leute, denen du folgst.
+Dein öffentliches Profil zeigt Anzeigenamen, Profilbild, Bio, seit wann du dabei bist, deine Spots und Updates sowie die Zahl deiner Spots, Updates, Follower und der Leute, denen du folgst.
 
 **Anmeldung:** Nach dem Login erhält die App einen Zugangs-Token (15 Minuten gültig, wird auf dem Server nicht gespeichert) und einen Erneuerungs-Token (30 Tage gültig). Vom Erneuerungs-Token speichert der Server nur einen Hash mit Erstellungs-, Ablauf- und Widerrufszeit; diese Einträge bleiben bis zur Löschung deines Kontos gespeichert. Bei einer Passwortänderung oder Sperre werden alle Erneuerungs-Tokens widerrufen.
 
@@ -167,10 +168,11 @@ When you register we store:
 - when you confirmed that you are at least 18 years old, and when you registered,
 - whether your email address is confirmed; for confirmation and password links only their hash and expiry (confirmation 24 hours, password reset 1 hour),
 - optionally a **profile picture** (public),
+- optionally a **bio**, a short text about you (public),
 - when your account was banned by moderation, if it was,
 - for administrators also the secret key of their two-factor login (TOTP) and the last code period used.
 
-Your public profile shows your display name, profile picture, since when you are a member, your spots and updates, and the number of your spots, updates, followers and people you follow.
+Your public profile shows your display name, profile picture, bio, since when you are a member, your spots and updates, and the number of your spots, updates, followers and people you follow.
 
 **Login:** After logging in the app receives an access token (valid for 15 minutes, not stored on the server) and a refresh token (valid for 30 days). Of the refresh token the server stores only a hash with its creation, expiry and revocation time; these entries are kept until your account is deleted. Changing your password or a ban revokes all refresh tokens.
 
