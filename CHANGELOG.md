@@ -3,6 +3,18 @@
 Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 "Releasing 1.0". Development builds (`dev-<n>`) are not listed here.
 
+## 1.0.14
+
+- The map is smooth again with zones on: the zones are drawn once into
+  an image that moves and scales with the map, instead of every frame.
+  Each zone's 100 m is a stroke that wide, inside two layers, which the
+  web renderer (CanvasKit) had to work out again every frame while the
+  map moved. The image covers the screen and half of it again around
+  it, and is drawn anew only when tiles change, the map leaves it or the
+  zoom changes a lot. Measured on the web build while panning a busy
+  part of Munich: frames over 33 ms went from 13-21 to 3-9 (3 with zones
+  off).
+
 ## 1.0.13
 
 - Zone status of a spot said "Keine Verbotszone" where the map showed it

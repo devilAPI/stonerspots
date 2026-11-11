@@ -9,11 +9,24 @@ import 'zone_paint.dart';
 /// The zones drawn on the map (a [FlutterMap] child, above the base map).
 /// Shows only while the zone feature is on, the disclaimer read and the
 /// map zoomed in to street level.
-class ZoneLayer extends ConsumerWidget {
+class ZoneLayer extends ConsumerStatefulWidget {
   const ZoneLayer({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ZoneLayer> createState() => _ZoneLayerState();
+}
+
+class _ZoneLayerState extends ConsumerState<ZoneLayer> {
+  final _raster = ZoneRaster();
+
+  @override
+  void dispose() {
+    _raster.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     if (!ref.watch(zonesActiveProvider)) return const SizedBox.shrink();
     final camera = MapCamera.of(context);
     if (camera.zoom < kZoneMinZoom) return const SizedBox.shrink();
@@ -30,6 +43,8 @@ class ZoneLayer extends ConsumerWidget {
             camera: camera,
             tiles: s.tiles.values.toList(growable: false),
             banNow: s.banNow,
+            raster: _raster,
+            pixelRatio: MediaQuery.devicePixelRatioOf(context),
           ),
         ),
       ),

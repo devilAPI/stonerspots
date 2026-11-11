@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -100,21 +101,141 @@ class ZoneTileGraphics {
   Offset _local(LatLng p) => _crs.latLngToOffset(p, _refZoom) - _originPx;
 }
 
+/// The zones of the view, drawn once into an image that [ZonePainter]
+/// then only moves and scales with the map. Drawing them is costly: every
+/// outline is a stroke as wide as the 100 m around it, inside two layers,
+/// which on the web (CanvasKit) took tens of milliseconds a frame while the
+/// map moved. The image covers the view and half of it again on every
+/// side; it is drawn anew when the tiles change, the map leaves it, or the
+/// zoom has changed so much that it would look blurred or too coarse.
+class ZoneRaster {
+  ZoneRaster({this.pixelBudget = 6000000});
+
+  /// The most pixels the image may have; past it, it is drawn coarser.
+  final int pixelBudget;
+
+  ui.Image? _image;
+  double _zoom = 0;
+  // the image's top-left corner in world pixels at [_zoom], and its size
+  Offset _origin = Offset.zero;
+  Size _size = Size.zero;
+  List<ZoneTileGraphics>? _tiles;
+  bool? _banNow;
+
+  /// Times the image was drawn (for tests).
+  int draws = 0;
+
+  /// Pixels of the current image (for tests).
+  int get imagePixels => (_image?.width ?? 0) * (_image?.height ?? 0);
+
+  void dispose() {
+    _image?.dispose();
+    _image = null;
+  }
+
+  void paint(Canvas canvas, Size size, ZonePainter p, double pixelRatio) {
+    final camera = p.camera;
+    var scale = math.pow(2, camera.zoom - _zoom).toDouble();
+    final view = camera.pixelOrigin & size;
+    final current =
+        _image != null &&
+        p.banNow == _banNow &&
+        _sameTiles(p.tiles) &&
+        scale > 0.7 &&
+        scale < 1.42 &&
+        Rect.fromLTWH(
+          _origin.dx * scale,
+          _origin.dy * scale,
+          _size.width * scale,
+          _size.height * scale,
+        ).inflate(1).contains(view.topLeft) &&
+        Rect.fromLTWH(
+          _origin.dx * scale,
+          _origin.dy * scale,
+          _size.width * scale,
+          _size.height * scale,
+        ).inflate(1).contains(view.bottomRight);
+    if (!current) {
+      final area = (Offset.zero & size).inflate(
+        math.max(size.width, size.height) / 2,
+      );
+      final budget = math.sqrt(pixelBudget / (area.width * area.height));
+      final ratio = math.min(math.min(pixelRatio, 2.0), budget);
+      final recorder = ui.PictureRecorder();
+      final c = Canvas(recorder)
+        ..scale(ratio)
+        ..translate(-area.left, -area.top);
+      p.drawZones(c, area);
+      final picture = recorder.endRecording();
+      final image = picture.toImageSync(
+        math.max(1, (area.width * ratio).ceil()),
+        math.max(1, (area.height * ratio).ceil()),
+      );
+      picture.dispose();
+      _image?.dispose();
+      _image = image;
+      _zoom = camera.zoom;
+      _origin = camera.pixelOrigin + area.topLeft;
+      _size = area.size;
+      _tiles = p.tiles;
+      _banNow = p.banNow;
+      scale = 1;
+      draws++;
+    }
+    final image = _image!;
+    canvas.drawImageRect(
+      image,
+      Offset.zero & Size(image.width.toDouble(), image.height.toDouble()),
+      Rect.fromLTWH(
+        _origin.dx * scale - camera.pixelOrigin.dx,
+        _origin.dy * scale - camera.pixelOrigin.dy,
+        _size.width * scale,
+        _size.height * scale,
+      ),
+      Paint()..filterQuality = FilterQuality.low,
+    );
+  }
+
+  bool _sameTiles(List<ZoneTileGraphics> tiles) {
+    final old = _tiles;
+    if (old == null || old.length != tiles.length) return false;
+    for (var i = 0; i < old.length; i++) {
+      if (!identical(old[i], tiles[i])) return false;
+    }
+    return true;
+  }
+}
+
 class ZonePainter extends CustomPainter {
   ZonePainter({
     required this.camera,
     required this.tiles,
     required this.banNow,
+    this.raster,
+    this.pixelRatio = 1,
   });
 
   final MapCamera camera;
   final List<ZoneTileGraphics> tiles;
   final bool banNow;
 
+  /// Draws through this image cache; without it, straight onto the canvas.
+  final ZoneRaster? raster;
+  final double pixelRatio;
+
   @override
   void paint(Canvas canvas, Size size) {
+    final r = raster;
+    if (r == null) {
+      drawZones(canvas, Offset.zero & size);
+    } else {
+      r.paint(canvas, size, this, pixelRatio);
+    }
+  }
+
+  /// Draws the zones that reach into [view] (in view coordinates).
+  void drawZones(Canvas canvas, Rect view) {
     final scale = math.pow(2, camera.zoom - _refZoom).toDouble();
-    final view = Offset.zero & size;
     final visible = [
       for (final t in tiles)
         if (_onScreen(t, scale, view)) t,
