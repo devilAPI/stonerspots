@@ -253,8 +253,8 @@ api_unit > "$units/stonerspots-backend.service"
 updater_service_unit > "$units/stonerspots-update.service"
 updater_path_unit > "$units/stonerspots-update.path"
 has() { grep -qx -- "$1" "$units/$2"; }
-for line in "StateDirectory=stonerspots" "StateDirectoryMode=0750" "UMask=0077" "MemoryMax=1G" \
-  "Environment=GOMEMLIMIT=850MiB" "CapabilityBoundingSet=" "AmbientCapabilities=" \
+for line in "StateDirectory=stonerspots" "StateDirectoryMode=0750" "UMask=0077" "MemoryMax=1536M" \
+  "Environment=GOMEMLIMIT=1300MiB" "CapabilityBoundingSet=" "AmbientCapabilities=" \
   "ReadWritePaths=/var/lib/stonerspots-update/request" "SystemCallFilter=@system-service" \
   "RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX" "NoNewPrivileges=true" "ProtectSystem=strict" \
   "# stonerspots-units: ${UNITS_VERSION}"; do

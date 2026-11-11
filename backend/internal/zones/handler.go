@@ -2,11 +2,13 @@
 // KCanG (Germany) forbids consuming cannabis - schools, children's and youth
 // facilities, playgrounds, public sports facilities, explicit
 // smoking:cannabis=no - and pedestrian zones (7-20 h). The data comes from
-// OpenStreetMap through Overpass (several public servers, tried in turn),
-// fetched by block of 4 × 4 grid tiles, cached per tile in memory and in
-// the zone_tiles table, and refreshed weekly; a background prefetch keeps
-// all of Germany cached. Clients get the places; the 100 m buffer is drawn
-// and checked by the app.
+// OpenStreetMap: built weekly for all of Germany from an extract
+// (Geofabrik) on this server, and through Overpass (several public servers,
+// tried in turn, by block of 4 × 4 grid tiles) for what is missing, or for
+// everything when the extract is turned off (then a background prefetch
+// keeps Germany cached). Tiles are cached in memory and in the zone_tiles
+// table. Clients get the places; the 100 m buffer is drawn and checked by
+// the app.
 package zones
 
 import (
@@ -40,7 +42,12 @@ func Mount(r chi.Router, d app.Deps) {
 	s := NewService(d.Cfg.Zones.OverpassURLs, d.Cfg.PublicBaseURL, st)
 	if d.DB != nil && d.Cfg.Zones.Enabled {
 		go prune(d)
-		if d.Cfg.Zones.Prefetch {
+		switch {
+		case d.Cfg.Zones.Extract:
+			// all of Germany from the OSM extract; Overpass only for gaps
+			s.UseExtract()
+			go s.RunExtract(context.Background(), d.Cfg.Zones.ExtractURL, d.Cfg.Zones.ExtractDir)
+		case d.Cfg.Zones.Prefetch:
 			go s.Prefetch(context.Background(), func(ctx context.Context) []block {
 				spots, err := spotLocations(ctx, d.DB)
 				if err != nil {

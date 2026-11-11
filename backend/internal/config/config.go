@@ -16,6 +16,7 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -108,9 +109,26 @@ type ZonesConfig struct {
 	OverpassURLs []string
 	// Prefetch walks Germany in the background and keeps every block's
 	// zones cached, so the map rarely waits for Overpass (default true;
-	// needs the database).
+	// needs the database). Not used while Extract is on.
 	Prefetch bool
+	// Extract builds all of Germany's zones on this server from an
+	// OpenStreetMap extract (default true; needs the database): downloaded
+	// weekly from ExtractURL into ExtractDir (about 4.5 GB while it is
+	// processed, deleted afterwards). Overpass is then only the fallback.
+	Extract    bool
+	ExtractURL string
+	ExtractDir string
 }
+
+// defaultExtractDir is "osm" next to the upload folder: the service can
+// write there (on a server installed by install-backend.sh,
+// /var/lib/stonerspots/osm; everything else is read-only to it).
+func defaultExtractDir(uploadDir string) string {
+	return filepath.Join(filepath.Dir(filepath.Clean(uploadDir)), "osm")
+}
+
+// DefaultExtractURL is Geofabrik's Germany extract (updated daily).
+const DefaultExtractURL = "https://download.geofabrik.de/europe/germany-latest.osm.pbf"
 
 // DefaultOverpassURLs are public Overpass instances (wiki.openstreetmap.org
 // /wiki/Overpass_API#Public_Overpass_API_instances). They are often slow or
@@ -292,6 +310,9 @@ type fileZones struct {
 	Enabled     *bool  `yaml:"enabled"`
 	OverpassURL string `yaml:"overpass_url"`
 	Prefetch    *bool  `yaml:"prefetch"`
+	Extract     *bool  `yaml:"extract"`
+	ExtractURL  string `yaml:"extract_url"`
+	ExtractDir  string `yaml:"extract_dir"`
 }
 
 type fileLegal struct {
@@ -530,10 +551,11 @@ func Read() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	uploadDir := getenv("UPLOAD_DIR", or(f.UploadDir, "./uploads"))
 	return Config{
 		DatabaseURL:    getenv("DATABASE_URL", or(f.Database.dsn(), defaultDatabaseURL)),
 		JWTSecret:      []byte(getenv("JWT_SECRET", f.JWTSecret)),
-		UploadDir:      getenv("UPLOAD_DIR", or(f.UploadDir, "./uploads")),
+		UploadDir:      uploadDir,
 		Addr:           getenv("ADDR", or(f.Addr, ":8080")),
 		MigrationsDir:  getenv("MIGRATIONS_DIR", or(f.MigrationsDir, "migrations")),
 		UpdateDir:      getenv("UPDATE_DIR", f.UpdateDir),
@@ -557,6 +579,9 @@ func Read() (Config, error) {
 			Enabled:      getenvBool("ZONES_ENABLED", f.Zones.Enabled == nil || *f.Zones.Enabled),
 			OverpassURLs: urlList(getenv("ZONES_OVERPASS_URL", f.Zones.OverpassURL), DefaultOverpassURLs),
 			Prefetch:     getenvBool("ZONES_PREFETCH", f.Zones.Prefetch == nil || *f.Zones.Prefetch),
+			Extract:      getenvBool("ZONES_EXTRACT", f.Zones.Extract == nil || *f.Zones.Extract),
+			ExtractURL:   getenv("ZONES_EXTRACT_URL", or(f.Zones.ExtractURL, DefaultExtractURL)),
+			ExtractDir:   getenv("ZONES_EXTRACT_DIR", or(f.Zones.ExtractDir, defaultExtractDir(uploadDir))),
 		},
 		Legal: LegalConfig{
 			OperatorName:        strings.TrimSpace(getenv("LEGAL_OPERATOR_NAME", f.Legal.OperatorName)),

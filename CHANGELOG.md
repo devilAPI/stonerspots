@@ -23,6 +23,13 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
   fades out beneath it, without a bar. The feed, login and register, add
   spot and admin pages had a hard edge; the feed's filters are two glass
   rows under its title now.
+- Server: Germany's zones are built on the server from Geofabrik's
+  OpenStreetMap extract once a week (about 4.5 GB download, deleted after;
+  1.5 minutes and about 900 MB of memory on a desktop), so every German
+  tile is ready at once instead of waiting for the busy public Overpass
+  servers, which stay the fallback (`zones.extract`, on by default). The
+  download goes to `osm/` next to `upload_dir`. The systemd unit allows
+  the API 1536 MB (was 1 GB) for it.
 
 ## 1.0.10
 

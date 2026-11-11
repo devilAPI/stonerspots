@@ -105,7 +105,7 @@ fill in the database there (MariaDB 11.4, not installed by the script), then
 [home server checklist](#home-server-checklist)).
 
 The systemd units are rewritten by every run of the script (they are
-sandboxed: no capabilities, read-only system, `MemoryMax=1G`, syscall
+sandboxed: no capabilities, read-only system, `MemoryMax=1536M`, syscall
 filter, ...). Put local changes into a drop-in, which stays:
 `sudo systemctl edit stonerspots-backend`.
 
@@ -344,9 +344,10 @@ in; the API warns about that at start. `sudo systemctl reload caddy` and
   `sudo apt install unattended-upgrades && sudo dpkg-reconfigure -plow unattended-upgrades`,
   Fedora `dnf-automatic`. SSH with keys only (`PasswordAuthentication no`,
   `PermitRootLogin no`).
-- **Memory.** The unit caps the API at `MemoryMax=1G` (with `GOMEMLIMIT`
+- **Memory.** The unit caps the API at `MemoryMax=1536M` (with `GOMEMLIMIT`
   below it), so a flood of big uploads restarts the API instead of taking
-  the database down. Change it with `sudo systemctl edit stonerspots-backend`:
+  the database down; the weekly zone import needs about 900 MB of it for
+  a minute or two. Change it with `sudo systemctl edit stonerspots-backend`:
 
   ```ini
   [Service]
@@ -797,14 +798,26 @@ How it works:
   does not request those tiles. Both files come from `backend/cmd/germanyborder`
   (usage in its header), and a backend test fails when they differ.
 
-- Loading: the server asks Overpass for a block of 4 × 4 tiles (0.08°,
-  about 9 × 6 km) at a time and caches each tile for 7 days (memory and the
-  `zone_tiles` table). Public Overpass servers are often overloaded, each
-  at other times, so several are tried in turn; a tile past its 7 days is
-  answered from the cache at once and refreshed in the background. With
-  the database, a background prefetch walks Germany (blocks with spots
-  first), one query at a time with 20 s pauses, so the map is nearly always
-  answered from the cache.
+- Loading: with the database, the server builds all of Germany itself
+  once a week from Geofabrik's OpenStreetMap extract
+  (`germany-latest.osm.pbf`, about 4.5 GB): it downloads it into
+  `extract_dir` (default: `osm/` next to `upload_dir`), checks it against
+  the `.md5` on Geofabrik's mirror, reads the zones in three passes
+  (relations, ways, then only the nodes those need), writes every German
+  tile to `zone_tiles` (empty ones too, so removed places disappear) and
+  deletes the download. On a desktop that took 1.5 minutes (about 600,000
+  zones, 125,000 tiles) and about 900 MB of memory, plus writing the tiles
+  to the database; the first import starts right after the server
+  starts, later ones a week after the last (`extract_dir/state.json`). A
+  failed import is retried after 6 hours, and imported tiles stay fresh
+  for two weeks, so one failure never sends the map elsewhere.
+- Overpass is the fallback (and the source when `extract: false`): the
+  server asks it for a block of 4 × 4 tiles (0.08°, about 9 × 6 km) for a
+  tile that is missing or overdue, trying several public servers in turn
+  (they are often overloaded, each at other times); a tile past its time
+  is answered from the cache at once and refreshed in the background.
+  Without the extract, a background prefetch walks Germany (blocks with
+  spots first), one query at a time with 20 s pauses.
 
 Config (`config.yaml`, env in brackets):
 
@@ -815,7 +828,15 @@ zones:
   # empty: overpass-api.de, maps.mail.ru, overpass.private.coffee,
   # overpass.kumi.systems
   overpass_url: ""
-  prefetch: true       # [ZONES_PREFETCH] keep Germany cached in the background
+  prefetch: true       # [ZONES_PREFETCH] keep Germany cached via Overpass
+                       # (only when extract is off)
+  extract: true        # [ZONES_EXTRACT] build Germany from the OSM extract
+  # [ZONES_EXTRACT_URL] [ZONES_EXTRACT_DIR] (the download, about 4.5 GB,
+  # lives there only while it is processed; the dir must not be in /tmp
+  # when that is a RAM disk)
+  extract_url: "https://download.geofabrik.de/europe/germany-latest.osm.pbf"
+  extract_dir: ""       # empty: osm/ next to upload_dir (writable for the
+                       # installed service, unlike /opt/stonerspots)
 limits:
   zones: { n: 120, per: "1m" }   # per client IP
 ```

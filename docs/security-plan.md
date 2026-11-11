@@ -24,7 +24,7 @@ checked in the code, not just planned.
 - Per-user daily quotas: spots 10, updates 50, reviews 20, reports 10, comments 100 (in memory, reset on restart)
 - Unattached photo cleanup (hourly, >24h orphans)
 - Global body limit 10 MB
-- systemd sandbox: dedicated user, no capabilities, `ProtectSystem=strict`, `NoNewPrivileges`, syscall and socket filters, `MemoryMax=1G` + `GOMEMLIMIT`, `UMask=0077`, data folder as `StateDirectory`; 0640 config
+- systemd sandbox: dedicated user, no capabilities, `ProtectSystem=strict`, `NoNewPrivileges`, syscall and socket filters, `MemoryMax=1536M` + `GOMEMLIMIT`, `UMask=0077`, data folder as `StateDirectory`; 0640 config
 - Installer as root never follows paths the service user controls; admin-page update requests read with the service user's rights, exact words only, bounded in size and time; root update unit sandboxed with a timeout
 - Signed backend releases (`SHA256SUMS.txt.sig`, enforced once the server has the public key), backend tarballs only from the backend jobs, build provenance
 - CI: actions pinned to commit SHAs, least-privilege job permissions, `govulncheck` + `go vet` (push/PR to main and v2, weekly), Dependabot for Go, pub and Actions

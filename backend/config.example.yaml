@@ -154,8 +154,17 @@ zones:
   # fails; empty uses four public instances (overpass-api.de first)
   overpass_url: ""
   # keep all of Germany cached in the background (blocks with spots first,
-  # one query every 20 s at most); needs the database
+  # one query every 20 s at most); needs the database; off while extract is
+  # on
   prefetch: true
+  # build all of Germany's zones here from an OpenStreetMap extract instead
+  # of asking Overpass block by block: downloaded weekly (about 4.5 GB, kept
+  # only while it is processed, which takes a few minutes and about 900 MB
+  # of memory); Overpass stays the fallback. Needs the database
+  # [ZONES_EXTRACT, ZONES_EXTRACT_URL, ZONES_EXTRACT_DIR]
+  extract: true
+  extract_url: "https://download.geofabrik.de/europe/germany-latest.osm.pbf"
+  # extract_dir: "/var/lib/stonerspots/osm"  # default: osm/ next to upload_dir
 
 # MariaDB 11.4 (see schema.example.sql for the table layout).
 database:

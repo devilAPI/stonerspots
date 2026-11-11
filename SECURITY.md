@@ -80,7 +80,7 @@ trust the loopback proxy; the API warns at start when this looks wrong).
   only to its own state directory and the update request folder,
   `PrivateTmp`/`PrivateDevices`/`ProtectHome`, kernel and clock protections,
   `RestrictNamespaces`, `SystemCallFilter=@system-service`, only
-  IPv4/IPv6/Unix sockets, `UMask=0077`, `MemoryMax=1G` with `GOMEMLIMIT`,
+  IPv4/IPv6/Unix sockets, `UMask=0077`, `MemoryMax=1536M` with `GOMEMLIMIT`,
   task and file limits
 - The root update unit (admin-page updates) is sandboxed to the folders an
   update writes, with a start timeout; it reads the API's update request

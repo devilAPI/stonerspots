@@ -62,7 +62,7 @@ SIGNING_NAMESPACE=stonerspots-release
 SIGNING_KEY_OWNER=0
 # Raised whenever the units below change, so that an install that is
 # otherwise up to date still gets them on the next run.
-UNITS_VERSION=2
+UNITS_VERSION=3
 # Empty for the default backend; set by --instance (see set_instance).
 INSTANCE=""
 INSTANCE_ARGS=""
@@ -251,9 +251,10 @@ UMask=0077
 
 # Resources: a flood of large uploads kills only this service (and systemd
 # restarts it), never the database next to it. GOMEMLIMIT makes Go collect
-# garbage harder before that point.
-MemoryMax=1G
-Environment=GOMEMLIMIT=850MiB
+# garbage harder before that point. The weekly zone import from the
+# OpenStreetMap extract needs about 900 MB for a minute or two.
+MemoryMax=1536M
+Environment=GOMEMLIMIT=1300MiB
 TasksMax=512
 LimitNOFILE=8192
 

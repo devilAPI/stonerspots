@@ -75,6 +75,9 @@ type Service struct {
 	now       func() time.Time
 	sem       chan struct{}
 	slotWait  time.Duration
+	// ttl: tiles older than this are fetched again (cacheTTL, or
+	// extractTTL with UseExtract)
+	ttl time.Duration
 
 	mu       sync.Mutex
 	mem      map[string]tileData
@@ -99,6 +102,7 @@ func NewService(overpassURLs []string, publicBaseURL string, st store) *Service 
 		now:       time.Now,
 		sem:       make(chan struct{}, maxUpstream),
 		slotWait:  slotWait,
+		ttl:       cacheTTL,
 		mem:       map[string]tileData{},
 		inflight:  map[string]*call{},
 		failed:    map[string]time.Time{},
@@ -111,7 +115,7 @@ func userAgent(publicBaseURL string) string {
 		strings.TrimRight(publicBaseURL, "/"))
 }
 
-func (s *Service) fresh(at time.Time) bool { return s.now().Sub(at) < cacheTTL }
+func (s *Service) fresh(at time.Time) bool { return s.now().Sub(at) < s.ttl }
 
 func (s *Service) remember(key string, d tileData) {
 	s.mu.Lock()

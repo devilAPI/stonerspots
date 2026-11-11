@@ -1,5 +1,7 @@
 .env
 uploads/
+# OpenStreetMap extract for the zone layer (zones.extract_dir)
+osm/
 # Go
 *.test
 *.out

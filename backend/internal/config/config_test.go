@@ -281,3 +281,28 @@ func TestZonesConfig(t *testing.T) {
 		t.Fatal("env must override the file")
 	}
 }
+
+func TestZonesExtractConfig(t *testing.T) {
+	clearEnv(t)
+	for _, k := range []string{"ZONES_EXTRACT", "ZONES_EXTRACT_URL", "ZONES_EXTRACT_DIR"} {
+		t.Setenv(k, "")
+	}
+	t.Chdir(t.TempDir())
+	c, err := Read()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.Zones.Extract || c.Zones.ExtractURL != DefaultExtractURL || c.Zones.ExtractDir != "osm" {
+		t.Fatalf("defaults: %+v", c.Zones)
+	}
+	// the installed service can write only to its data folder: the
+	// download goes next to the uploads
+	t.Setenv("CONFIG_FILE", writeFile(t, "upload_dir: /var/lib/stonerspots/uploads/\nzones:\n  extract: false\n"))
+	if c, _ = Read(); c.Zones.Extract || c.Zones.ExtractDir != "/var/lib/stonerspots/osm" {
+		t.Fatalf("file: %+v", c.Zones)
+	}
+	t.Setenv("ZONES_EXTRACT_DIR", "/srv/osm")
+	if c, _ = Read(); c.Zones.ExtractDir != "/srv/osm" {
+		t.Fatal("env must override the default")
+	}
+}
