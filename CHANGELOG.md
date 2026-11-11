@@ -23,6 +23,15 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
   fades out beneath it, without a bar. The feed, login and register, add
   spot and admin pages had a hard edge; the feed's filters are two glass
   rows under its title now.
+- Feed filters reworked: the sort (New, Top, Nearby) is one glass row of
+  tabs under the title; the filters moved to a filter button beside the
+  title (a badge counts those that are on), which opens a sheet with all
+  of them. The filters that are on show as a row under the sort, each
+  removable with its x.
+- New filter: distance from you. A slider from 1 to 500 km (or
+  anywhere) keeps only spots within that radius of where you are, with
+  every sort, and is remembered for next time (`radius_km` on
+  `GET /feed`; needs the new server).
 - Server: Germany's zones are built on the server from Geofabrik's
   OpenStreetMap extract once a week (about 4.5 GB download, deleted after;
   1.5 minutes and about 900 MB of memory on a desktop), so every German

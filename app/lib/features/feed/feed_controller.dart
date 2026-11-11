@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import '../../core/location_service.dart';
 import '../../core/models.dart';
 import '../../core/paging.dart';
+import '../../core/settings.dart';
 import 'feed_repository.dart';
 
 class FeedState {
@@ -13,6 +14,7 @@ class FeedState {
     this.tags = const [],
     this.locationDenied = false,
     this.following = false,
+    this.radiusKm,
   });
 
   final Paged<FeedItem> page;
@@ -24,6 +26,13 @@ class FeedState {
 
   /// Only updates of people the user follows (needs a login).
   final bool following;
+
+  /// Only spots within this many km of the user; null: anywhere.
+  final int? radiusKm;
+
+  /// How many filters narrow the feed (the sort is not one).
+  int get filterCount =>
+      tags.length + (following ? 1 : 0) + (radiusKm != null ? 1 : 0);
 
   List<FeedItem> get items => page.items;
   bool get loading => page.loading;
@@ -39,12 +48,14 @@ class FeedState {
     List<SpotTag>? tags,
     bool? locationDenied,
     bool? following,
+    int? Function()? radiusKm,
   }) => FeedState(
     page: page ?? this.page,
     sort: sort ?? this.sort,
     tags: tags ?? this.tags,
     locationDenied: locationDenied ?? this.locationDenied,
     following: following ?? this.following,
+    radiusKm: radiusKm != null ? radiusKm() : this.radiusKm,
   );
 }
 
@@ -56,28 +67,69 @@ class FeedController extends Notifier<FeedState>
     with CursorPaging<FeedState, FeedItem> {
   LatLng? _pos;
 
+  /// The radius chosen last time, kept on the device.
+  static const radiusKey = 'feed_radius_km';
+
+  /// The radii the filter offers, in km.
+  static const radiusSteps = [1, 2, 5, 10, 25, 50, 100, 250, 500];
+
   @override
-  FeedState build() => const FeedState();
+  FeedState build() => FeedState(
+    radiusKm: switch (ref.read(settingsStoreProvider).getInt(radiusKey)) {
+      final km? when radiusSteps.contains(km) => km,
+      _ => null,
+    },
+  );
 
   FeedRepository get _repo => ref.read(feedRepositoryProvider);
 
-  /// Loads the first page for the current sort/tags.
-  Future<void> load() => loadFirst();
+  bool get _needsPosition =>
+      state.sort == FeedSort.nearby || state.radiusKm != null;
 
-  /// Pull-to-refresh: reloads page one and replaces the list (no duplicates).
-  Future<void> refresh() => loadFirst(keepItems: true);
+  /// Loads the first page for the current sort and filters.
+  Future<void> load() async {
+    if (_needsPosition && !await _locate()) {
+      // a radius kept from last time, but no location now: anywhere, for
+      // this session only (the setting stays for next time)
+      state = state.copyWith(
+        sort: state.sort == FeedSort.nearby ? FeedSort.newest : null,
+        radiusKm: () => null,
+      );
+    }
+    await loadFirst();
+  }
+
+  /// Pull-to-refresh: reloads page one and replaces the list (no duplicates);
+  /// asks for the position again, the user may have moved.
+  Future<void> refresh() async {
+    if (_needsPosition) await _locate();
+    await loadFirst(keepItems: true);
+  }
+
+  /// Asks for the position; false (and a note for the user) without one.
+  Future<bool> _locate() async {
+    state = state.copyWith(locationDenied: false);
+    final pos = await ref.read(locationServiceProvider).currentPosition();
+    if (pos != null) _pos = pos;
+    if (_pos == null) state = state.copyWith(locationDenied: true);
+    return _pos != null;
+  }
 
   Future<void> setSort(FeedSort sort) async {
-    var effective = sort;
-    var denied = false;
-    if (sort == FeedSort.nearby) {
-      _pos = await ref.read(locationServiceProvider).currentPosition();
-      if (_pos == null) {
-        effective = FeedSort.newest;
-        denied = true;
-      }
+    if (sort == FeedSort.nearby && !await _locate()) {
+      sort = FeedSort.newest;
     }
-    state = state.copyWith(sort: effective, locationDenied: denied);
+    state = state.copyWith(sort: sort);
+    await loadFirst();
+  }
+
+  /// Only spots within [km] of the user, or anywhere with null. Without a
+  /// position the radius stays as it was.
+  Future<void> setRadius(int? km) async {
+    if (km == state.radiusKm) return;
+    if (km != null && !await _locate()) return;
+    state = state.copyWith(radiusKm: () => km);
+    ref.read(settingsStoreProvider).setInt(radiusKey, km);
     await loadFirst();
   }
 
@@ -101,6 +153,18 @@ class FeedController extends Notifier<FeedState>
     await loadFirst();
   }
 
+  /// Every filter off (the sort stays).
+  Future<void> clearFilters() async {
+    if (state.filterCount == 0) return;
+    state = state.copyWith(
+      tags: const [],
+      following: false,
+      radiusKm: () => null,
+    );
+    ref.read(settingsStoreProvider).setInt(radiusKey, null);
+    await loadFirst();
+  }
+
   @override
   Paged<FeedItem> get paged => state.page;
 
@@ -115,8 +179,9 @@ class FeedController extends Notifier<FeedState>
     sort: state.sort,
     tags: state.tags,
     following: state.following,
-    lat: state.sort == FeedSort.nearby ? _pos?.latitude : null,
-    lon: state.sort == FeedSort.nearby ? _pos?.longitude : null,
+    radiusKm: state.radiusKm,
+    lat: _needsPosition ? _pos?.latitude : null,
+    lon: _needsPosition ? _pos?.longitude : null,
     cursor: cursor,
   );
 }

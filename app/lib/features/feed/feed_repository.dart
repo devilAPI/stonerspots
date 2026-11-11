@@ -25,6 +25,7 @@ abstract class FeedRepository {
     int limit = 20,
     List<SpotTag> tags = const [],
     bool following = false,
+    int? radiusKm,
   });
 }
 
@@ -41,6 +42,7 @@ class ApiFeedRepository implements FeedRepository {
     int limit = 20,
     List<SpotTag> tags = const [],
     bool following = false,
+    int? radiusKm,
   }) async {
     final json = await _api.get<Map<String, dynamic>>(
       '/feed',
@@ -48,6 +50,7 @@ class ApiFeedRepository implements FeedRepository {
         'sort': sort.apiValue,
         if (tags.isNotEmpty) 'tags': SpotTag.encode(tags),
         if (following) 'following': true,
+        'radius_km': ?radiusKm,
         'lat': ?lat,
         'lon': ?lon,
         'cursor': ?cursor,

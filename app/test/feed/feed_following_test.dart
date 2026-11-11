@@ -19,6 +19,7 @@ class _Repo implements FeedRepository {
     int limit = 20,
     List<SpotTag> tags = const [],
     bool following = false,
+    int? radiusKm,
   }) async {
     this.following.add(following);
     return const FeedPage([], null);
@@ -64,9 +65,21 @@ Future<_Auth> _pump(
   return auth;
 }
 
+Future<void> openFilters(WidgetTester t) async {
+  await t.tap(find.byKey(const Key('feedFilters')));
+  await t.pumpAndSettle();
+}
+
+Future<void> closeFilters(WidgetTester t) async {
+  await t.ensureVisible(find.byKey(const Key('feedFiltersDone')));
+  await t.tap(find.byKey(const Key('feedFiltersDone')));
+  await t.pumpAndSettle();
+}
+
 void main() {
   testWidgets('no Following filter when logged out', (t) async {
     await _pump(t, _Repo());
+    await openFilters(t);
     expect(find.byKey(const Key('feedFollowing')), findsNothing);
   });
 
@@ -76,37 +89,44 @@ void main() {
     final repo = _Repo();
     await _pump(t, repo, user: _me);
     expect(repo.following.last, isFalse);
-    final chip = find.byKey(const Key('feedFollowing'));
-    expect(chip, findsOneWidget);
-    expect(find.text('Following'), findsOneWidget);
+    await openFilters(t);
+    final toggle = find.byKey(const Key('feedFollowing'));
+    expect(toggle, findsOneWidget);
+    expect(find.text('Only people I follow'), findsOneWidget);
 
-    await t.tap(chip);
+    await t.tap(toggle);
     await t.pumpAndSettle();
     expect(repo.following.last, isTrue);
-    expect(t.widget<FilterChip>(chip).selected, isTrue);
+    expect(t.widget<SwitchListTile>(toggle).value, isTrue);
+    await closeFilters(t);
     expect(find.text('No updates from people you follow yet'), findsOneWidget);
+    expect(find.byKey(const Key('feedActive-following')), findsOneWidget);
 
-    await t.tap(chip);
+    await openFilters(t);
+    await t.tap(toggle);
     await t.pumpAndSettle();
     expect(repo.following.last, isFalse);
-    expect(t.widget<FilterChip>(chip).selected, isFalse);
+    expect(t.widget<SwitchListTile>(toggle).value, isFalse);
   });
 
   testWidgets('logging out turns the filter off', (t) async {
     final repo = _Repo();
     final auth = await _pump(t, repo, user: _me);
+    await openFilters(t);
     await t.tap(find.byKey(const Key('feedFollowing')));
     await t.pumpAndSettle();
+    await closeFilters(t);
     expect(repo.following.last, isTrue);
 
     auth.set(null);
     await t.pumpAndSettle();
-    expect(find.byKey(const Key('feedFollowing')), findsNothing);
+    expect(find.byKey(const Key('feedActive-following')), findsNothing);
     expect(repo.following.last, isFalse);
   });
 
   testWidgets('German label', (t) async {
     await _pump(t, _Repo(), user: _me, locale: const Locale('de'));
-    expect(find.text('Folge ich'), findsOneWidget);
+    await openFilters(t);
+    expect(find.text('Nur Leute, denen ich folge'), findsOneWidget);
   });
 }

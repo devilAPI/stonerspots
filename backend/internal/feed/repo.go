@@ -215,10 +215,12 @@ type query struct {
 	authorID   uint64
 	followerID uint64
 	lat, lon   float64
-	hasCur     bool
-	curKey     float64
-	curID      uint64
-	limit      int
+	// radius > 0 keeps only spots within that many metres of lat/lon
+	radius float64
+	hasCur bool
+	curKey float64
+	curID  uint64
+	limit  int
 }
 
 // The last selected column is always the sort key (see scanItem).
@@ -299,6 +301,10 @@ func list(ctx context.Context, db *sql.DB, base string, q query) ([]FeedItem, *s
 	if q.spotID == 0 && q.authorID == 0 && q.followerID == 0 {
 		// the feed shows each spot once, with its latest active update
 		catWhere += " AND u.id = (SELECT MAX(ul.id) FROM spot_updates ul WHERE ul.spot_id = u.spot_id AND ul.status = 'active')"
+	}
+	if q.radius > 0 {
+		catWhere += " AND " + distExpr + " <= ?"
+		catArgs = append(catArgs, q.lon, q.lat, q.radius)
 	}
 	tq, targs := tagset.FilterSQL("s", q.tags)
 	catWhere += tq

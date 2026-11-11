@@ -59,6 +59,7 @@ class _Feed implements FeedRepository {
     int limit = 20,
     List<SpotTag> tags = const [],
     bool following = false,
+    int? radiusKm,
   }) async => const FeedPage([], null);
 }
 
@@ -395,7 +396,13 @@ void main() {
       await pumpIn(t, const FeedScreen(), solid: true);
       await t.pumpAndSettle();
       expectNoGlass();
-      expect(find.byKey(const Key('feedTagRow')), findsOneWidget);
+      expect(find.byKey(const Key('feedSort')), findsOneWidget);
+      // the filter sheet too
+      await t.tap(find.byKey(const Key('feedFilters')));
+      await t.pumpAndSettle();
+      expectNoGlass();
+      expect(find.byKey(const Key('feedRadius')), findsOneWidget);
+      expect(t.takeException(), isNull);
     });
   });
 

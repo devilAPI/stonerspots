@@ -269,6 +269,46 @@ func TestFeedNearbyRequiresLatLon(t *testing.T) {
 	}
 }
 
+func TestFeedRadiusKeepsOnlyNearSpots(t *testing.T) {
+	db, h := setup(t)
+	u := testutil.NewUser(t, db)
+	near := newSpot(t, db, u, 48.0, 11.0, 0)
+	mid := newSpot(t, db, u, 48.5, 11.0, 0) // about 55 km north
+	far := newSpot(t, db, u, 50.0, 11.0, 0)
+	un := newUpdate(t, db, near, u, "n", "2026-01-01 10:00:00")
+	um := newUpdate(t, db, mid, u, "m", "2026-01-02 10:00:00")
+	newUpdate(t, db, far, u, "f", "2026-01-03 10:00:00")
+
+	for _, bad := range []url.Values{
+		{"radius_km": {"25"}}, // no location
+		{"radius_km": {"0"}, "lat": {"48"}, "lon": {"11"}},
+		{"radius_km": {"-5"}, "lat": {"48"}, "lon": {"11"}},
+		{"radius_km": {"x"}, "lat": {"48"}, "lon": {"11"}},
+		{"radius_km": {"30000"}, "lat": {"48"}, "lon": {"11"}},
+	} {
+		if code, _, body := getFeed(t, h, bad); code != 400 {
+			t.Fatalf("%v: %d %s", bad, code, body)
+		}
+	}
+	// newest first, within 60 km
+	_, fr, body := getFeed(t, h, url.Values{"radius_km": {"60"}, "lat": {"48.0"}, "lon": {"11.0"}})
+	if len(fr.Items) != 2 || fr.Items[0].ID != um || fr.Items[1].ID != un {
+		t.Fatal(body)
+	}
+	// nearby with a radius pages within it
+	q := url.Values{"sort": {"nearby"}, "radius_km": {"60"}, "lat": {"48.0"}, "lon": {"11.0"}, "limit": {"1"}}
+	_, fr, body = getFeed(t, h, q)
+	if len(fr.Items) != 1 || fr.Items[0].ID != un || fr.NextCursor == nil {
+		t.Fatal(body)
+	}
+	q.Set("cursor", *fr.NextCursor)
+	_, fr, body = getFeed(t, h, q)
+	// the far spot is not a third page
+	if len(fr.Items) != 1 || fr.Items[0].ID != um || fr.NextCursor != nil {
+		t.Fatal(body)
+	}
+}
+
 func TestFeedIgnoresCategoryParamAndHasNoCategory(t *testing.T) {
 	db, h := setup(t)
 	u := testutil.NewUser(t, db)

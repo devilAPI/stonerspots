@@ -99,6 +99,9 @@ func (h *handler) postUpdate(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusCreated, it)
 }
 
+// maxRadiusKm is half the earth's circumference: every spot.
+const maxRadiusKm = 20000
+
 func (h *handler) getFeed(w http.ResponseWriter, r *http.Request) {
 	p := r.URL.Query()
 	q := query{sort: sortNew, limit: 20}
@@ -151,11 +154,19 @@ func (h *handler) getFeed(w http.ResponseWriter, r *http.Request) {
 		}
 		q.limit = min(n, 50)
 	}
-	if q.sort == sortNearby {
+	if rk := p.Get("radius_km"); rk != "" {
+		km, err := strconv.ParseFloat(rk, 64)
+		if err != nil || math.IsNaN(km) || km <= 0 || km > maxRadiusKm {
+			httpx.Error(w, http.StatusBadRequest, "invalid_radius", "radius_km must be between 0 and 20000 (km)")
+			return
+		}
+		q.radius = km * 1000
+	}
+	if q.sort == sortNearby || q.radius > 0 {
 		lat, e1 := strconv.ParseFloat(p.Get("lat"), 64)
 		lon, e2 := strconv.ParseFloat(p.Get("lon"), 64)
 		if e1 != nil || e2 != nil || math.IsNaN(lat) || math.IsNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180 {
-			httpx.Error(w, http.StatusBadRequest, "invalid_location", "sort=nearby requires valid lat and lon")
+			httpx.Error(w, http.StatusBadRequest, "invalid_location", "sort=nearby and radius_km require valid lat and lon")
 			return
 		}
 		q.lat, q.lon = lat, lon

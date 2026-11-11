@@ -1271,6 +1271,40 @@ class AppLocalizationsDe extends AppLocalizations {
       'Noch keine Updates von Leuten, denen du folgst';
 
   @override
+  String get feedFilters => 'Filter';
+
+  @override
+  String get feedFiltersReset => 'Zurücksetzen';
+
+  @override
+  String get feedFiltersDone => 'Fertig';
+
+  @override
+  String get feedRadius => 'Umkreis';
+
+  @override
+  String get feedRadiusHint => 'Gemessen von deinem Standort';
+
+  @override
+  String get feedRadiusAnywhere => 'Überall';
+
+  @override
+  String feedRadiusKm(int km) {
+    return '$km km';
+  }
+
+  @override
+  String feedRadiusChip(int km) {
+    return 'Bis $km km';
+  }
+
+  @override
+  String get feedFollowingOnly => 'Nur Leute, denen ich folge';
+
+  @override
+  String get feedFilteredEmpty => 'Nichts passt zu deinen Filtern';
+
+  @override
   String get userFollow => 'Folgen';
 
   @override

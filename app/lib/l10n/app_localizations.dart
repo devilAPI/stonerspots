@@ -2186,6 +2186,66 @@ abstract class AppLocalizations {
   /// **'Noch keine Updates von Leuten, denen du folgst'**
   String get feedFollowingEmpty;
 
+  /// No description provided for @feedFilters.
+  ///
+  /// In de, this message translates to:
+  /// **'Filter'**
+  String get feedFilters;
+
+  /// No description provided for @feedFiltersReset.
+  ///
+  /// In de, this message translates to:
+  /// **'Zurücksetzen'**
+  String get feedFiltersReset;
+
+  /// No description provided for @feedFiltersDone.
+  ///
+  /// In de, this message translates to:
+  /// **'Fertig'**
+  String get feedFiltersDone;
+
+  /// No description provided for @feedRadius.
+  ///
+  /// In de, this message translates to:
+  /// **'Umkreis'**
+  String get feedRadius;
+
+  /// No description provided for @feedRadiusHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Gemessen von deinem Standort'**
+  String get feedRadiusHint;
+
+  /// No description provided for @feedRadiusAnywhere.
+  ///
+  /// In de, this message translates to:
+  /// **'Überall'**
+  String get feedRadiusAnywhere;
+
+  /// No description provided for @feedRadiusKm.
+  ///
+  /// In de, this message translates to:
+  /// **'{km} km'**
+  String feedRadiusKm(int km);
+
+  /// No description provided for @feedRadiusChip.
+  ///
+  /// In de, this message translates to:
+  /// **'Bis {km} km'**
+  String feedRadiusChip(int km);
+
+  /// No description provided for @feedFollowingOnly.
+  ///
+  /// In de, this message translates to:
+  /// **'Nur Leute, denen ich folge'**
+  String get feedFollowingOnly;
+
+  /// No description provided for @feedFilteredEmpty.
+  ///
+  /// In de, this message translates to:
+  /// **'Nichts passt zu deinen Filtern'**
+  String get feedFilteredEmpty;
+
   /// No description provided for @userFollow.
   ///
   /// In de, this message translates to:
