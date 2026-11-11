@@ -339,52 +339,41 @@ class _MapScreenState extends ConsumerState<MapScreen>
           Positioned(
             top: insets.top + 72,
             right: insets.right + 12,
-            child: SizedBox(
-              width: 52,
-              child: GlassSurface(
-                radius: 26,
-                child: MapControlsTheme(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // with the tabs, search is the round button beside
-                      // them; the shortcuts work either way
-                      MapSearchButton(
-                        onPressed: _openSearch,
-                        visible: context.useNavRail,
-                      ),
-                      MapLayerButton(
-                        key: const Key('mapLayer'),
-                        base: _base,
-                        onChanged: (b) => setState(() => _base = b),
-                      ),
-                      IconButton(
-                        key: const Key('map3d'),
-                        tooltip: l10n.map3d,
-                        isSelected: map3d,
-                        onPressed: () => _tiltTo(map3d ? 0 : kMapPitch),
-                        icon: const Icon(Icons.view_in_ar_outlined),
-                      ),
-                      const ZoneToggleButton(),
-                      const ZoneInfoButton(),
-                      IconButton(
-                        key: const Key('mapLocateMe'),
-                        tooltip: l10n.mapMyLocation,
-                        onPressed: _locating ? null : _locateMe,
-                        icon: _locating
-                            ? const SizedBox.square(
-                                dimension: kMapControlIconSize - 2,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.near_me_outlined),
-                      ),
-                      MapCompass(controller: _mapController),
-                    ],
-                  ),
+            child: MapControlColumn(
+              children: [
+                // with the tabs, search is the round button beside
+                // them; the shortcuts work either way
+                MapSearchButton(
+                  onPressed: _openSearch,
+                  visible: context.useNavRail,
                 ),
-              ),
+                MapLayerButton(
+                  key: const Key('mapLayer'),
+                  base: _base,
+                  onChanged: (b) => setState(() => _base = b),
+                ),
+                IconButton(
+                  key: const Key('map3d'),
+                  tooltip: l10n.map3d,
+                  isSelected: map3d,
+                  onPressed: () => _tiltTo(map3d ? 0 : kMapPitch),
+                  icon: const Icon(Icons.view_in_ar_outlined),
+                ),
+                const ZoneToggleButton(),
+                const ZoneInfoButton(),
+                IconButton(
+                  key: const Key('mapLocateMe'),
+                  tooltip: l10n.mapMyLocation,
+                  onPressed: _locating ? null : _locateMe,
+                  icon: _locating
+                      ? const SizedBox.square(
+                          dimension: kMapControlIconSize - 2,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.near_me_outlined),
+                ),
+                MapCompass(controller: _mapController),
+              ],
             ),
           ),
           // In the stack, not Scaffold.floatingActionButton: that one would

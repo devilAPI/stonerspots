@@ -111,6 +111,45 @@
         .catch(() => {});
     })();
   </script>
+  <script>
+    // iOS home-screen app only: after the keyboard, a double tap or a
+    // return to the app, iOS can leave the page scrolled by a few points
+    // although nothing on it scrolls. Taps then land beside what they aim
+    // at and the bottom of the screen (the tab bar) seems dead until many
+    // tries (flutter/flutter#115829). Keep the page at the top.
+    (function () {
+      const ios = /iP(hone|od|ad)/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const standalone = navigator.standalone === true ||
+        window.matchMedia('(display-mode: standalone)').matches;
+      if (!ios || !standalone) return;
+      function typing() {
+        const e = document.activeElement;
+        return !!e && (e.tagName === 'INPUT' || e.tagName === 'TEXTAREA' ||
+          e.isContentEditable);
+      }
+      function reset() {
+        if (typing()) return; // the keyboard is up; focusout comes later
+        if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0);
+        const root = document.scrollingElement || document.documentElement;
+        if (root.scrollTop !== 0) root.scrollTop = 0;
+        if (document.body && document.body.scrollTop !== 0) {
+          document.body.scrollTop = 0;
+        }
+      }
+      function soon() { reset(); setTimeout(reset, 100); setTimeout(reset, 400); }
+      document.addEventListener('touchstart', reset, { passive: true, capture: true });
+      document.addEventListener('focusout', soon, true);
+      document.addEventListener('visibilitychange', soon);
+      window.addEventListener('resize', soon);
+      window.addEventListener('orientationchange', soon);
+      window.addEventListener('pageshow', soon);
+      window.addEventListener('scroll', reset, { passive: true });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', soon);
+      }
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

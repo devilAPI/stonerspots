@@ -12,6 +12,13 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
   every 30 seconds while it is shown, instead of staying an error.
 - The profile's Spots / Updates switcher is the same glass row as the
   admin's sections; neither shows Material's ink ripple anymore.
+- The map-style button on the add-spot map (and the spot page's small
+  map, with its recenter button) sits on a glass capsule like the main
+  map's controls.
+- Home-screen app on iOS: a tap on the tab bar that iOS cancels (near the
+  bottom edge) still switches the tab, and the page is kept from staying
+  scrolled after the keyboard or a double tap, which left the bottom of
+  the screen unresponsive (flutter/flutter#115829).
 
 ## 1.0.10
 

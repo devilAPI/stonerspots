@@ -214,6 +214,9 @@ class _LoupeTabBarState extends State<LoupeTabBar>
   /// The finger's last position in tabs, without rubber banding.
   double _finger = 0;
 
+  /// Where the current press started.
+  Offset _downAt = Offset.zero;
+
   /// The latest drag position the springs have not been retargeted to yet.
   Offset? _pendingDrag;
   int? _pendingDragFrame;
@@ -350,6 +353,7 @@ class _LoupeTabBarState extends State<LoupeTabBar>
   void _onDown(DragDownDetails details) {
     if (_size.isEmpty) return;
     _cancelPendingDrag();
+    _downAt = details.localPosition;
     _held = true;
     _dragging = false;
     _track(details.localPosition, motion: _settle);
@@ -408,9 +412,13 @@ class _LoupeTabBarState extends State<LoupeTabBar>
     _release(target);
   }
 
+  /// The touch was taken away before it ended (when a tap wins, the tap
+  /// has already released). A press that never moved still selects its
+  /// tab: iOS cancels touches near the bottom edge of a home-screen web
+  /// app, where taps on the bar were lost.
   void _onCancel() {
     if (!_held) return;
-    _release(_dragging ? _finger.round().clamp(0, _lastTab) : _selected);
+    _release(_dragging ? _finger.round().clamp(0, _lastTab) : _tabAt(_downAt));
   }
 
   void _release(int tab) {

@@ -116,6 +116,17 @@ void main() {
       });
     }
 
+    testWidgets('a press the system cancels still selects its tab', (t) async {
+      // iOS cancels touches near the bottom edge of a home-screen web app
+      int? picked;
+      await pumpAt(t, phonePortrait, nav((i) => picked = i));
+      final press = await t.startGesture(t.getCenter(find.text('Feed').first));
+      await t.pump();
+      await press.cancel();
+      await t.pumpAndSettle();
+      expect(picked, 1);
+    });
+
     testWidgets('no overflow on a very short landscape phone', (t) async {
       await pumpAt(t, const Size(640, 300), nav((_) {}));
       expect(t.takeException(), isNull);

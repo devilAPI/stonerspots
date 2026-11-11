@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../core/theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../map/map_controls_theme.dart';
 import '../map/map_tiles.dart';
 
 /// Interactive map of a spot with its dot: drag and pinch to look around,
@@ -89,18 +90,18 @@ class _SpotLocationMapState extends State<SpotLocationMap> {
           Positioned(
             top: 8,
             right: 8,
-            child: Column(
+            child: MapControlColumn(
               children: [
                 MapLayerButton(
                   key: const Key('spotMapLayer'),
                   base: _base,
                   onChanged: (b) => setState(() => _base = b),
                 ),
-                IconButton.filledTonal(
+                IconButton(
                   key: const Key('spotMapRecenter'),
                   tooltip: l.mapRecenter,
                   onPressed: () => _controller.move(_spot, widget.zoom),
-                  icon: const Icon(Icons.center_focus_strong),
+                  icon: const Icon(Icons.center_focus_strong_outlined),
                 ),
               ],
             ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../map/map_controls_theme.dart';
 import '../map/map_tiles.dart';
 
 const LatLng kFallbackCenter = LatLng(49.5, 10.5);
@@ -99,10 +100,14 @@ class _LocationPickerState extends State<LocationPicker> {
         Positioned(
           top: 8,
           right: 8,
-          child: MapLayerButton(
-            key: const Key('pickerMapLayer'),
-            base: _base,
-            onChanged: (b) => setState(() => _base = b),
+          child: MapControlColumn(
+            children: [
+              MapLayerButton(
+                key: const Key('pickerMapLayer'),
+                base: _base,
+                onChanged: (b) => setState(() => _base = b),
+              ),
+            ],
           ),
         ),
       ],
