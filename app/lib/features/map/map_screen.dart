@@ -132,6 +132,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   void _closeSearch() => setState(() => _searchOpen = false);
 
+  /// A user from the search: their profile.
+  void _pickSearchUser(Author user) {
+    _closeSearch();
+    context.push(userPath(user.id));
+  }
+
   /// A search result: fly there and show its card as a marker tap would.
   void _pickSearchResult(Spot spot) {
     _closeSearch();
@@ -402,6 +408,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                   child: MapSpotSearch(
                     focusNode: _searchFocus,
                     onPick: _pickSearchResult,
+                    onPickUser: _pickSearchUser,
                     onClose: _closeSearch,
                   ),
                 ),

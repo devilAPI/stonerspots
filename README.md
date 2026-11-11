@@ -21,7 +21,7 @@ coordinates are not limited to a region.
 The first release. What's in it is in [`CHANGELOG.md`](CHANGELOG.md), in
 short:
 
-- **Map** with spot search (Ctrl+K) and a compass.
+- **Map** with a search for spots and users (Ctrl+K) and a compass.
 - **Spots** with photos, weather (Open-Meteo, no key), reviews, comments and
   updates.
 - **Feed**, also as "Following": only updates of people you follow.

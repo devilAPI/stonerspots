@@ -284,7 +284,7 @@ func TestSearchAndFeedPerIPLimit(t *testing.T) {
 	s := newSec(t, func(c *config.Config) {
 		c.Limits.Search = ratelimit.Rule{N: 2, Per: time.Minute}
 	})
-	for _, path := range []string{"/spots/search?q=bench", "/feed"} {
+	for _, path := range []string{"/spots/search?q=bench", "/users/search?q=user", "/feed"} {
 		for i := 0; i < 2; i++ {
 			s.want(s.call("GET", path, 0, nil, nil), 200, "", path)
 		}

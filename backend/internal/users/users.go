@@ -20,6 +20,7 @@ import (
 	"stonerspots/backend/internal/feed"
 	"stonerspots/backend/internal/httpx"
 	"stonerspots/backend/internal/quotas"
+	"stonerspots/backend/internal/ratelimit"
 	"stonerspots/backend/internal/spots"
 )
 
@@ -55,6 +56,7 @@ func Mount(r chi.Router, d app.Deps, quota *quotas.Tracker) {
 		spots: &spots.Repo{DB: d.DB, PublicBaseURL: d.Cfg.PublicBaseURL},
 		quota: quota,
 	}
+	r.With(ratelimit.ByIP(ratelimit.New(d.Cfg.Limits.Search))).Get("/users/search", h.search)
 	optional := r.With(auth.Optional(d.Cfg.JWTSecret))
 	optional.Get("/users/{id}", h.get)
 	r.Get("/users/{id}/spots", h.userSpots)

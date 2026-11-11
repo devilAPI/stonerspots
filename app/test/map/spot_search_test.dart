@@ -14,6 +14,7 @@ import 'package:app/features/map/spot_search.dart';
 import 'package:app/features/map/spots_controller.dart';
 import 'package:app/features/saved/saved_repository.dart';
 import 'package:app/features/spots/spots_repository.dart';
+import 'package:app/features/users/user_search.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -49,6 +50,55 @@ class FakeSearch implements SpotSearchRepository {
     if (error != null) throw error!;
     return results;
   }
+}
+
+const _ganja = UserMatch(
+  author: Author(id: 7, displayName: 'Ganjamann'),
+  spotCount: 3,
+);
+const _guru = UserMatch(author: Author(id: 8, displayName: 'GanjaGuru'));
+
+class FakeUserSearch implements UserSearchRepository {
+  final queries = <String>[];
+  List<UserMatch> results = const [_ganja, _guru];
+  Object? error;
+
+  @override
+  Future<List<UserMatch>> search(String query) async {
+    queries.add(query);
+    if (error != null) throw error!;
+    return results;
+  }
+}
+
+class _UserAdapter implements HttpClientAdapter {
+  final seen = <RequestOptions>[];
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions o,
+    Stream<Uint8List>? s,
+    Future<void>? c,
+  ) async {
+    seen.add(o);
+    return ResponseBody.fromString(
+      jsonEncode([
+        {
+          'id': 7,
+          'display_name': 'Ganjamann',
+          'avatar_url': null,
+          'spot_count': 3,
+        },
+      ]),
+      200,
+      headers: {
+        Headers.contentTypeHeader: ['application/json'],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
 }
 
 class _Adapter implements HttpClientAdapter {
@@ -134,15 +184,33 @@ void main() {
     expect(a.seen.last.queryParameters, {'q': 'bank'});
   });
 
+  test('the API repository searches users by name', () async {
+    final a = _UserAdapter();
+    final api = ApiClient(
+      tokenStore: TokenStore.memory(),
+      baseUrl: 'http://x/api/v1',
+      adapter: a,
+    );
+    final list = await ApiUserSearchRepository(api).search('ganja');
+    expect(a.seen.single.path, '/users/search');
+    expect(a.seen.single.queryParameters, {'q': 'ganja'});
+    expect(list.single.author.id, 7);
+    expect(list.single.author.displayName, 'Ganjamann');
+    expect(list.single.spotCount, 3);
+  });
+
   group('controller', () {
     late FakeSearch search;
+    late FakeUserSearch users;
     late ProviderContainer c;
 
     setUp(() {
       search = FakeSearch();
+      users = FakeUserSearch();
       c = ProviderContainer(
         overrides: [
           spotSearchRepositoryProvider.overrideWithValue(search),
+          userSearchRepositoryProvider.overrideWithValue(users),
           spotSearchDebounceProvider.overrideWithValue(
             const Duration(milliseconds: 50),
           ),
@@ -202,6 +270,42 @@ void main() {
       expect(state().results!.single.id, 2);
     });
 
+    test('switching to users asks again for what is typed', () async {
+      ctrl().setQuery('ganja');
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(state().results, hasLength(2));
+      ctrl().setMode(SearchMode.users);
+      expect(state().mode, SearchMode.users);
+      expect(state().results, isNull);
+      await Future<void>.delayed(Duration.zero);
+      expect(users.queries, ['ganja']);
+      expect(state().users!.map((u) => u.author.id), [7, 8]);
+      expect(state().loading, isFalse);
+
+      // typing goes on in users mode; spots are not asked
+      ctrl().setQuery('guru');
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(users.queries, ['ganja', 'guru']);
+      expect(search.queries, hasLength(1));
+
+      ctrl().setMode(SearchMode.spots);
+      await Future<void>.delayed(Duration.zero);
+      expect(search.queries.map((q) => q.q), ['ganja', 'guru']);
+      expect(state().users, isNull);
+      expect(state().results, hasLength(2));
+    });
+
+    test('switching with nothing typed asks nothing', () async {
+      ctrl().setMode(SearchMode.users);
+      ctrl().setQuery('g');
+      ctrl().setMode(SearchMode.spots);
+      ctrl().setMode(SearchMode.users);
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(users.queries, isEmpty);
+      expect(search.queries, isEmpty);
+      expect(state().tooShort, isTrue);
+    });
+
     test('errors can be retried', () async {
       search.error = Exception('offline');
       ctrl().setQuery('park');
@@ -218,12 +322,16 @@ void main() {
 
   group('search panel', () {
     late FakeSearch search;
+    late FakeUserSearch users;
     late List<Spot> picked;
+    late List<Author> pickedUsers;
     late int closed;
 
     Future<void> pumpPanel(WidgetTester t) async {
       search = FakeSearch();
+      users = FakeUserSearch();
       picked = [];
+      pickedUsers = [];
       closed = 0;
       final focus = FocusNode();
       addTearDown(focus.dispose);
@@ -236,12 +344,14 @@ void main() {
               child: MapSpotSearch(
                 focusNode: focus,
                 onPick: picked.add,
+                onPickUser: pickedUsers.add,
                 onClose: () => closed++,
               ),
             ),
           ),
           [
             spotSearchRepositoryProvider.overrideWithValue(search),
+            userSearchRepositoryProvider.overrideWithValue(users),
             spotSearchDebounceProvider.overrideWithValue(Duration.zero),
           ],
         ),
@@ -266,6 +376,40 @@ void main() {
 
       await t.tap(find.text('Stadtpark Wiese'));
       expect(picked.single.id, 2);
+      expect(t.takeException(), isNull);
+    });
+
+    testWidgets('people: name, spot count; a tap or Enter picks', (t) async {
+      await pumpPanel(t);
+      expect(find.byKey(const Key('mapSearchMode-spots')), findsOneWidget);
+      await type(t, 'ganja');
+      expect(find.text('Parkbank am See'), findsOneWidget);
+
+      await t.tap(find.byKey(const Key('mapSearchMode-users')));
+      await t.pumpAndSettle();
+      expect(users.queries, ['ganja']);
+      expect(find.text('Parkbank am See'), findsNothing);
+      expect(find.text('Ganjamann'), findsOneWidget);
+      expect(find.text('3 spots'), findsOneWidget);
+      expect(find.text('No spots yet'), findsOneWidget);
+      final field = t.widget<TextField>(
+        find.byKey(const Key('mapSearchField')),
+      );
+      expect(field.focusNode!.hasFocus, isTrue);
+      expect(field.decoration!.hintText, 'Name of a person');
+
+      await t.tap(find.text('GanjaGuru'));
+      expect(pickedUsers.single.id, 8);
+      await t.testTextInput.receiveAction(TextInputAction.search);
+      expect(pickedUsers.map((u) => u.id), [8, 7]);
+      expect(picked, isEmpty);
+
+      users.results = const [];
+      await type(t, 'nobody');
+      expect(find.text('No one with that name'), findsOneWidget);
+      await t.tap(find.byKey(const Key('mapSearchClear')));
+      await t.pump();
+      expect(find.byKey(const Key('mapSearchResults')), findsNothing);
       expect(t.takeException(), isNull);
     });
 

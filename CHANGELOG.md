@@ -14,6 +14,11 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
   anywhere) keeps only spots within that radius of where you are, with
   every sort, and is remembered for next time (`radius_km` on
   `GET /feed`; needs the new server).
+- The map's search finds people too: a Spots / People switch under the
+  field; a person opens their profile, shown with picture and number of
+  spots (`GET /users/search`; needs the new server).
+- Spot page without photos on a phone: the map's style and recenter
+  buttons were behind the title bar; they sit below it now.
 - Backend built with Go 1.27.4: fixes a vulnerability in the standard
   library's HTTP server and client (GO-2026-6859).
 

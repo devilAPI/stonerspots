@@ -1469,7 +1469,7 @@ abstract class AppLocalizations {
   /// No description provided for @mapSearch.
   ///
   /// In de, this message translates to:
-  /// **'Spots suchen'**
+  /// **'Spots und Leute suchen'**
   String get mapSearch;
 
   /// No description provided for @mapSearchHint.
@@ -1507,6 +1507,36 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Suche fehlgeschlagen'**
   String get mapSearchError;
+
+  /// No description provided for @mapSearchModeSpots.
+  ///
+  /// In de, this message translates to:
+  /// **'Spots'**
+  String get mapSearchModeSpots;
+
+  /// No description provided for @mapSearchModeUsers.
+  ///
+  /// In de, this message translates to:
+  /// **'Leute'**
+  String get mapSearchModeUsers;
+
+  /// No description provided for @mapSearchUserHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Name einer Person'**
+  String get mapSearchUserHint;
+
+  /// No description provided for @mapSearchNoUser.
+  ///
+  /// In de, this message translates to:
+  /// **'Niemand mit diesem Namen gefunden'**
+  String get mapSearchNoUser;
+
+  /// No description provided for @mapSearchUserSpots.
+  ///
+  /// In de, this message translates to:
+  /// **'{count, plural, =0{Noch keine Spots} =1{1 Spot} other{{count} Spots}}'**
+  String mapSearchUserSpots(int count);
 
   /// No description provided for @weatherTitle.
   ///

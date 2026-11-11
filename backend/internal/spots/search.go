@@ -11,13 +11,13 @@ import (
 
 // Search limits: query length in characters and number of results.
 const (
-	searchMinLen, searchMaxLen = 2, 80
+	SearchMinLen, SearchMaxLen = 2, 80
 	searchLimit                = 20
 )
 
-// likeEscape escapes the LIKE wildcards (and the escape character itself)
+// LikeEscape escapes the LIKE wildcards (and the escape character itself)
 // so user input only ever matches literally.
-func likeEscape(s string) string {
+func LikeEscape(s string) string {
 	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
 }
 
@@ -32,7 +32,7 @@ const matchRank = `CASE WHEN s.title = ? THEN 0 WHEN s.title LIKE ? THEN 1 WHEN 
 // non-nil. A substring match cannot use a B-tree index, so this scans the
 // active spots; the table is small (one region) and the scan is cheap.
 func (r *Repo) Search(ctx context.Context, q string, near *[2]float64) ([]Spot, error) {
-	esc := likeEscape(q)
+	esc := LikeEscape(q)
 	rankArgs := []any{q, esc + "%", "% " + esc + "%"}
 	var (
 		query string
@@ -69,7 +69,7 @@ func (r *Repo) Search(ctx context.Context, q string, near *[2]float64) ([]Spot, 
 // search answers GET /spots/search?q=&lat=&lon=.
 func (h *handler) search(w http.ResponseWriter, r *http.Request) {
 	q := strings.Join(strings.Fields(r.URL.Query().Get("q")), " ")
-	if n := utf8.RuneCountInString(q); n < searchMinLen || n > searchMaxLen {
+	if n := utf8.RuneCountInString(q); n < SearchMinLen || n > SearchMaxLen {
 		httpx.Error(w, http.StatusBadRequest, "invalid_query", "q must be 2-80 characters")
 		return
 	}

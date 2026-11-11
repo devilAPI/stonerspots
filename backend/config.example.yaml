@@ -67,7 +67,7 @@ limits:
   comments_per_day: 100   # comments on spots per user per day (0 = unlimited)
   forgot_password:       { n: 10, per: "1h" }  # password reset requests per IP
   forgot_password_email: { n: 3,  per: "1h" }  # reset mails per address (more get the same answer, but no mail)
-  search:                { n: 60, per: "1m" }  # GET /spots/search and GET /feed per IP
+  search:                { n: 60, per: "1m" }  # GET /spots/search, /users/search and /feed per IP
   follows_per_day:  200   # new follows per user per day (0 = unlimited)
   likes_per_day:    300   # likes per user per day (0 = unlimited)
   exports:               { n: 3, per: "24h" }  # GET /me/export (data download) per user

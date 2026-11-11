@@ -824,7 +824,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mapMyLocation => 'Mein Standort';
 
   @override
-  String get mapSearch => 'Spots suchen';
+  String get mapSearch => 'Spots und Leute suchen';
 
   @override
   String get mapSearchHint => 'Name eines Spots';
@@ -843,6 +843,30 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get mapSearchError => 'Suche fehlgeschlagen';
+
+  @override
+  String get mapSearchModeSpots => 'Spots';
+
+  @override
+  String get mapSearchModeUsers => 'Leute';
+
+  @override
+  String get mapSearchUserHint => 'Name einer Person';
+
+  @override
+  String get mapSearchNoUser => 'Niemand mit diesem Namen gefunden';
+
+  @override
+  String mapSearchUserSpots(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Spots',
+      one: '1 Spot',
+      zero: 'Noch keine Spots',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get weatherTitle => 'Wetter';

@@ -248,7 +248,7 @@ type Limits struct {
 
 	ForgotPassword      ratelimit.Rule // password reset mails asked for, per IP
 	ForgotPasswordEmail ratelimit.Rule // password reset mails asked for, per address
-	Search              ratelimit.Rule // GET /spots/search and GET /feed, per IP
+	Search              ratelimit.Rule // GET /spots/search, GET /users/search and GET /feed, per IP
 	FollowsPerDay       int            // new follows per user per day
 	LikesPerDay         int            // likes per user per day
 	Exports             ratelimit.Rule // GET /me/export (data download), per user
