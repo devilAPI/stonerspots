@@ -22,12 +22,18 @@ class AdminTwoFactorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final gutter = sideGutter(MediaQuery.sizeOf(context).width);
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: GlassAppBar(
         leading: const BackOrHomeButton(),
         title: Text(AppLocalizations.of(context).adminTitle),
       ),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(12 + gutter, 12, 12 + gutter, 24),
+        padding: EdgeInsets.fromLTRB(
+          12 + gutter,
+          GlassAppBar.contentTop(context) + 12,
+          12 + gutter,
+          MediaQuery.paddingOf(context).bottom + 24,
+        ),
         children: const [AdminTwoFactorCard()],
       ),
     );

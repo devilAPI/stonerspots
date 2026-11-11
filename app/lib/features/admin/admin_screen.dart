@@ -40,6 +40,7 @@ class AdminScreen extends ConsumerWidget {
               child: child!,
             ),
             child: Scaffold(
+              extendBodyBehindAppBar: true,
               appBar: GlassAppBar(
                 leading: const BackOrHomeButton(),
                 title: Text(l10n.adminTitle),
@@ -48,7 +49,12 @@ class AdminScreen extends ConsumerWidget {
                 children: [
                   // the sections as one row of glass, under the controls
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                    padding: EdgeInsets.fromLTRB(
+                      12,
+                      GlassAppBar.contentTop(context),
+                      12,
+                      8,
+                    ),
                     child: GlassTabs(
                       tabs: [
                         Tab(text: l10n.adminReports),
@@ -59,15 +65,29 @@ class AdminScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const Expanded(
-                    child: TabBarView(
-                      children: [
-                        AdminReportsTab(),
-                        AdminUsersTab(),
-                        AdminSpotsTab(),
-                        AdminTagsTab(),
-                        AdminSystemTab(),
-                      ],
+                  // the lists fade out under the tabs instead of ending
+                  // at a hard edge
+                  Expanded(
+                    child: ShaderMask(
+                      blendMode: BlendMode.dstIn,
+                      shaderCallback: (bounds) => LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: const [Color(0x00000000), Color(0xFF000000)],
+                        stops: [
+                          0,
+                          16 / bounds.height.clamp(16, double.infinity),
+                        ],
+                      ).createShader(bounds),
+                      child: const TabBarView(
+                        children: [
+                          AdminReportsTab(),
+                          AdminUsersTab(),
+                          AdminSpotsTab(),
+                          AdminTagsTab(),
+                          AdminSystemTab(),
+                        ],
+                      ),
                     ),
                   ),
                 ],

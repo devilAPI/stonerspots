@@ -35,7 +35,9 @@ class AuthFormPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final error = this.error;
+    final safe = MediaQuery.paddingOf(context);
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: GlassAppBar(
         leading: const BackOrHomeButton(),
         title: Text(title),
@@ -46,7 +48,12 @@ class AuthFormPage extends StatelessWidget {
           child: Form(
             key: formKey,
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                GlassAppBar.contentTop(context) + 8,
+                16,
+                safe.bottom + 16,
+              ),
               shrinkWrap: true,
               children: [
                 ...fields,

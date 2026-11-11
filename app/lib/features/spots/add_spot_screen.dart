@@ -216,7 +216,16 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
       ),
     ];
 
+    // the page runs under the floating controls, like every page
+    final safe = MediaQuery.paddingOf(context);
+    final page = EdgeInsets.fromLTRB(
+      safe.left + 16,
+      GlassAppBar.contentTop(context) + 8,
+      safe.right + 16,
+      safe.bottom + 16,
+    );
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: GlassAppBar(
         leading: const BackOrHomeButton(),
         title: Text(l.addSpotTitle),
@@ -229,7 +238,7 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
                 Expanded(
                   flex: 5,
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: page.copyWith(right: 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -245,14 +254,14 @@ class _AddSpotScreenState extends ConsumerState<AddSpotScreen> {
                 Expanded(
                   flex: 6,
                   child: ListView(
-                    padding: const EdgeInsets.all(16),
+                    padding: page.copyWith(left: 16),
                     children: form,
                   ),
                 ),
               ],
             )
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: page,
               children: [
                 const PlaceSearchField(),
                 const SizedBox(height: 8),

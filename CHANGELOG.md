@@ -19,6 +19,10 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
   bottom edge) still switches the tab, and the page is kept from staying
   scrolled after the keyboard or a double tap, which left the bottom of
   the screen unresponsive (flutter/flutter#115829).
+- Every page has the same top: the title floats over the page, which
+  fades out beneath it, without a bar. The feed, login and register, add
+  spot and admin pages had a hard edge; the feed's filters are two glass
+  rows under its title now.
 
 ## 1.0.10
 

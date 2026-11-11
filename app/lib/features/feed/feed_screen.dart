@@ -18,7 +18,10 @@ String _sortLabel(AppLocalizations l, FeedSort s) => switch (s) {
   FeedSort.nearby => l.sortNearby,
 };
 
-const double _headerHeight = 142;
+/// The filter chips under the title: two rows, each on a glass capsule.
+const double _chipRowHeight = 44;
+const double _chipRowGap = 6;
+const double _headerHeight = 2 * _chipRowHeight + _chipRowGap;
 const double _headerGap = 8;
 
 class FeedScreen extends ConsumerStatefulWidget {
@@ -75,6 +78,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     });
 
     return Scaffold(
+      // like every page: a floating title, the feed fades out beneath it
+      extendBodyBehindAppBar: true,
+      appBar: GlassAppBar(title: Text(l10n.feedTitle)),
       // Gutter from the space the feed actually gets (the nav rail takes
       // part of the window), not from the window width.
       body: LayoutBuilder(
@@ -89,8 +95,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final loggedIn = ref.watch(
       authControllerProvider.select((a) => a.value != null),
     );
-    // The list runs under the status bar, the glass header and the shell's
-    // glass navigation; [insets] says what those cover.
+    // The list runs under the status bar, the title, the chips and the
+    // shell's glass navigation; [insets] says what the bars cover (the
+    // Scaffold counts the title in its top).
     final insets = MediaQuery.paddingOf(context);
     width -= insets.left + insets.right;
     // Phones get one column; tablets/desktops a grid as wide as the pane
@@ -108,7 +115,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final rows = grid
         ? (state.items.length / columns).ceil()
         : state.items.length;
-    final top = insets.top + _headerGap + _headerHeight + _headerGap;
+    final top = insets.top + _headerHeight + _headerGap;
     final page = EdgeInsets.only(
       left: insets.left,
       right: insets.right,
@@ -196,55 +203,45 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           ),
         ),
         Positioned(
-          top: insets.top + _headerGap,
+          top: insets.top,
           left: insets.left + gutter + _headerGap,
           right: insets.right + gutter + _headerGap,
           height: _headerHeight,
-          child: GlassSurface(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
-                  child: Text(
-                    l10n.feedTitle,
-                    style: Theme.of(context).textTheme.titleLarge
-                        ?.copyWith(color: kOnGlass),
-                  ),
+          child: Column(
+            children: [
+              _ChipRow(
+                children: [
+                  // first, so narrow phones do not scroll it out of view
+                  if (loggedIn)
+                    FilterChip(
+                      key: const Key('feedFollowing'),
+                      label: Text(l10n.feedFollowing),
+                      selected: state.following,
+                      onSelected: ctrl.setFollowing,
+                    ),
+                  for (final s in FeedSort.values)
+                    ChoiceChip(
+                      label: Text(_sortLabel(l10n, s)),
+                      selected: state.sort == s,
+                      onSelected: (_) => ctrl.setSort(s),
+                    ),
+                ],
+              ),
+              const SizedBox(height: _chipRowGap),
+              _ChipRow(
+                key: const Key('feedTagRow'),
+                children: spotTagFilterItems(
+                  context,
+                  ref,
+                  keyPrefix: 'feedTag-',
+                  selected: state.tags,
+                  onToggle: ctrl.toggleTag,
+                  onClear: ctrl.clearTags,
+                  clearKey: const Key('feedTagsClear'),
+                  withDivider: false,
                 ),
-                _ChipRow(
-                  children: [
-                    // first, so narrow phones do not scroll it out of view
-                    if (loggedIn)
-                      FilterChip(
-                        key: const Key('feedFollowing'),
-                        label: Text(l10n.feedFollowing),
-                        selected: state.following,
-                        onSelected: ctrl.setFollowing,
-                      ),
-                    for (final s in FeedSort.values)
-                      ChoiceChip(
-                        label: Text(_sortLabel(l10n, s)),
-                        selected: state.sort == s,
-                        onSelected: (_) => ctrl.setSort(s),
-                      ),
-                  ],
-                ),
-                _ChipRow(
-                  key: const Key('feedTagRow'),
-                  children: spotTagFilterItems(
-                    context,
-                    ref,
-                    keyPrefix: 'feedTag-',
-                    selected: state.tags,
-                    onToggle: ctrl.toggleTag,
-                    onClear: ctrl.clearTags,
-                    clearKey: const Key('feedTagsClear'),
-                    withDivider: false,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ],
@@ -297,6 +294,11 @@ class _ChipRow extends StatelessWidget {
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) =>
-      SizedBox(height: 48, child: GlassChipRow(children: children));
+  Widget build(BuildContext context) => SizedBox(
+    height: _chipRowHeight,
+    child: GlassSurface(
+      radius: _chipRowHeight / 2,
+      child: GlassChipRow(children: children),
+    ),
+  );
 }
