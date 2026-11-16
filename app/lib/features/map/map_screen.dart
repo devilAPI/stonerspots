@@ -274,149 +274,160 @@ class _MapScreenState extends ConsumerState<MapScreen>
     // navigation; its padding says what those cover.
     final insets = MediaQuery.paddingOf(context);
     return Scaffold(
-      body: Stack(
-        children: [
-          // above the far edge of the tilted 3D map
-          if (map3d) const Positioned.fill(child: _Sky()),
-          MapGestures(
-            controller: _mapController,
-            onTiltStart: () => setState(() => _tiltGesture = true),
-            onTiltEnd: _settleTilt,
-            child: TiltedMap(
-              pitch: pitch,
-              child: FlutterMap(
-                key: _mapKey,
-                mapController: _mapController,
-                options: MapOptions(
-                  interactionOptions: InteractionOptions(
-                    flags: mapInteractionFlags(tilting: _tiltGesture),
+      // the glass over the map bends it, on the web too
+      body: AppGlassBackdrop(
+        background: Stack(
+          children: [
+            // above the far edge of the tilted 3D map
+            if (map3d) const Positioned.fill(child: _Sky()),
+            MapGestures(
+              controller: _mapController,
+              onTiltStart: () => setState(() => _tiltGesture = true),
+              onTiltEnd: _settleTilt,
+              child: TiltedMap(
+                pitch: pitch,
+                child: FlutterMap(
+                  key: _mapKey,
+                  mapController: _mapController,
+                  options: MapOptions(
+                    interactionOptions: InteractionOptions(
+                      flags: mapInteractionFlags(tilting: _tiltGesture),
+                    ),
+                    maxZoom: map3d ? kMap3dMaxZoom : kMapMaxZoom,
+                    initialCenter: kRegionCentre,
+                    initialZoom: kRegionZoom,
+                    onMapReady: _notifyBounds,
+                    onTap: (_, p) => showZonesAt(
+                      context,
+                      ref,
+                      p,
+                      _mapController.camera.zoom,
+                    ),
+                    onPositionChanged: (camera, hasGesture) {
+                      if (hasGesture) {
+                        _userMoved = true;
+                        _flight.stop();
+                      }
+                      ref
+                          .read(spotsControllerProvider.notifier)
+                          .onCameraMoved(camera.visibleBounds);
+                    },
                   ),
-                  maxZoom: map3d ? kMap3dMaxZoom : kMapMaxZoom,
-                  initialCenter: kRegionCentre,
-                  initialZoom: kRegionZoom,
-                  onMapReady: _notifyBounds,
-                  onTap: (_, p) =>
-                      showZonesAt(context, ref, p, _mapController.camera.zoom),
-                  onPositionChanged: (camera, hasGesture) {
-                    if (hasGesture) {
-                      _userMoved = true;
-                      _flight.stop();
-                    }
-                    ref
-                        .read(spotsControllerProvider.notifier)
-                        .onCameraMoved(camera.visibleBounds);
-                  },
-                ),
-                children: [
-                  buildBaseLayer(
-                    context,
-                    base: _base,
-                    transitKey: transitKey,
-                    tilted: map3d,
-                  ),
-                  const ZoneLayer(),
-                  if (buildings)
-                    BuildingLayer(darkBase: isDarkBaseMap(context, _base)),
-                  SpotClusterLayer(markers: _markers),
-                  UntiltedMapChild(
-                    child: SafeArea(
-                      top: false,
-                      child: buildBaseAttribution(
-                        context,
-                        base: _base,
-                        transitKey: transitKey,
-                        buildings: buildings,
+                  children: [
+                    buildBaseLayer(
+                      context,
+                      base: _base,
+                      transitKey: transitKey,
+                      tilted: map3d,
+                    ),
+                    const ZoneLayer(),
+                    if (buildings)
+                      BuildingLayer(darkBase: isDarkBaseMap(context, _base)),
+                    SpotClusterLayer(markers: _markers),
+                    UntiltedMapChild(
+                      child: SafeArea(
+                        top: false,
+                        child: buildBaseAttribution(
+                          context,
+                          base: _base,
+                          transitKey: transitKey,
+                          buildings: buildings,
+                        ),
                       ),
                     ),
+                    const UntiltedMapChild(child: ZoneOverlay()),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            if (!_searchOpen)
+              Positioned(
+                top: insets.top + 8,
+                left: insets.left + 12,
+                right: insets.right + 12,
+                child: const MapFilterBar(),
+              ),
+            // below the filter chips
+            Positioned(
+              top: insets.top + 72,
+              right: insets.right + 12,
+              child: MapControlColumn(
+                children: [
+                  // with the tabs, search is the round button beside
+                  // them; the shortcuts work either way
+                  MapSearchButton(
+                    onPressed: _openSearch,
+                    visible: context.useNavRail,
                   ),
-                  const UntiltedMapChild(child: ZoneOverlay()),
+                  MapLayerButton(
+                    key: const Key('mapLayer'),
+                    base: _base,
+                    onChanged: (b) => setState(() => _base = b),
+                  ),
+                  IconButton(
+                    key: const Key('map3d'),
+                    tooltip: l10n.map3d,
+                    isSelected: map3d,
+                    onPressed: () => _tiltTo(map3d ? 0 : kMapPitch),
+                    icon: const Icon(Icons.view_in_ar_outlined),
+                  ),
+                  const ZoneToggleButton(),
+                  const ZoneInfoButton(),
+                  IconButton(
+                    key: const Key('mapLocateMe'),
+                    tooltip: l10n.mapMyLocation,
+                    onPressed: _locating ? null : _locateMe,
+                    icon: _locating
+                        ? const SizedBox.square(
+                            dimension: kMapControlIconSize - 2,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.near_me_outlined),
+                  ),
+                  MapCompass(controller: _mapController),
                 ],
               ),
             ),
-          ),
-          if (!_searchOpen)
+            // In the stack, not Scaffold.floatingActionButton: that one would
+            // ignore the padding and sit behind the glass tab bar.
             Positioned(
-              top: insets.top + 8,
-              left: insets.left + 12,
-              right: insets.right + 12,
-              child: const MapFilterBar(),
+              right: insets.right + 16,
+              bottom: insets.bottom + 16,
+              child: GlassFab(
+                key: const Key('addSpot'),
+                radius: 24,
+                onPressed: () => context.push('/spot/new'),
+                icon: Icons.add,
+                label: Text(l10n.addSpot),
+              ),
             ),
-          // below the filter chips
-          Positioned(
-            top: insets.top + 72,
-            right: insets.right + 12,
-            child: MapControlColumn(
-              children: [
-                // with the tabs, search is the round button beside
-                // them; the shortcuts work either way
-                MapSearchButton(
-                  onPressed: _openSearch,
-                  visible: context.useNavRail,
-                ),
-                MapLayerButton(
-                  key: const Key('mapLayer'),
-                  base: _base,
-                  onChanged: (b) => setState(() => _base = b),
-                ),
-                IconButton(
-                  key: const Key('map3d'),
-                  tooltip: l10n.map3d,
-                  isSelected: map3d,
-                  onPressed: () => _tiltTo(map3d ? 0 : kMapPitch),
-                  icon: const Icon(Icons.view_in_ar_outlined),
-                ),
-                const ZoneToggleButton(),
-                const ZoneInfoButton(),
-                IconButton(
-                  key: const Key('mapLocateMe'),
-                  tooltip: l10n.mapMyLocation,
-                  onPressed: _locating ? null : _locateMe,
-                  icon: _locating
-                      ? const SizedBox.square(
-                          dimension: kMapControlIconSize - 2,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.near_me_outlined),
-                ),
-                MapCompass(controller: _mapController),
-              ],
-            ),
-          ),
-          // In the stack, not Scaffold.floatingActionButton: that one would
-          // ignore the padding and sit behind the glass tab bar.
-          Positioned(
-            right: insets.right + 16,
-            bottom: insets.bottom + 16,
-            child: GlassFab(
-              key: const Key('addSpot'),
-              radius: 24,
-              onPressed: () => context.push('/spot/new'),
-              icon: Icons.add,
-              label: Text(l10n.addSpot),
-            ),
-          ),
-          // over the map controls: the results may reach down past them
-          if (_searchOpen)
-            Positioned(
-              top: insets.top + 8,
-              left: insets.left + 12,
-              right: insets.right + 12,
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
-                  child: MapSpotSearch(
-                    focusNode: _searchFocus,
-                    onPick: _pickSearchResult,
-                    onPickUser: _pickSearchUser,
-                    onClose: _closeSearch,
+            // over the map controls: the results may reach down past them
+            if (_searchOpen)
+              Positioned(
+                top: insets.top + 8,
+                left: insets.left + 12,
+                right: insets.right + 12,
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    child: MapSpotSearch(
+                      focusNode: _searchFocus,
+                      onPick: _pickSearchResult,
+                      onPickUser: _pickSearchUser,
+                      onClose: _closeSearch,
+                    ),
                   ),
                 ),
               ),
-            ),
-          const _LoadingBar(),
-          const _ErrorBanner(),
-        ],
+            const _LoadingBar(),
+            const _ErrorBanner(),
+          ],
+        ),
       ),
     );
   }

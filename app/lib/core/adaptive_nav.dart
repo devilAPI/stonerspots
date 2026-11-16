@@ -42,14 +42,20 @@ class AdaptiveNavScaffold extends StatelessWidget {
   /// the rail's pages offer it themselves.
   final GlassBarAction? action;
 
-  /// [body] with [inset] added to its padding.
-  Widget _bodyBeneath(BuildContext context, EdgeInsets inset) {
+  /// [body] with [inset] added to its padding, under the [navigation]
+  /// glass, which bends it.
+  Widget _beneath(
+    BuildContext context,
+    EdgeInsets inset,
+    List<Widget> navigation,
+  ) {
     final media = MediaQuery.of(context);
-    return Positioned.fill(
-      child: MediaQuery(
+    return AppGlassBackdrop(
+      background: MediaQuery(
         data: media.copyWith(padding: media.padding + inset),
         child: body,
       ),
+      child: Stack(children: navigation),
     );
   }
 
@@ -59,14 +65,10 @@ class AdaptiveNavScaffold extends StatelessWidget {
     if (!context.useNavRail) {
       return Scaffold(
         resizeToAvoidBottomInset: false,
-        body: Stack(
-          children: [
-            _bodyBeneath(
-              context,
-              const EdgeInsets.only(
-                bottom: kGlassTabBarHeight + kGlassTabBarGap,
-              ),
-            ),
+        body: _beneath(
+          context,
+          const EdgeInsets.only(bottom: kGlassTabBarHeight + kGlassTabBarGap),
+          [
             GlassTabBar(
               action: action,
               selectedIndex: selectedIndex,
@@ -84,12 +86,10 @@ class AdaptiveNavScaffold extends StatelessWidget {
     final railWidth = extended ? _extendedRailWidth : _railWidth;
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      body: Stack(
-        children: [
-          _bodyBeneath(
-            context,
-            EdgeInsets.only(left: railWidth + 2 * _railMargin),
-          ),
+      body: _beneath(
+        context,
+        EdgeInsets.only(left: railWidth + 2 * _railMargin),
+        [
           Positioned(
             top: safe.top + _railMargin,
             bottom: safe.bottom + _railMargin,

@@ -10,6 +10,7 @@ import 'package:app/core/models.dart';
 import 'package:app/core/theme.dart';
 import 'package:app/features/feed/feed_repository.dart';
 import 'package:app/features/feed/feed_screen.dart';
+import 'package:app/features/map/map_filter_bar.dart';
 import 'package:app/features/map/map_screen.dart';
 import 'package:app/features/map/spot_pull_sheet.dart';
 import 'package:app/features/map/spots_controller.dart';
@@ -719,6 +720,81 @@ void main() {
       await t.pumpAndSettle();
       expect(find.text('Lake bench'), findsNothing);
       expect(t.takeException(), isNull);
+    });
+  });
+
+  group('glass bends a copy where it has to (the web, Skia)', () {
+    void bendingHere({required bool copy}) {
+      debugRealGlassAvailable = true;
+      debugGlassNeedsCopy = copy;
+      addTearDown(() {
+        debugRealGlassAvailable = false;
+        debugGlassNeedsCopy = null;
+      });
+    }
+
+    g.GlassBackdropController? backdropOf(WidgetTester t, Finder f) =>
+        g.GlassBackdrop.maybeOf(t.element(f.first));
+
+    final shell = AdaptiveNavScaffold(
+      items: navItems,
+      selectedIndex: 0,
+      onSelected: (_) {},
+      body: const Center(child: Text('body')),
+    );
+
+    testWidgets('the tab bar bends the page under it', (t) async {
+      bendingHere(copy: true);
+      await pumpIn(t, shell, solid: false);
+      expect(backdropOf(t, find.byType(g.GlassTabBar<int>)), isNotNull);
+      // the page is what is copied, it sees no copy of itself
+      expect(backdropOf(t, find.text('body')), isNull);
+    });
+
+    testWidgets('so does the rail', (t) async {
+      bendingHere(copy: true);
+      await pumpIn(t, shell, solid: false, size: desktop);
+      expect(backdropOf(t, find.byType(NavigationRail)), isNotNull);
+    });
+
+    testWidgets('the map controls bend the map', (t) async {
+      bendingHere(copy: true);
+      await pumpIn(t, const MapScreen(), solid: false);
+      expect(backdropOf(t, find.byKey(const Key('addSpot'))), isNotNull);
+      expect(backdropOf(t, find.byType(MapFilterBar)), isNotNull);
+      expect(backdropOf(t, find.byType(FlutterMap)), isNull);
+    });
+
+    for (final copy in [true, false]) {
+      testWidgets('the map and its controls fill the page '
+          '(${copy ? 'copied' : 'live'} backdrop)', (t) async {
+        bendingHere(copy: copy);
+        await pumpIn(t, const MapScreen(), solid: false);
+        expect(t.getSize(find.byType(FlutterMap)), phone);
+        final add = t.getRect(find.byKey(const Key('addSpot')));
+        expect(add.right, closeTo(phone.width - 16, 1));
+        expect(add.bottom, closeTo(phone.height - 16, 1));
+        expect(t.getSize(find.byType(MapFilterBar)).width, phone.width - 24);
+      });
+    }
+
+    testWidgets('no copy where glass bends the live screen (Impeller)', (
+      t,
+    ) async {
+      bendingHere(copy: false);
+      await pumpIn(t, const MapScreen(), solid: false);
+      expect(backdropOf(t, find.byKey(const Key('addSpot'))), isNull);
+    });
+
+    testWidgets('no copy for frosted or solid glass', (t) async {
+      bendingHere(copy: true);
+      await pumpIn(t, const MapScreen(), solid: true);
+      expect(backdropOf(t, find.byKey(const Key('addSpot'))), isNull);
+
+      debugRealGlassAvailable = false; // frosted
+      await t.pumpWidget(const SizedBox());
+      await pumpIn(t, const MapScreen(), solid: false);
+      expect(backdropOf(t, find.byKey(const Key('addSpot'))), isNull);
     });
   });
 }

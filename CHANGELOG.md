@@ -11,7 +11,13 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
   26's glass does. The tab bar is Glisse's: the selection springs between
   tabs, follows a drag and lifts into a lens while held. It is as wide as
   its tabs now, not a fixed width. Real glass needs only Impeller, no
-  longer Flutter GPU; the web and Skia get the frosted kind as before.
+  longer Flutter GPU.
+- The web bends too: the map's controls bend the map, and the tab bar or
+  rail bends the page under it, from a copy taken after each frame the
+  map or page changed in (Glisse's `GlassBackdrop`). On Impeller the
+  glass keeps bending the live screen without a copy. "Real glass" can be
+  switched off on the web now as well; off, glass is frosted and no copy
+  is taken.
 - The vendored liquid_glass_renderer and the Flutter GPU switch in the
   Android, iOS and macOS app config are gone.
 

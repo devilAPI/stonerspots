@@ -66,21 +66,61 @@ class SolidGlass extends InheritedWidget {
 Color glassTint(BuildContext context) =>
     SolidGlass.of(context) ? kSolidGlass : _glassTint;
 
-/// Whether this device draws real, refracting glass: Impeller, whose shader
-/// filters let Glisse's glass bend the live backdrop. Elsewhere (the web,
-/// Skia) glass is frosted. Known after [initGlass].
+/// Whether glass here bends what is behind it: wherever Glisse's shader
+/// loads. On Impeller it bends the live screen; on the web and Skia it
+/// bends a copy an [AppGlassBackdrop] keeps ([glassNeedsCopy]), and frosts
+/// outside one. Known after [initGlass].
 bool get realGlassAvailable => _realGlassAvailable;
 bool _realGlassAvailable = false;
 
 @visibleForTesting
 set debugRealGlassAvailable(bool value) => _realGlassAvailable = value;
 
+/// Whether glass can bend only a copy of what is behind it (the web, Skia):
+/// no shader filters to read the live screen with, as Impeller has.
+bool get glassNeedsCopy =>
+    _debugGlassNeedsCopy ?? (kIsWeb || !ui.ImageFilter.isShaderFilterSupported);
+bool? _debugGlassNeedsCopy;
+
+@visibleForTesting
+set debugGlassNeedsCopy(bool? value) => _debugGlassNeedsCopy = value;
+
 /// Call once before [runApp]: loads Glisse's shader, so the first glass on
 /// screen does not frost for a frame or two while it loads, and finds out
 /// whether real glass works here ([realGlassAvailable]).
 Future<void> initGlass() async {
   await g.GlassShaders.precache();
-  _realGlassAvailable = !kIsWeb && ui.ImageFilter.isShaderFilterSupported;
+  _realGlassAvailable = g.GlassShaders.program != null;
+}
+
+/// [background] with the glass in [child] over it, bending it on every
+/// platform. Where glass reads only copies ([glassNeedsCopy]) this keeps a
+/// copy of [background], taken again after each frame it changed in; else,
+/// and whenever glass does not bend here ([SolidGlass]), it is a plain stack.
+/// Glass inside [background] does not see this copy: it bends what is
+/// behind its own nearest backdrop.
+class AppGlassBackdrop extends StatelessWidget {
+  const AppGlassBackdrop({
+    super.key,
+    required this.background,
+    required this.child,
+  });
+
+  final Widget background;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => g.GlassBackdrop(
+    enabled:
+        glassNeedsCopy &&
+        !SolidGlass.of(context) &&
+        !SolidGlass.fakeOf(context),
+    background: background,
+    // Fills the space, whatever [child] is: the backdrop takes its size from
+    // it, and a Stack of positioned children with one empty one (a hidden
+    // banner) would otherwise shrink it, and the background with it, to 0×0.
+    child: SizedBox.expand(child: child),
+  );
 }
 
 /// The app's one glass look for Glisse, so bars, buttons and sheets match:
