@@ -2,6 +2,7 @@ import 'package:app/core/device_insets.dart';
 import 'package:app/core/glass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:glisse/glisse.dart' as g;
 
 void main() {
   // An iPhone home-screen web app: Flutter's web engine reports no safe
@@ -28,7 +29,6 @@ void main() {
         body: Stack(
           children: [
             GlassTabBar(
-              width: 300,
               items: const [
                 BottomBarTab(icon: Icons.map_outlined, label: 'Map'),
                 BottomBarTab(icon: Icons.person_outline, label: 'Profile'),
@@ -40,7 +40,7 @@ void main() {
         ),
       ),
     );
-    final bar = t.getRect(find.byType(LoupeTabBar));
+    final bar = t.getRect(find.byType(g.GlassTabBar<int>));
     expect(bar.bottom, 844 - 34 - kGlassTabBarGap);
   });
 

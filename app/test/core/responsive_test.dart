@@ -1,8 +1,8 @@
 import 'package:app/core/adaptive_nav.dart';
-import 'package:app/core/glass.dart';
 import 'package:app/core/responsive.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:glisse/glisse.dart' as g;
 
 const phonePortrait = Size(400, 800);
 const phoneLandscape = Size(844, 390);
@@ -59,7 +59,7 @@ void main() {
   group('AdaptiveNavScaffold', () {
     testWidgets('phone portrait uses a glass bottom tab bar', (t) async {
       await pumpAt(t, phonePortrait, nav((_) {}));
-      expect(find.byType(LoupeTabBar), findsOneWidget);
+      expect(find.byType(g.GlassTabBar<int>), findsOneWidget);
       expect(find.byType(NavigationRail), findsNothing);
     });
 
@@ -67,7 +67,7 @@ void main() {
       t,
     ) async {
       await pumpAt(t, phoneLandscape, nav((_) {}));
-      expect(find.byType(LoupeTabBar), findsNothing);
+      expect(find.byType(g.GlassTabBar<int>), findsNothing);
       final rail = t.widget<NavigationRail>(find.byType(NavigationRail));
       expect(rail.extended, isFalse);
       expect(find.text('body'), findsOneWidget);
@@ -111,7 +111,13 @@ void main() {
       ) async {
         int? picked;
         await pumpAt(t, size, nav((i) => picked = i));
-        await t.tap(find.text('Feed').first);
+        // Glisse paints the glass tabs' labels: find the tab, not its text
+        await t.tap(
+          (size == phonePortrait
+                  ? find.bySemanticsLabel('Feed')
+                  : find.text('Feed'))
+              .first,
+        );
         expect(picked, 1);
       });
     }
@@ -120,7 +126,9 @@ void main() {
       // iOS cancels touches near the bottom edge of a home-screen web app
       int? picked;
       await pumpAt(t, phonePortrait, nav((i) => picked = i));
-      final press = await t.startGesture(t.getCenter(find.text('Feed').first));
+      final press = await t.startGesture(
+        t.getCenter(find.bySemanticsLabel('Feed').first),
+      );
       await t.pump();
       await press.cancel();
       await t.pumpAndSettle();

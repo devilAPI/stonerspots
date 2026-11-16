@@ -1,27 +1,31 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
+import 'package:glisse/glisse.dart' as g;
 
 import 'glass.dart';
 
-// The floating tab bar: glass with the loupe, or solid tabs that answer
+// The floating tab bar: Glisse's glass tab bar, or solid tabs that answer
 // the same way.
 
-/// The tab row's inset, as in [LoupeTabBar], so solid tabs sit where the
+/// One tab of a [GlassTabBar].
+class BottomBarTab {
+  const BottomBarTab({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+}
+
+/// Width of one tab, as Glisse's tab bar with icons lays them out, and the
+/// bar's inset around them. Solid tabs use the same, so they sit where the
 /// glass ones do.
-const _tabPadding = EdgeInsets.symmetric(horizontal: 9, vertical: 4);
+const double kGlassTabWidth = 72;
+const double _tabInset = 4;
+const _tabPadding = EdgeInsets.all(_tabInset);
 const _tabUnselected = Color(0xB3FFFFFF);
-const _tabIconSize = 24.0;
+const _tabIconSize = 26.0;
 const _tabLabelSize = 10.0;
 const _tabLabelGap = 3.0;
 const _tabPillColor = Color(0x2EAEAEB2);
-
-/// Blend distance of the tab bar's glass: below the gap to anything beside
-/// it, so it only merges with what is pulled close.
-const _tabBlend = 5.0;
-const _tabShadows = [
-  BoxShadow(color: Color(0x33000000), blurRadius: 24, offset: Offset(0, 8)),
-];
 const _tabSlide = Duration(milliseconds: 320);
 
 /// A round button beside the tabs, like iOS 27's search button.
@@ -44,20 +48,24 @@ class GlassBarAction {
 /// Gap between the tabs and the [GlassBarAction].
 const double kGlassBarActionGap = 8;
 
+/// Width of a [GlassTabBar] with [tabs] tabs and maybe an action.
+double glassTabBarWidth(int tabs, {bool action = false}) =>
+    tabs * kGlassTabWidth +
+    2 * _tabInset +
+    (action ? kGlassTabBarHeight + kGlassBarActionGap : 0);
+
 /// The floating tab bar, with an optional round [action] to its right. It
 /// places itself at the bottom of the [Stack] it is the last child of,
-/// above the safe area. [width] is the tabs' and the action's together.
+/// above the safe area, as wide as its tabs ([glassTabBarWidth]).
 class GlassTabBar extends StatelessWidget {
   const GlassTabBar({
     super.key,
-    required this.width,
     required this.items,
     required this.selectedIndex,
     required this.onChanged,
     this.action,
   });
 
-  final double width;
   final List<BottomBarTab> items;
   final int selectedIndex;
   final ValueChanged<int> onChanged;
@@ -66,20 +74,35 @@ class GlassTabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final glass = !SolidGlass.of(context);
-    final fake = SolidGlass.fakeOf(context);
     final action = this.action;
-    final tabsWidth = action == null
-        ? width
-        : width - kGlassTabBarHeight - kGlassBarActionGap;
-    Widget withAction(Widget tabs, Widget Function(GlassBarAction) button) =>
-        action == null
-        ? tabs
-        : Row(
-            children: [
-              SizedBox(width: tabsWidth, child: tabs),
-              const SizedBox(width: kGlassBarActionGap),
-              button(action),
-            ],
+    final Widget tabs = glass
+        ? _SelectOnCancel(
+            tabs: items.length,
+            onChanged: onChanged,
+            child: g.GlassTabBar<int>(
+              items: [
+                for (var i = 0; i < items.length; i++)
+                  g.GlassSegment(
+                    value: i,
+                    label: items[i].label,
+                    icon: items[i].icon,
+                  ),
+              ],
+              value: selectedIndex,
+              onChanged: onChanged,
+            ),
+          )
+        : SizedBox(
+            width: glassTabBarWidth(items.length),
+            child: GlassPanel(
+              radius: kGlassTabBarHeight / 2,
+              child: _SolidTabs(
+                cellWidth: kGlassTabWidth,
+                items: items,
+                selectedIndex: selectedIndex,
+                onChanged: onChanged,
+              ),
+            ),
           );
     return Stack(
       fit: StackFit.expand,
@@ -90,47 +113,19 @@ class GlassTabBar extends StatelessWidget {
           bottom: MediaQuery.paddingOf(context).bottom + kGlassTabBarGap,
           child: Align(
             child: SizedBox(
-              width: width,
               height: kGlassTabBarHeight,
-              child: glass
-                  ? LiquidGlassLayer(
-                      settings: kGlassSettings,
-                      fake: fake,
-                      defaultAppearance: glassAppearance(),
-                      // one group: pulled toward each other, tabs and button
-                      // merge like iOS 27's
-                      child: LiquidGlassBlendGroup(
-                        blend: _tabBlend,
-                        child: withAction(
-                          LoupeTabBar(
-                            tabs: items,
-                            selectedIndex: selectedIndex,
-                            onSelected: onChanged,
-                            height: kGlassTabBarHeight,
-                            shadows: _tabShadows,
-                            fake: fake,
-                            labelColor: kOnGlass,
-                            tint: Theme.of(context).colorScheme.primary,
-                            tintBrightness: Brightness.dark,
-                          ),
-                          (a) => _GlassActionButton(action: a),
-                        ),
-                      ),
-                    )
-                  : withAction(
-                      GlassPanel(
-                        radius: kGlassTabBarHeight / 2,
-                        child: _SolidTabs(
-                          cellWidth:
-                              (tabsWidth - _tabPadding.horizontal) /
-                              items.length,
-                          items: items,
-                          selectedIndex: selectedIndex,
-                          onChanged: onChanged,
-                        ),
-                      ),
-                      (a) => _SolidActionButton(action: a),
-                    ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  tabs,
+                  if (action != null) ...[
+                    const SizedBox(width: kGlassBarActionGap),
+                    glass
+                        ? _GlassActionButton(action: action)
+                        : _SolidActionButton(action: action),
+                  ],
+                ],
+              ),
             ),
           ),
         ),
@@ -139,35 +134,73 @@ class GlassTabBar extends StatelessWidget {
   }
 }
 
-/// The round glass [GlassBarAction]: it swells and stretches under the
-/// finger, in the tab bar's blend group.
+/// Selects the tab under a press the system cancels. iOS cancels touches
+/// near the bottom edge of a home-screen web app, where the bar is, and
+/// Glisse's bar takes a cancelled press for none.
+class _SelectOnCancel extends StatefulWidget {
+  const _SelectOnCancel({
+    required this.tabs,
+    required this.onChanged,
+    required this.child,
+  });
+
+  final int tabs;
+  final ValueChanged<int> onChanged;
+  final Widget child;
+
+  @override
+  State<_SelectOnCancel> createState() => _SelectOnCancelState();
+}
+
+class _SelectOnCancelState extends State<_SelectOnCancel> {
+  int? _pointer;
+  Offset _at = Offset.zero;
+
+  void _track(PointerEvent e) {
+    if (e.pointer == _pointer) _at = e.localPosition;
+  }
+
+  @override
+  Widget build(BuildContext context) => Listener(
+    onPointerDown: (e) {
+      _pointer = e.pointer;
+      _at = e.localPosition;
+    },
+    onPointerMove: _track,
+    onPointerUp: (e) {
+      if (e.pointer == _pointer) _pointer = null;
+    },
+    onPointerCancel: (e) {
+      if (e.pointer != _pointer) return;
+      _pointer = null;
+      widget.onChanged(
+        ((_at.dx - _tabInset) / kGlassTabWidth).floor().clamp(
+          0,
+          widget.tabs - 1,
+        ),
+      );
+    },
+    child: widget.child,
+  );
+}
+
+/// The round glass [GlassBarAction]: Glisse's icon button, which swells and
+/// stretches under the finger.
 class _GlassActionButton extends StatelessWidget {
   const _GlassActionButton({required this.action});
 
   final GlassBarAction action;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    label: action.label,
-    excludeSemantics: true,
-    child: Tooltip(
-      message: action.label,
-      child: GestureDetector(
-        key: action.key,
-        onTap: action.onPressed,
-        child: LiquidStretch(
-          interactionScale: 1.05,
-          child: LiquidGlass.grouped(
-            shape: const LiquidOval(),
-            shadows: _tabShadows,
-            child: SizedBox.square(
-              dimension: kGlassTabBarHeight,
-              child: Icon(action.icon, color: kOnGlass, size: 28),
-            ),
-          ),
-        ),
-      ),
+  Widget build(BuildContext context) => Tooltip(
+    message: action.label,
+    excludeFromSemantics: true,
+    child: g.GlassButton(
+      key: action.key,
+      height: kGlassTabBarHeight,
+      semanticLabel: action.label,
+      onPressed: action.onPressed,
+      icon: Icon(action.icon, color: kOnGlass, size: 28),
     ),
   );
 }

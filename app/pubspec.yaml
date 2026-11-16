@@ -55,13 +55,11 @@ dependencies:
   web: ^1.1.1
   crypto: ^3.0.8
   share_plus: ^13.3.1
-  # Vendored: 1.0.0-dev.2 plus the fake-glass web fix (upstream PR #266),
-  # see third_party/liquid_glass_renderer/VENDORED.md.
-  liquid_glass_renderer:
-    path: third_party/liquid_glass_renderer
-  motor: ^1.1.0
-  flutter_gpu:
-    sdk: flutter
+  # Liquid Glass: refracting glass, the tab bar and its springs.
+  glisse:
+    git:
+      url: https://github.com/devilAPI/glisse-flutter
+      ref: main
   shared_preferences: ^2.5.6
   package_info_plus: ^10.2.2
   cryptography: ^2.9.0

@@ -52,16 +52,21 @@ class _StonerspotsAppState extends ConsumerState<StonerspotsApp> {
       child: MaterialApp.router(
         // Inside MaterialApp, whose own region would paint the navigation bar
         // black on every frame.
-        builder: (_, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+        builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
           value: kSystemBars,
           // the web reports no safe area itself (iOS home-screen app)
           child: DeviceInsets(
-            child: DevBuildNoticeHost(
-              navigatorKey: ref
-                  .read(routerProvider)
-                  .routerDelegate
-                  .navigatorKey,
-              child: UpdateBannerHost(child: child!),
+            // inside MaterialApp, for the accent; above the Navigator, so
+            // dialogs and sheets have it too
+            child: AppGlassTheme(
+              accent: Theme.of(context).colorScheme.primary,
+              child: DevBuildNoticeHost(
+                navigatorKey: ref
+                    .read(routerProvider)
+                    .routerDelegate
+                    .navigatorKey,
+                child: UpdateBannerHost(child: child!),
+              ),
             ),
           ),
         ),

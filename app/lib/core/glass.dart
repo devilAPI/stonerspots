@@ -2,18 +2,17 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
+import 'package:glisse/glisse.dart' as g;
 
 import 'device_insets.dart';
-import 'flutter_gpu_check.dart';
 
 export 'glass_sheet.dart';
 export 'glass_tab_bar.dart';
-export 'loupe_tab_bar/loupe_tab_bar.dart' show BottomBarTab, LoupeTabBar;
 
 /// Height of the floating glass tab bar and the gap kept below it. The shell
-/// adds both to the bottom padding it hands to its pages.
-const double kGlassTabBarHeight = 64;
+/// adds both to the bottom padding it hands to its pages. Glisse's tab bar
+/// with icons: 52 px tabs in a 4 px inset.
+const double kGlassTabBarHeight = 60;
 const double kGlassTabBarGap = 12;
 
 /// Height of [GlassAppBar]'s capsule, without the status bar and margins.
@@ -46,7 +45,7 @@ class SolidGlass extends InheritedWidget {
   final bool enabled;
 
   /// Glass may refract where the device can ([realGlassAvailable]); off,
-  /// it is always the frosted kind.
+  /// it is always the frosted kind (Glisse's [g.GlassMode.frost]).
   final bool realGlass;
 
   static SolidGlass? _of(BuildContext context) =>
@@ -54,7 +53,7 @@ class SolidGlass extends InheritedWidget {
 
   static bool of(BuildContext context) => _of(context)?.enabled ?? false;
 
-  /// Whether glass here is drawn frosted (FakeGlass) instead of refracting.
+  /// Whether glass here is drawn frosted instead of refracting.
   static bool fakeOf(BuildContext context) =>
       !realGlassAvailable || !(_of(context)?.realGlass ?? true);
 
@@ -67,33 +66,57 @@ class SolidGlass extends InheritedWidget {
 Color glassTint(BuildContext context) =>
     SolidGlass.of(context) ? kSolidGlass : _glassTint;
 
-/// The app's one glass look, so bars, buttons and sheets match.
-const kGlassSettings = LiquidGlassSettings();
-
-/// Whether this device draws real, refracting glass: Impeller with Flutter
-/// GPU (switched on in the Android and iOS app config). Elsewhere (the web,
-/// Skia, a GPU without support) glass is frosted, the package's FakeGlass.
-/// Known after [initGlass].
+/// Whether this device draws real, refracting glass: Impeller, whose shader
+/// filters let Glisse's glass bend the live backdrop. Elsewhere (the web,
+/// Skia) glass is frosted. Known after [initGlass].
 bool get realGlassAvailable => _realGlassAvailable;
 bool _realGlassAvailable = false;
 
 @visibleForTesting
 set debugRealGlassAvailable(bool value) => _realGlassAvailable = value;
 
-/// The tint of glass here, [color] or [glassTint]'s.
-LiquidGlassAppearance glassAppearance([Color color = _glassTint]) =>
-    LiquidGlassAppearance(tint: color);
-
-/// Call once before [runApp]: loads the glass shaders, so the first glass
-/// on screen is not drawn without them for a frame or two, and finds out
+/// Call once before [runApp]: loads Glisse's shader, so the first glass on
+/// screen does not frost for a frame or two while it loads, and finds out
 /// whether real glass works here ([realGlassAvailable]).
 Future<void> initGlass() async {
-  await LiquidGlass.precache();
-  if (kIsWeb || !ui.ImageFilter.isShaderFilterSupported) return;
-  // without Flutter GPU the glass layers fall back to frosted glass by
-  // themselves, and the app must know (the tab bar's loupe is stacked
-  // differently then)
-  _realGlassAvailable = flutterGpuAvailable();
+  await g.GlassShaders.precache();
+  _realGlassAvailable = !kIsWeb && ui.ImageFilter.isShaderFilterSupported;
+}
+
+/// The app's one glass look for Glisse, so bars, buttons and sheets match:
+/// its dark glass under the app's tint, the accent in [accent], frosted
+/// where [SolidGlass.fakeOf] says so.
+class AppGlassTheme extends StatelessWidget {
+  const AppGlassTheme({super.key, required this.accent, required this.child});
+
+  final Color accent;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => g.GlassTheme(
+    data: g.GlassThemeData.dark().copyWith(
+      foreground: kOnGlass,
+      glass: _glassTint,
+      fill: accent,
+      mode: SolidGlass.fakeOf(context) ? g.GlassMode.frost : g.GlassMode.auto,
+    ),
+    child: child,
+  );
+}
+
+/// Glisse's glass style for a panel tinted [tint], from the theme here.
+g.GlassStyle glassStyle(BuildContext context, Color tint) {
+  final theme = g.GlassTheme.of(context);
+  return g.GlassStyle(
+    tint: tint,
+    edge: theme.edge,
+    drop: theme.drop,
+    rimShine: theme.rimShine,
+    blur: theme.blur,
+    saturation: theme.saturation,
+    bend: theme.glassBend,
+    dispersion: theme.glassDispersion,
+  );
 }
 
 /// The bare surface every piece of glass stands on: a lens, or under
@@ -116,15 +139,18 @@ class GlassPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!SolidGlass.of(context)) {
-      return LiquidGlass.withOwnLayer(
-        settings: kGlassSettings,
-        fake: SolidGlass.fakeOf(context),
-        shape: LiquidRoundedSuperellipse(borderRadius: radius),
-        appearance: glassAppearance(color ?? _glassTint),
-        child: child,
+      // Glisse's glass paints its child unclipped; panels clip theirs.
+      return g.LiquidGlassBox(
+        radius: radius,
+        style: glassStyle(context, color ?? _glassTint),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(radius),
+          child: child,
+        ),
       );
     }
-    final shape = RoundedSuperellipseBorder(
+    // Glisse's shape, so turning glass off keeps every outline.
+    final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(radius),
       side: const BorderSide(color: _solidRim),
     );
@@ -456,8 +482,8 @@ class GlassFab extends StatelessWidget {
       ),
     );
     if (SolidGlass.of(context)) return button;
-    // swells and stretches under the finger, like the tab bar
-    return LiquidStretch(interactionScale: 1.05, child: button);
+    // swells and stretches under the finger, like Glisse's buttons
+    return g.GlassPressable(child: button);
   }
 }
 

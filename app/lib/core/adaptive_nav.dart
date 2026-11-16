@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import 'glass.dart';
@@ -59,7 +57,6 @@ class AdaptiveNavScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final safe = MediaQuery.paddingOf(context);
     if (!context.useNavRail) {
-      final width = MediaQuery.sizeOf(context).width;
       return Scaffold(
         resizeToAvoidBottomInset: false,
         body: Stack(
@@ -71,13 +68,6 @@ class AdaptiveNavScaffold extends StatelessWidget {
               ),
             ),
             GlassTabBar(
-              width: math.min(
-                width - 32,
-                360 +
-                    (action == null
-                        ? 0
-                        : kGlassTabBarHeight + kGlassBarActionGap),
-              ),
               action: action,
               selectedIndex: selectedIndex,
               onChanged: onSelected,

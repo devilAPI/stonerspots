@@ -21,7 +21,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
+import 'package:glisse/glisse.dart' as g;
 
 const phone = Size(400, 800);
 const desktop = Size(1400, 900);
@@ -104,10 +104,9 @@ Future<void> pumpIn(
 
 /// Nothing of the glass engine in the tree: no backdrop read at all.
 void expectNoGlass() {
-  expect(find.byType(LiquidGlass), findsNothing);
-  expect(find.byType(LiquidGlassLayer), findsNothing);
-  expect(find.byType(LoupeTabBar), findsNothing);
-  expect(find.byType(LiquidStretch), findsNothing);
+  expect(find.byType(g.LiquidGlassBox), findsNothing);
+  expect(find.byType(g.GlassTabBar<int>), findsNothing);
+  expect(find.byType(g.GlassPressable), findsNothing);
   expect(find.byType(BackdropFilter), findsNothing);
 }
 
@@ -131,7 +130,7 @@ void main() {
   group('GlassSurface', () {
     testWidgets('is a lens by default', (t) async {
       await pumpIn(t, const GlassSurface(child: Text('hi')), solid: false);
-      expect(find.byType(LiquidGlass), findsOneWidget);
+      expect(find.byType(g.LiquidGlassBox), findsOneWidget);
     });
 
     testWidgets('solid: no lens, and nothing shines through', (t) async {
@@ -323,10 +322,10 @@ void main() {
           body: const Center(child: Text('body')),
         ),
         [
-          // glass tabs draw their icons as text, and every tab twice
-          find.text('Map').first,
-          find.text('Feed').first,
-          find.text('Profile').first,
+          // Glisse paints the glass tabs' labels: find them as tabs
+          find.bySemanticsLabel('Map').first,
+          find.bySemanticsLabel('Feed').first,
+          find.bySemanticsLabel('Profile').first,
           find.text('body'),
         ],
         padding: const EdgeInsets.only(bottom: 30),
@@ -416,7 +415,6 @@ void main() {
             body: Stack(
               children: [
                 GlassTabBar(
-                  width: 360,
                   items: tabs,
                   selectedIndex: picked.isEmpty ? 0 : picked.last,
                   onChanged: (i) => setState(() => picked.add(i)),
@@ -523,7 +521,6 @@ void main() {
           Stack(
             children: [
               GlassTabBar(
-                width: 360,
                 items: tabs,
                 selectedIndex: 0,
                 onChanged: (_) {},
@@ -543,15 +540,21 @@ void main() {
         // a circle to the right of the tabs, as tall as they are
         expect(button.width, closeTo(kGlassTabBarHeight, 0.5));
         expect(button.height, closeTo(kGlassTabBarHeight, 0.5));
+        // the bar is centred, tabs then button
+        final barLeft =
+            (phone.width - glassTabBarWidth(tabs.length, action: true)) / 2;
         expect(
           button.left,
-          greaterThan(t.getRect(find.text('Map').first).right),
+          closeTo(
+            barLeft + glassTabBarWidth(tabs.length) + kGlassBarActionGap,
+            0.5,
+          ),
         );
         await t.tap(find.byKey(const Key('navSearch')));
         await t.pumpAndSettle();
         expect(searched, 1);
-        // the tabs still work beside it
-        expect(find.text('Profile'), findsWidgets);
+        // the tabs are still there beside it
+        expect(find.bySemanticsLabel('Profile'), findsWidgets);
       });
     }
 
@@ -582,7 +585,7 @@ void main() {
       addTearDown(t.view.reset);
       await t.pumpWidget(app(false));
       final state = key.currentState;
-      expect(find.byType(LoupeTabBar), findsOneWidget);
+      expect(find.byType(g.GlassTabBar<int>), findsOneWidget);
       await t.pumpWidget(app(true));
       await t.pump();
       expectNoGlass();

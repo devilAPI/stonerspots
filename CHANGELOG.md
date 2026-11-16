@@ -3,6 +3,18 @@
 Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
 "Releasing 1.0". Development builds (`dev-<n>`) are not listed here.
 
+## Unreleased
+
+- Glass is drawn by [Glisse](https://github.com/devilAPI/glisse-flutter)
+  instead of liquid_glass_renderer: bars, buttons, sheets and dialogs
+  bend their backdrop at the rim, frost it and light their edge as iOS
+  26's glass does. The tab bar is Glisse's: the selection springs between
+  tabs, follows a drag and lifts into a lens while held. It is as wide as
+  its tabs now, not a fixed width. Real glass needs only Impeller, no
+  longer Flutter GPU; the web and Skia get the frosted kind as before.
+- The vendored liquid_glass_renderer and the Flutter GPU switch in the
+  Android, iOS and macOS app config are gone.
+
 ## 1.0.13
 
 - Zone status of a spot said "Keine Verbotszone" where the map showed it
