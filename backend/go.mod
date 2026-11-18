@@ -10,8 +10,8 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/golang-migrate/migrate/v4 v4.20.1
 	github.com/paulmach/osm v0.9.0
-	golang.org/x/crypto v0.58.0
-	golang.org/x/image v0.47.0
+	golang.org/x/crypto v0.59.0
+	golang.org/x/image v0.48.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -23,6 +23,6 @@ require (
 	github.com/paulmach/protoscan v0.2.1 // indirect
 	github.com/tetratelabs/wazero v1.12.0 // indirect
 	go.mongodb.org/mongo-driver v1.17.7 // indirect
-	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
