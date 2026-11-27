@@ -2,7 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:glisse/glisse.dart' as g;
+import 'package:glisse_flutter/glisse_flutter.dart' as g;
 
 import 'device_insets.dart';
 

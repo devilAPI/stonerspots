@@ -2,7 +2,7 @@ import 'package:app/core/adaptive_nav.dart';
 import 'package:app/core/responsive.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:glisse/glisse.dart' as g;
+import 'package:glisse_flutter/glisse_flutter.dart' as g;
 
 const phonePortrait = Size(400, 800);
 const phoneLandscape = Size(844, 390);

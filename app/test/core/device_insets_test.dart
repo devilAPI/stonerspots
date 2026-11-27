@@ -2,7 +2,7 @@ import 'package:app/core/device_insets.dart';
 import 'package:app/core/glass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:glisse/glisse.dart' as g;
+import 'package:glisse_flutter/glisse_flutter.dart' as g;
 
 void main() {
   // An iPhone home-screen web app: Flutter's web engine reports no safe

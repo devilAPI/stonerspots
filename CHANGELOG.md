@@ -20,6 +20,8 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
   is taken.
 - The vendored liquid_glass_renderer and the Flutter GPU switch in the
   Android, iOS and macOS app config are gone.
+- Glisse comes from pub.dev as `glisse_flutter` 0.6.0 instead of a git
+  checkout of the older port.
 
 ## 1.0.13
 

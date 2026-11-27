@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:glisse/glisse.dart' as g;
+import 'package:glisse_flutter/glisse_flutter.dart' as g;
 
 import 'glass.dart';
 

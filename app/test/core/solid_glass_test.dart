@@ -22,7 +22,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:glisse/glisse.dart' as g;
+import 'package:glisse_flutter/glisse_flutter.dart' as g;
 
 const phone = Size(400, 800);
 const desktop = Size(1400, 900);
