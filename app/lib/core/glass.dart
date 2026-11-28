@@ -93,6 +93,15 @@ Future<void> initGlass() async {
   _realGlassAvailable = g.GlassShaders.program != null;
 }
 
+/// Resolution of the copy glass bends on the web, in device pixels per
+/// logical pixel. The web reads every copy back from the GPU, and Glisse
+/// spaces the next copy by four times the last one's cost, so a copy at the
+/// display's resolution can leave the glass hundreds of milliseconds behind
+/// what scrolls under it. A quarter resolution is a sixteenth of the pixels
+/// and keeps most copies below Glisse's throttling threshold, so the glass
+/// stays on the frame it belongs to; the frost hides the softer copy.
+const double kWebGlassBackdropPixelRatio = 0.25;
+
 /// [background] with the glass in [child] over it, bending it on every
 /// platform. Where glass reads only copies ([glassNeedsCopy]) this keeps a
 /// copy of [background], taken again after each frame it changed in; else,
@@ -115,6 +124,7 @@ class AppGlassBackdrop extends StatelessWidget {
         glassNeedsCopy &&
         !SolidGlass.of(context) &&
         !SolidGlass.fakeOf(context),
+    pixelRatio: kIsWeb ? kWebGlassBackdropPixelRatio : null,
     background: background,
     // Fills the space, whatever [child] is: the backdrop takes its size from
     // it, and a Stack of positioned children with one empty one (a hidden

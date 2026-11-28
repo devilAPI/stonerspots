@@ -22,6 +22,9 @@ Releases are the GitHub releases `vX.Y.Z`; how one is made is in the README,
   Android, iOS and macOS app config are gone.
 - Glisse comes from pub.dev as `glisse_flutter` 0.6.0 instead of a git
   checkout of the older port.
+- On the web, the backdrop a copy of is kept at a quarter resolution, so
+  Glisse's web copy throttling no longer leaves the glass behind the page
+  while it scrolls or the map moves.
 
 ## 1.0.13
 
